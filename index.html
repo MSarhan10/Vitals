@@ -613,7 +613,7 @@
             
             const hasPendingTasks = p.tasks && p.tasks.some(t => t.status === 'pending');
             const taskBtnClass = hasPendingTasks ? 'has-tasks' : '';
-            const taskBtnIcon = hasPendingTasks ? '❗' : '📝';
+            const taskBtnIcon = '📝';
 
             card.innerHTML = `
                 <div class="patient-header">
