@@ -1,6 +1,6 @@
 {
-  "name": "Sarhan Vitals",
-  "short_name": "Vitals",
+  "name": "MiriMate",
+  "short_name": "MiriMate",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#f0fdf4",
