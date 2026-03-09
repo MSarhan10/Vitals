@@ -215,6 +215,25 @@
         #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+
+#medscape-pill {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #0369a1; color: white; border-radius: 50px; padding: 10px 20px;
+    font-weight: 700; font-size: 1rem; z-index: 2000; box-shadow: 0 4px 15px rgba(3,105,161,0.4);
+    align-items: center; gap: 10px; cursor: pointer;
+    animation: pill-glow 2s ease-in-out infinite;
+}
+#medscape-pill:active { transform: translateX(-50%) scale(0.95); }
+#medscape-pill .pill-close {
+    background: rgba(255,255,255,0.3); border: none; color: white; 
+    border-radius: 50%; width: 24px; height: 24px; font-size: 0.8rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+@keyframes pill-glow {
+    0%, 100% { box-shadow: 0 4px 15px rgba(3,105,161,0.4); }
+    50% { box-shadow: 0 4px 20px rgba(3,105,161,0.7); }
+}
+        
     </style>
 </head>
 <body>
