@@ -233,19 +233,7 @@
 
     <div class="overlay" id="main-overlay" onclick="closeModals()"></div>
 
-    <!-- Toolbox Main Modal -->
-    <div class="center-modal" id="toolbox-modal">
-        <h2>🧰 Toolbox</h2>
-        <div class="btn-col">
-            <button class="btn-secondary" onclick="openStopwatch()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>⏱️</span> Stopwatch
-            </button>
-            <button class="btn-secondary" onclick="openAllTasks()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>📝</span> All Tasks
-            </button>
-        </div>
-        <button class="btn-secondary" style="margin-top: 15px; border:none; background:var(--bg);" onclick="closeModals()">Close</button>
-    </div>
+    
 
     <!-- Stopwatch Modal -->
     <div class="center-modal" id="stopwatch-modal">
@@ -263,7 +251,24 @@
     </div>
 
     <!-- All Tasks Bottom Sheet -->
-    <div class="bottom-sheet" id="all-tasks-sheet">
+    <div class="bottom<!-- Toolbox Main Modal -->
+<div class="center-modal" id="toolbox-modal">
+    <h2>🧰 Toolbox</h2>
+    <div class="btn-col">
+        <!-- ✅ ADD THIS BUTTON -->
+        <button class="btn-secondary" onclick="openMedscapeAI()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px; background: #e0f2fe; border-color: #7dd3fc; color: #0369a1;">
+            <span>🩺</span> Medscape AI
+        </button>
+        <!-- existing buttons below stay unchanged -->
+        <button class="btn-secondary" onclick="openStopwatch()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
+            <span>⏱️</span> Stopwatch
+        </button>
+        <button class="btn-secondary" onclick="openAllTasks()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
+            <span>📝</span> All Tasks
+        </button>
+    </div>
+    <button class="btn-secondary" style="margin-top: 15px; border:none; background:var(--bg);" onclick="closeModals()">Close</button>
+    </div>-sheet" id="all-tasks-sheet">
         <div class="numpad-header">
             <h2 style="color: var(--primary);">📝 All Tasks</h2>
             <button class="btn-add" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="openAddTaskModal('general')">+ Add General Task</button>
