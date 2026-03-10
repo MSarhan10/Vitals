@@ -2164,13 +2164,15 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             let html = `<div class="ddx-symp-group-title">Patient Symptoms</div>`;
             data.symptoms.forEach(symp => {
                 const isSel = ddxSelectedSymptoms.includes(symp);
-                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom('${symp}')">${symp}</div>`;
+                // We use backticks (\`) around ${symp} so apostrophes don't break the code
+                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${symp}\`)">${symp}</div>`;
             });
 
             html += `<div class="ddx-symp-group-title" style="margin-top:15px;">Clinical Signs</div>`;
             data.signs.forEach(sign => {
                 const isSel = ddxSelectedSymptoms.includes(sign);
-                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom('${sign}')">${sign}</div>`;
+                // We use backticks (\`) around ${sign} here too
+                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${sign}\`)">${sign}</div>`;
             });
 
             container.innerHTML = html;
@@ -2289,7 +2291,8 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             container.style.display = 'flex';
             let html = '';
             ddxSelectedSymptoms.forEach(symp => {
-                html += `<div class="ddx-active-chip">${symp} <span onclick="toggleDdxSymptom('${symp}')">✕</span></div>`;
+                // Notice the backticks (\`) around ${symp} inside the onclick
+                html += `<div class="ddx-active-chip">${symp} <span onclick="toggleDdxSymptom(\`${symp}\`)">✕</span></div>`;
             });
             container.innerHTML = html;
         }
