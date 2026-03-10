@@ -456,6 +456,7 @@
             <button onmousedown="event.preventDefault(); clearNotes()" title="Clear Notes" style="color: #b91c1c; background: #fee2e2; border: none; font-size: 1rem;">🗑️</button>
         </div>
         <div id="notes-editor" class="notes-editor" contenteditable="true" dir="auto" placeholder="Type case notes, plans, reminders..." oninput="autoSaveNotes()"></div>
+</div>
 
     <!-- Overdue Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="overdue-tasks-sheet">
@@ -1027,26 +1028,7 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
 
         
 
-        function autoSaveNotes() {
-            if (!editingPatientId) return;
-            const pInfo = findPatientAndRoom(editingPatientId);
-            if (pInfo && pInfo.patient) {
-                pInfo.patient.notes = document.getElementById('notes-editor').innerHTML;
-                saveData(); // Saves to local storage instantly
-                
-                // Smart UI Update: Only updates the button color so your typing doesn't lag
-                const card = document.querySelector(`.patient-card[data-patient-id="${editingPatientId}"]`);
-                if (card) {
-                    const noteBtn = Array.from(card.querySelectorAll('button')).find(btn => btn.title === 'Notes' || btn.innerText.includes('📝'));
-                    const hasNotes = pInfo.patient.notes && pInfo.patient.notes.trim() !== '' && pInfo.patient.notes !== '<br>';
-                    if (noteBtn) {
-                        if (hasNotes) noteBtn.classList.add('has-notes');
-                        else noteBtn.classList.remove('has-notes');
-                    }
-                }
-            }
-        }
-
+        
         
         // =============================================
         // TASKS SYSTEM & SWIPING
@@ -1400,9 +1382,9 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             document.getElementById('numpad-sheet').style.bottom = '-100%';
             document.getElementById('patient-menu-sheet').style.bottom = '-100%';
             document.getElementById('room-menu-sheet').style.bottom = '-100%';
-            document.getElementById('notes-modal').style.display = 'none';
             document.getElementById('all-tasks-sheet').style.bottom = '-100%';
             document.getElementById('overdue-tasks-sheet').style.bottom = '-100%';
+            document.getElementById('notes-modal').style.display = 'none';
             activeRoomId = null;
         }
 
@@ -1981,8 +1963,26 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         }
 
         function exportJSON() {
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" }));
-            a.download = `sarhan_vitals_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(a.href); showToast("Backup Downloaded");
+            const now = new Date();
+            const d = now.getDate();
+            const m = now.getMonth() + 1;
+            const y = now.getFullYear();
+            
+            let h = now.getHours();
+            const min = now.getMinutes().toString().padStart(2, '0');
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            h = h ? h : 12; // the hour '0' should be '12'
+            const hStr = h.toString().padStart(2, '0');
+            
+            const fileName = `MiriMate_session_${d}-${m}-${y}_${hStr}-${min}${ampm}.json`;
+
+            const a = document.createElement('a'); 
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(appData, null, 2)], { type: "application/json" }));
+            a.download = fileName; 
+            a.click(); 
+            URL.revokeObjectURL(a.href); 
+            showToast("Backup Downloaded");
         }
 
         function importJSON(event) {
