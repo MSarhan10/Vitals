@@ -108,11 +108,13 @@
             border-radius: 8px; padding: 4px 10px; margin-left: 6px; color: var(--text-main); font-weight: bold;
         }
         .patient-header-right button:active { background: var(--divider); }
-        .patient-header-right button.has-tasks { background: #ef4444; border-color: #b91c1c; color: white;  animation: pulse 1.5s infinite;}
+        .has-notes { background: var(--primary) !important; color: white !important; border-color: var(--primary-dark) !important; }
+        
+        .btn-secondary.has-tasks { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important;  animation: pulse 1.5s infinite;}
         
         @keyframes pulse {
             0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            70% { transform: scale(1.02); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
         @keyframes pulse-red {
@@ -130,11 +132,11 @@
         
         /* Universal Green Vital Box */
         .vital-box {
-    background-color: var(--vital-bg); 
-    color: var(--vital-text);
-    padding: 12px 8px; 
-    border-radius: 12px; 
-    text-align: center; cursor: pointer;
+            background-color: var(--vital-bg); 
+            color: var(--vital-text);
+            padding: 12px 8px; 
+            border-radius: 12px; 
+            text-align: center; cursor: pointer;
             user-select: none; display: flex; flex-direction: column; justify-content: center; min-height: 80px;
             transition: transform 0.1s, background-color 0.3s, color 0.3s;
         }
@@ -274,24 +276,46 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(24px); content: "🌙"; }
 
-        /* Medscape Floating Pill */
-        #medscape-pill {
-            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #0369a1; color: white; border-radius: 50px; padding: 10px 20px;
-            font-weight: 700; font-size: 1rem; z-index: 2000; box-shadow: 0 4px 15px rgba(3,105,161,0.4);
-            align-items: center; gap: 10px; cursor: pointer;
-            animation: pill-glow 2s ease-in-out infinite;
+        /* Notes Editor */
+        .notes-toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
+        .notes-toolbar button {
+            background: var(--surface); border: 1px solid var(--divider); border-radius: 8px;
+            width: 40px; height: 40px; font-size: 1.1rem; color: var(--text-main); cursor: pointer;
         }
-        #medscape-pill:active { transform: translateX(-50%) scale(0.95); }
-        #medscape-pill .pill-close {
-            background: rgba(255,255,255,0.3); border: none; color: white; 
-            border-radius: 50%; width: 24px; height: 24px; font-size: 0.8rem;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        .notes-toolbar button:active { background: var(--divider); }
+        /* Notes Editor & Floating Context Menu */
+        /* Notes Editor & Floating Context Menu */
+        /* Notes Editor & Floating Context Menu */
+        .notes-editor {
+            flex-grow: 1; border: 2px solid var(--divider); border-radius: 12px; padding: 12px;
+            background: var(--bg); color: var(--text-main); font-size: 1.1rem; overflow-y: auto;
+            min-height: 150px; outline: none; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+            padding-bottom: 60px; /* Space for scrolling */
+            unicode-bidi: plaintext;
+            text-align: start;
         }
-        @keyframes pill-glow {
-            0%, 100% { box-shadow: 0 4px 15px rgba(3,105,161,0.4); }
-            50% { box-shadow: 0 4px 20px rgba(3,105,161,0.7); }
+        
+        /* Forces every new line/element created by hitting "Enter" to calculate its own direction */
+        .notes-editor * {
+            unicode-bidi: plaintext;
+            text-align: start;
         }
+        .notes-editor:focus { border-color: var(--primary); }
+        .notes-editor:empty:before { content: attr(placeholder); color: var(--text-muted); pointer-events: none; display: block; }
+        
+        .format-tooltip {
+            position: fixed; background: #1e293b; color: white; padding: 6px 10px;
+            border-radius: 10px; display: none; align-items: center; gap: 8px;
+            z-index: 2100; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            transform: translateX(-50%); transition: opacity 0.2s;
+        }
+        .format-tooltip button {
+            background: transparent; border: none; color: white; font-size: 1.2rem;
+            cursor: pointer; padding: 4px 8px; border-radius: 6px; font-weight: bold;
+        }
+        .format-tooltip button:active { background: #334155; }
+        .format-divider { width: 1px; height: 20px; background: #475569; margin: 0 2px; }
+        .color-btn { width: 22px !important; height: 22px !important; border-radius: 50% !important; padding: 0 !important; cursor: pointer; border: 2px solid white !important; }
 
         /* Lab Modal */
         #lab-modal {
@@ -392,8 +416,8 @@
             <button class="btn-secondary btn-labs" onclick="openLabValues()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
                 <span>🔬</span> Lab Values
             </button>
-            <button class="btn-secondary" onclick="openAllTasks()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>📝</span> All Tasks
+            <button class="btn-secondary" id="btn-toolbox-tasks" onclick="openAllTasks()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
+                <span>✅</span> Tasks
             </button>
             <button class="btn-secondary" onclick="openStopwatch()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
                 <span>⏱️</span> Stopwatch
@@ -405,22 +429,38 @@
     <!-- All Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="all-tasks-sheet">
         <div class="numpad-header">
-            <h2 style="color: var(--primary);">📝 All Tasks</h2>
-            <button class="btn-add" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="openAddTaskModal('general')">+ General Task</button>
+            <h2 style="color: var(--primary);">✅ All Tasks</h2>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button style="background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 1.05rem; cursor: pointer;" onclick="openAddTaskModal()">+ Task</button>
+                <button style="background: #fee2e2; color: #b91c1c; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 1.05rem; cursor: pointer;" onclick="deleteAllTasks()">↺ Clear</button>
+            </div>
         </div>
         <div class="task-list-container" id="all-tasks-container"></div>
         <button class="btn-secondary" onclick="closeModals()">Close</button>
     </div>
 
-    <!-- Patient specific Tasks Bottom Sheet -->
-    <div class="bottom-sheet" id="tasks-sheet">
-        <div class="numpad-header">
-            <h2 id="tasks-title" style="color: var(--primary);">Patient Tasks</h2>
-            <button class="btn-add" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="openAddTaskModal('patient')">+ Add Task</button>
+    <!-- Notes Bottom Sheet -->
+    <div class="bottom-sheet" id="notes-sheet" style="display:flex; flex-direction:column; max-height:85vh;">
+        <div class="numpad-header" style="flex-shrink:0;">
+            <h2 id="notes-title" style="color: var(--primary);">Patient Notes</h2>
+            <button style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 16px; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="clearNotes()">🗑️ Clear</button>
         </div>
-        <div class="task-list-container" id="tasks-container"></div>
-        <button class="btn-secondary" onclick="closeModals()">Close</button>
-    </div>
+        
+        <div id="notes-editor" class="notes-editor" contenteditable="true" placeholder="Select text to format... case notes, plans, reminders..." oninput="autoSaveNotes()"></div>
+        
+        <!-- Floating Formatting Context Menu -->
+        <!-- Floating Formatting Context Menu -->
+        <div id="format-tooltip" class="format-tooltip">
+            <!-- Formatting -->
+            <button onmousedown="event.preventDefault(); applyFormat('bold')" title="Bold">B</button>
+            <button onmousedown="event.preventDefault(); applyFormat('underline')" title="Underline"><u>U</u></button>
+            <div class="format-divider"></div>
+            <!-- Colors -->
+            <button class="color-btn" style="background: #ef4444;" onmousedown="event.preventDefault(); applyFormat('foreColor', '#ef4444')" title="Red"></button>
+            <button class="color-btn" style="background: #4ade80;" onmousedown="event.preventDefault(); applyFormat('foreColor', '#4ade80')" title="Light Green"></button>
+            <!-- Reset All Formatting -->
+            <button class="color-btn" style="background: var(--text-main);" onmousedown="event.preventDefault(); clearAllFormatting()" title="Reset Formatting">↺</button>
+        </div>
 
     <!-- Overdue Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="overdue-tasks-sheet">
@@ -435,6 +475,11 @@
     <div class="center-modal" id="add-task-modal">
         <h2 id="add-task-title">New Task</h2>
         <input type="text" id="task-text-input" placeholder="Task description..." dir="auto">
+        
+        <select id="task-patient-select" style="margin-bottom: 15px;">
+            <option value="general">General (no patient)</option>
+        </select>
+        
         <div style="display: flex; gap: 15px; margin-bottom: 15px; font-weight: 600;">
             <label><input type="radio" name="task-type" value="normal" checked onchange="toggleTaskTimeInput(false)"> Normal</label>
             <label><input type="radio" name="task-type" value="timed" onchange="toggleTaskTimeInput(true)"> Timed</label>
@@ -559,12 +604,6 @@
     
     <div id="toast">Message</div>
 
-    <!-- Medscape Floating Pill -->
-    <div id="medscape-pill" onclick="focusMedscape()">
-        🩺 Medscape AI is Open — Switch Tab ↗
-        <button class="pill-close" onclick="event.stopPropagation(); closeMedscapePill()">✕</button>
-    </div>
-
     <!-- Lab Values Full-Screen Modal -->
     <div id="lab-modal">
         <div class="lab-header">
@@ -584,14 +623,13 @@
         // =============================================
         let appData = {
             rooms: [{ id: 'r1', name: 'Room 1', patients: [] }],
-            generalTasks: [], 
+            tasks: [], 
             settings: { tempUnit: 'C', stopwatchDuration: 15, theme: 'light' },
             notifiedTaskIds: [] 
         };
         
         let activeRoomId = null;
         let editingPatientId = null;
-        let globalTaskAddType = 'patient'; 
         let activeVitalInfo = { patientId: null, vitalKey: null };
         let mainThreadTimers = {}; 
 
@@ -605,11 +643,7 @@
             if (mainThreadTimers[task.id]) clearTimeout(mainThreadTimers[task.id]);
             
             mainThreadTimers[task.id] = setTimeout(() => {
-                let stillPending = false;
-                if (appData.generalTasks.find(tx => tx.id === task.id && tx.status === 'pending')) stillPending = true;
-                appData.rooms.forEach(r => r.patients.forEach(p => {
-                    if (p.tasks.find(tx => tx.id === task.id && tx.status === 'pending')) stillPending = true;
-                }));
+                let stillPending = appData.tasks.find(tx => tx.id === task.id && tx.status === 'pending');
                 
                 if (stillPending) {
                     playBeep(); 
@@ -636,14 +670,16 @@
         }
 
         function scheduleAllPendingAlerts() {
-            appData.generalTasks.forEach(t => {
-                if (t.type === 'timed' && t.status === 'pending' && t.time > Date.now()) scheduleLocalAlert(t, 'General Task');
+            appData.tasks.forEach(t => {
+                if (t.type === 'timed' && t.status === 'pending' && t.time > Date.now()) {
+                    let pName = 'General Task';
+                    if (t.patientId !== 'general') {
+                        const pInfo = findPatientAndRoom(t.patientId);
+                        if (pInfo) pName = pInfo.patient.name;
+                    }
+                    scheduleLocalAlert(t, pName);
+                }
             });
-            appData.rooms.forEach(r => r.patients.forEach(p => {
-                p.tasks.forEach(t => {
-                    if (t.type === 'timed' && t.status === 'pending' && t.time > Date.now()) scheduleLocalAlert(t, p.name);
-                });
-            }));
         }
 
         function checkOverdueTasks() {
@@ -651,24 +687,19 @@
             const now = Date.now();
             let overdueItems = [];
 
-            appData.generalTasks.forEach(t => {
+            appData.tasks.forEach(t => {
                 if (t.type === 'timed' && t.status === 'pending' && t.time <= now) {
                     if (!appData.notifiedTaskIds.includes(t.id)) {
-                        overdueItems.push({ task: t, patientName: 'General Task' });
+                        let pName = 'General Task';
+                        if (t.patientId !== 'general') {
+                            const pInfo = findPatientAndRoom(t.patientId);
+                            if (pInfo) pName = pInfo.patient.name;
+                        }
+                        overdueItems.push({ task: t, patientName: pName });
                         appData.notifiedTaskIds.push(t.id);
                     }
                 }
             });
-            appData.rooms.forEach(r => r.patients.forEach(p => {
-                p.tasks.forEach(t => {
-                    if (t.type === 'timed' && t.status === 'pending' && t.time <= now) {
-                        if (!appData.notifiedTaskIds.includes(t.id)) {
-                            overdueItems.push({ task: t, patientName: p.name });
-                            appData.notifiedTaskIds.push(t.id);
-                        }
-                    }
-                });
-            }));
 
             if (overdueItems.length > 0) {
                 saveData();
@@ -700,12 +731,47 @@
                 const legacy = localStorage.getItem('sarhan_vitals_v4') || localStorage.getItem('sarhan_vitals_v3');
                 if (legacy) appData = JSON.parse(legacy);
             }
-            if (!appData.generalTasks) appData.generalTasks = [];
+            
+            // Migration to new tasks structure & notes
+            if (!appData.tasks) {
+                appData.tasks = [];
+                
+                // Migrate generalTasks
+                if (appData.generalTasks) {
+                    appData.generalTasks.forEach(t => {
+                        t.patientId = 'general';
+                        appData.tasks.push(t);
+                    });
+                    delete appData.generalTasks;
+                }
+                
+                // Migrate patient tasks and init notes
+                appData.rooms.forEach(r => {
+                    r.patients.forEach(p => {
+                        if (p.tasks) {
+                            p.tasks.forEach(t => {
+                                t.patientId = p.id;
+                                appData.tasks.push(t);
+                            });
+                            delete p.tasks;
+                        }
+                        if (typeof p.notes === 'undefined') p.notes = "";
+                    });
+                });
+                saveData();
+            } else {
+                // Ensure notes exist on all patients
+                appData.rooms.forEach(r => {
+                    r.patients.forEach(p => {
+                        if (typeof p.notes === 'undefined') p.notes = "";
+                    });
+                });
+            }
+
             if (!appData.settings.theme) appData.settings.theme = 'light';
             appData.rooms.forEach(r => {
                 r.patients.forEach(p => {
                     if (!p.vitals.rbg) p.vitals.rbg = "";
-                    if (!p.tasks) p.tasks = [];
                 });
             });
             if (!appData.settings.stopwatchDuration) appData.settings.stopwatchDuration = 15;
@@ -756,15 +822,15 @@
             const container = document.getElementById('app-content');
             container.innerHTML = '';
 
-            const allOverdue = [];
-            appData.generalTasks.forEach(t => {
-                if (t.type === 'timed' && t.status === 'pending' && t.time <= Date.now()) allOverdue.push({ task: t });
-            });
-            appData.rooms.forEach(r => r.patients.forEach(p => {
-                p.tasks.forEach(t => {
-                    if (t.type === 'timed' && t.status === 'pending' && t.time <= Date.now()) allOverdue.push({ task: t, patient: p });
-                });
-            }));
+            const allOverdue = appData.tasks.filter(t => t.type === 'timed' && t.status === 'pending' && t.time <= Date.now());
+            
+            // Update Toolbox button pulsation (Pulsate if ANY task is pending)
+            const anyPending = appData.tasks.some(t => t.status === 'pending');
+            const tbTasksBtn = document.getElementById('btn-toolbox-tasks');
+            if (tbTasksBtn) {
+                if (anyPending) tbTasksBtn.classList.add('has-tasks');
+                else tbTasksBtn.classList.remove('has-tasks');
+            }
             
             if (allOverdue.length > 0) {
                 const banner = document.createElement('div');
@@ -774,7 +840,7 @@
                     <div class="overdue-banner-icon">🚨</div>
                     <div>
                         <div class="overdue-banner-text">${allOverdue.length} Overdue Task${allOverdue.length > 1 ? 's' : ''}!</div>
-                        <div class="overdue-banner-sub">${allOverdue.map(o => o.task.text).join(', ')}</div>
+                        <div class="overdue-banner-sub">${allOverdue.map(o => o.text).join(', ')}</div>
                     </div>
                 `;
                 container.appendChild(banner);
@@ -817,9 +883,8 @@
             card.className = 'patient-card';
             card.dataset.patientId = p.id;
             
-            const hasPendingTasks = p.tasks && p.tasks.some(t => t.status === 'pending');
-            const taskBtnClass = hasPendingTasks ? 'has-tasks' : '';
-            const taskBtnIcon = '📝';
+            const hasNotes = p.notes && p.notes.trim() !== '' && p.notes !== '<br>';
+            const notesBtnClass = hasNotes ? 'has-notes' : '';
 
             card.innerHTML = `
                 <div class="patient-header">
@@ -828,7 +893,7 @@
                     </div>
                     <div class="patient-header-right">
                         <div class="patient-name" dir="auto">${p.name}</div>
-                        <button class="${taskBtnClass}" onclick="openTasks(${p.id})" title="Tasks">${taskBtnIcon}</button>
+                        <button class="${notesBtnClass}" onclick="openNotes(${p.id})" title="Notes">📝</button>
                         <button onclick="openPatientMenu(${p.id})" title="Options">⋮</button>
                     </div>
                 </div>
@@ -875,12 +940,55 @@
         }
 
         // =============================================
+        // NOTES SYSTEM
+        // =============================================
+        function openNotes(patientId) {
+            editingPatientId = patientId;
+            const { patient } = findPatientAndRoom(patientId);
+            document.getElementById('notes-title').innerText = `${patient.name} Notes`;
+            document.getElementById('notes-editor').innerHTML = patient.notes || "";
+            showOverlay();
+            document.getElementById('notes-sheet').style.bottom = '0';
+        }
+
+        
+
+        function autoSaveNotes() {
+            if (!editingPatientId) return;
+            const pInfo = findPatientAndRoom(editingPatientId);
+            if (pInfo && pInfo.patient) {
+                pInfo.patient.notes = document.getElementById('notes-editor').innerHTML;
+                saveData(); // Saves to local storage instantly
+                
+                // Smart UI Update: Only updates the button color so your typing doesn't lag
+                const card = document.querySelector(`.patient-card[data-patient-id="${editingPatientId}"]`);
+                if (card) {
+                    const noteBtn = Array.from(card.querySelectorAll('button')).find(btn => btn.title === 'Notes' || btn.innerText.includes('📝'));
+                    const hasNotes = pInfo.patient.notes && pInfo.patient.notes.trim() !== '' && pInfo.patient.notes !== '<br>';
+                    if (noteBtn) {
+                        if (hasNotes) noteBtn.classList.add('has-notes');
+                        else noteBtn.classList.remove('has-notes');
+                    }
+                }
+            }
+        }
+
+        function clearNotes() {
+            if (confirm("Delete all notes for this patient?")) {
+                document.getElementById('notes-editor').innerHTML = "";
+                autoSaveNotes(); // Triggers the auto-save to clear it from memory
+                showToast("Notes deleted 🗑️");
+                closeModals();
+            }
+        }
+
+        // =============================================
         // TASKS SYSTEM & SWIPING
         // =============================================
 
         const SWIPE_HINT_HTML = `<div class="swipe-hint">👈 Swipe left to delete &nbsp;|&nbsp; Swipe right to complete 👉</div>`;
 
-        function createTaskElement(t, now, patientId) {
+        function createTaskElement(t, now) {
             const isOverdue = t.type === 'timed' && t.status === 'pending' && t.time <= now;
             
             const wrapper = document.createElement('div');
@@ -905,11 +1013,11 @@
                 </div>
             `;
             
-            bindSwipeEvents(wrapper, t, patientId);
+            bindSwipeEvents(wrapper, t);
             return wrapper;
         }
 
-        function bindSwipeEvents(wrapper, task, patientId) {
+        function bindSwipeEvents(wrapper, task) {
             const item = wrapper.querySelector('.task-item');
             const bgLeft = wrapper.querySelector('.task-bg-left');
             const bgRight = wrapper.querySelector('.task-bg-right');
@@ -947,10 +1055,10 @@
                 
                 if (currentX > 80 && task.status !== 'completed') {
                     item.style.transform = `translateX(100%)`;
-                    setTimeout(() => markTaskComplete(task.id, patientId), 200);
+                    setTimeout(() => markTaskComplete(task.id), 200);
                 } else if (currentX < -80) {
                     item.style.transform = `translateX(-100%)`;
-                    setTimeout(() => deleteTask(task.id, patientId), 200);
+                    setTimeout(() => deleteTask(task.id), 200);
                 } else {
                     item.style.transform = `translateX(0)`;
                 }
@@ -968,7 +1076,7 @@
             item.addEventListener('mouseup', () => { if (isDragging) endDrag(); });
         }
 
-        function buildGroupedTasksHTML(title, tasks, now, patientId) {
+        function buildGroupedTasksHTML(title, tasks, now) {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'patient-task-group';
             
@@ -978,41 +1086,8 @@
             header.innerText = title;
             groupDiv.appendChild(header);
 
-            tasks.forEach(t => groupDiv.appendChild(createTaskElement(t, now, patientId)));
+            tasks.forEach(t => groupDiv.appendChild(createTaskElement(t, now)));
             return groupDiv;
-        }
-
-        function openTasks(patientId) {
-            editingPatientId = patientId;
-            const { patient } = findPatientAndRoom(patientId);
-            document.getElementById('tasks-title').innerText = `${patient.name} Tasks`;
-            renderTasksList(patient);
-            showOverlay();
-            document.getElementById('tasks-sheet').style.bottom = '0';
-        }
-
-        function renderTasksList(patient) {
-            const container = document.getElementById('tasks-container');
-            container.innerHTML = '';
-            if (patient.tasks.length > 0) container.innerHTML = SWIPE_HINT_HTML;
-
-            const now = Date.now();
-            const pending = patient.tasks.filter(t => t.status === 'pending');
-            const completed = patient.tasks.filter(t => t.status === 'completed');
-
-            if (pending.length > 0) {
-                const title = document.createElement('div'); title.className = 'task-section-title'; title.innerText = 'Pending';
-                container.appendChild(title);
-                pending.forEach(t => container.appendChild(createTaskElement(t, now, patient.id)));
-            }
-            if (completed.length > 0) {
-                const title = document.createElement('div'); title.className = 'task-section-title'; title.innerText = 'Completed';
-                container.appendChild(title);
-                completed.forEach(t => container.appendChild(createTaskElement(t, now, patient.id)));
-            }
-            if (pending.length === 0 && completed.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">No tasks found.</div>`;
-            }
         }
 
         function openAllTasks() {
@@ -1023,67 +1098,74 @@
         }
 
         function renderAllTasksList() {
-    const container = document.getElementById('all-tasks-container');
-    container.innerHTML = '';
-    const now = Date.now();
+            const container = document.getElementById('all-tasks-container');
+            container.innerHTML = '';
+            const now = Date.now();
 
-    const generalPending = appData.generalTasks.filter(t => t.status === 'pending');
-    const generalCompleted = appData.generalTasks.filter(t => t.status === 'completed');
+            const pending = appData.tasks.filter(t => t.status === 'pending');
+            const completed = appData.tasks.filter(t => t.status === 'completed');
 
-    let patientPendingMap = new Map();
-    let patientCompletedMap = new Map();
+            let hasAny = (pending.length + completed.length) > 0;
+            if (hasAny) container.innerHTML = SWIPE_HINT_HTML; 
 
-    appData.rooms.forEach(r => r.patients.forEach(p => {
-        p.tasks.forEach(t => {
-            if(t.status === 'pending') {
-                if(!patientPendingMap.has(p.id)) patientPendingMap.set(p.id, {name: p.name, tasks: []});
-                patientPendingMap.get(p.id).tasks.push(t);
-            } else {
-                if(!patientCompletedMap.has(p.id)) patientCompletedMap.set(p.id, {name: p.name, tasks: []});
-                patientCompletedMap.get(p.id).tasks.push(t);
+            // Grouping logic
+            const groupTasks = (tasksList) => {
+                let general = [];
+                let patientMap = new Map();
+                
+                tasksList.forEach(t => {
+                    if (t.patientId === 'general') general.push(t);
+                    else {
+                        if (!patientMap.has(t.patientId)) {
+                            const pInfo = findPatientAndRoom(t.patientId);
+                            if (pInfo) {
+                                patientMap.set(t.patientId, { name: pInfo.patient.name, tasks: [] });
+                            } else {
+                                general.push(t); // Fallback if patient deleted
+                                return;
+                            }
+                        }
+                        patientMap.get(t.patientId).tasks.push(t);
+                    }
+                });
+                return { general, patientMap };
+            };
+
+            const pendingGroups = groupTasks(pending);
+            const completedGroups = groupTasks(completed);
+
+            if (pending.length > 0) {
+                let title = document.createElement('div'); 
+                title.className = 'task-section-title'; 
+                title.innerText = 'Pending Tasks';
+                container.appendChild(title);
+                
+                if (pendingGroups.general.length > 0) {
+                    container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', pendingGroups.general, now));
+                }
+                pendingGroups.patientMap.forEach((val, pId) => {
+                    container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now));
+                });
             }
-        });
-    }));
 
-    let hasAny = (generalPending.length + generalCompleted.length + patientPendingMap.size + patientCompletedMap.size) > 0;
-    
-    // This innerHTML is safe because it happens before we append any tasks
-    if (hasAny) container.innerHTML = SWIPE_HINT_HTML; 
+            if (completed.length > 0) {
+                let title = document.createElement('div'); 
+                title.className = 'task-section-title'; 
+                title.innerText = 'Completed Tasks';
+                container.appendChild(title);
+                
+                if (completedGroups.general.length > 0) {
+                    container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', completedGroups.general, now));
+                }
+                completedGroups.patientMap.forEach((val, pId) => {
+                    container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now));
+                });
+            }
 
-    if (generalPending.length > 0) {
-        let title = document.createElement('div'); 
-        title.className = 'task-section-title'; 
-        title.innerText = 'General Tasks (Pending)';
-        container.appendChild(title);
-        
-        container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', generalPending, now, 'general'));
-    }
-    
-    if (patientPendingMap.size > 0) {
-        let title = document.createElement('div'); 
-        title.className = 'task-section-title'; 
-        title.innerText = 'Patient Tasks (Pending)';
-        container.appendChild(title);
-        
-        patientPendingMap.forEach((val, pId) => {
-            container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now, pId));
-        });
-    }
-    
-    if (generalCompleted.length > 0 || patientCompletedMap.size > 0) {
-        let title = document.createElement('div'); 
-        title.className = 'task-section-title'; 
-        title.innerText = 'Completed Tasks';
-        container.appendChild(title);
-        
-        if(generalCompleted.length > 0) container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', generalCompleted, now, 'general'));
-        patientCompletedMap.forEach((val, pId) => container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now, pId)));
-    }
-
-    if (!hasAny) {
-        container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">No tasks found.</div>`;
-    }
-}
+            if (!hasAny) {
+                container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">No tasks found.</div>`;
+            }
+        }
 
         function openOverdueTasks() {
             renderOverdueTasksList();
@@ -1096,40 +1178,35 @@
             container.innerHTML = '';
             const now = Date.now();
 
-            let generalOverdue = [];
-            let patientOverdueMap = new Map();
+            const overdueTasks = appData.tasks.filter(t => t.type === 'timed' && t.status === 'pending' && t.time <= now);
 
-            appData.generalTasks.forEach(t => {
-                if (t.type === 'timed' && t.status === 'pending' && t.time <= now) generalOverdue.push(t);
-            });
-            appData.rooms.forEach(r => r.patients.forEach(p => {
-                p.tasks.forEach(t => {
-                    if (t.type === 'timed' && t.status === 'pending' && t.time <= now) {
-                        if(!patientOverdueMap.has(p.id)) patientOverdueMap.set(p.id, {name: p.name, tasks: []});
-                        patientOverdueMap.get(p.id).tasks.push(t);
+            if (overdueTasks.length > 0) {
+                container.innerHTML = SWIPE_HINT_HTML;
+                
+                let general = [];
+                let patientMap = new Map();
+                
+                overdueTasks.forEach(t => {
+                    if (t.patientId === 'general') general.push(t);
+                    else {
+                        if (!patientMap.has(t.patientId)) {
+                            const pInfo = findPatientAndRoom(t.patientId);
+                            if (pInfo) patientMap.set(t.patientId, { name: pInfo.patient.name, tasks: [] });
+                            else general.push(t);
+                        }
+                        if (patientMap.has(t.patientId)) patientMap.get(t.patientId).tasks.push(t);
                     }
                 });
-            }));
 
-            let hasOverdue = false;
-            if (generalOverdue.length > 0 || patientOverdueMap.size > 0) {
-                hasOverdue = true;
-                container.innerHTML = SWIPE_HINT_HTML;
-            }
-
-            if (generalOverdue.length > 0) container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', generalOverdue, now, 'general'));
-            if (patientOverdueMap.size > 0) {
-                patientOverdueMap.forEach((val, pId) => container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now, pId)));
-            }
-
-            if (!hasOverdue) {
+                if (general.length > 0) container.appendChild(buildGroupedTasksHTML('🌐 General Tasks', general, now));
+                patientMap.forEach((val, pId) => container.appendChild(buildGroupedTasksHTML(`👤 ${val.name}`, val.tasks, now)));
+            } else {
                 container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted);">No overdue tasks! 🎉</div>`;
                 renderUI(); 
             }
         }
 
-        function openAddTaskModal(type) {
-            globalTaskAddType = type;
+        function openAddTaskModal() {
             document.getElementById('task-text-input').value = "";
             document.querySelector('input[name="task-type"][value="normal"]').checked = true;
             toggleTaskTimeInput(false);
@@ -1138,7 +1215,17 @@
             now.setMinutes(now.getMinutes() + 5 - now.getTimezoneOffset());
             document.getElementById('task-time-input').value = now.toISOString().slice(0, 16);
             
-            document.getElementById('add-task-title').innerText = type === 'general' ? "New General Task" : "New Task";
+            const select = document.getElementById('task-patient-select');
+            select.innerHTML = '<option value="general">General (no patient)</option>';
+            appData.rooms.forEach(r => {
+                r.patients.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.innerText = `${p.name} (${r.name})`;
+                    select.appendChild(opt);
+                });
+            });
+
             document.getElementById('add-task-modal').style.display = 'block';
             setTimeout(() => { document.getElementById('add-task-modal').style.opacity = '1'; }, 10);
         }
@@ -1159,31 +1246,28 @@
                 taskTime = new Date(timeStr).getTime();
             }
 
-            const newTask = { id: Date.now(), text: text, type: isTimed ? 'timed' : 'normal', time: taskTime, status: 'pending' };
+            const patientIdVal = document.getElementById('task-patient-select').value;
+            const patientId = patientIdVal === 'general' ? 'general' : parseInt(patientIdVal);
 
-            if (globalTaskAddType === 'general') {
-                appData.generalTasks.push(newTask);
-                saveData(); renderAllTasksList();
-                if (isTimed) scheduleLocalAlert(newTask, 'General Task');
-            } else {
-                const { patient } = findPatientAndRoom(editingPatientId);
-                patient.tasks.push(newTask);
-                saveData(); renderTasksList(patient);
-                if (isTimed) scheduleLocalAlert(newTask, patient.name);
+            const newTask = { id: Date.now(), text: text, type: isTimed ? 'timed' : 'normal', time: taskTime, status: 'pending', patientId: patientId };
+
+            appData.tasks.push(newTask);
+            saveData(); 
+            renderAllTasksList();
+
+            let patientName = 'General Task';
+            if (patientId !== 'general') {
+                const p = findPatientAndRoom(patientId);
+                if (p) patientName = p.patient.name;
             }
+            if (isTimed) scheduleLocalAlert(newTask, patientName);
 
             renderUI();
             document.getElementById('add-task-modal').style.display = 'none';
         }
 
-        function markTaskComplete(taskId, patientId) {
-            let task = null;
-            if (patientId === 'general') task = appData.generalTasks.find(t => t.id === taskId);
-            else {
-                const { patient } = findPatientAndRoom(patientId);
-                if (patient) task = patient.tasks.find(t => t.id === taskId);
-            }
-
+        function markTaskComplete(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
             if (task) {
                 task.status = 'completed';
                 cancelLocalAlert(taskId);
@@ -1192,19 +1276,11 @@
             }
         }
 
-        function deleteTask(taskId, patientId) {
-            if (patientId === 'general') {
-                const deletedTask = appData.generalTasks.find(t => t.id === taskId);
-                if (deletedTask && deletedTask.type === 'timed') cancelLocalAlert(taskId);
-                appData.generalTasks = appData.generalTasks.filter(t => t.id !== taskId);
-            } else {
-                const { patient } = findPatientAndRoom(patientId);
-                if (patient) {
-                    const deletedTask = patient.tasks.find(t => t.id === taskId);
-                    if (deletedTask && deletedTask.type === 'timed') cancelLocalAlert(taskId);
-                    patient.tasks = patient.tasks.filter(t => t.id !== taskId);
-                }
-            }
+        function deleteTask(taskId) {
+            const deletedTask = appData.tasks.find(t => t.id === taskId);
+            if (deletedTask && deletedTask.type === 'timed') cancelLocalAlert(taskId);
+            appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+            
             appData.notifiedTaskIds = (appData.notifiedTaskIds || []).filter(id => id !== taskId);
             saveData(); refreshOpenTaskMenus(); renderUI();
         }
@@ -1212,12 +1288,6 @@
         function refreshOpenTaskMenus() {
             if (document.getElementById('all-tasks-sheet').style.bottom === '0px') renderAllTasksList();
             if (document.getElementById('overdue-tasks-sheet').style.bottom === '0px') renderOverdueTasksList();
-            if (document.getElementById('tasks-sheet').style.bottom === '0px' && editingPatientId) {
-                if (editingPatientId !== 'general') {
-                    const p = findPatientAndRoom(editingPatientId);
-                    if (p) renderTasksList(p.patient);
-                }
-            }
         }
 
         // =============================================
@@ -1264,7 +1334,7 @@
             document.getElementById('numpad-sheet').style.bottom = '-100%';
             document.getElementById('patient-menu-sheet').style.bottom = '-100%';
             document.getElementById('room-menu-sheet').style.bottom = '-100%';
-            document.getElementById('tasks-sheet').style.bottom = '-100%';
+            document.getElementById('notes-sheet').style.bottom = '-100%';
             document.getElementById('all-tasks-sheet').style.bottom = '-100%';
             document.getElementById('overdue-tasks-sheet').style.bottom = '-100%';
             activeRoomId = null;
@@ -1381,6 +1451,10 @@
             const room = appData.rooms.find(r => r.id === activeRoomId);
             if (room.patients.length > 0 && !confirm(`Room "${room.name}" has patients! Delete anyway?`)) return;
             else if (room.patients.length === 0 && !confirm("Delete this room?")) return;
+            
+            const patientIds = room.patients.map(p => p.id);
+            appData.tasks = appData.tasks.filter(t => !patientIds.includes(t.patientId));
+            
             appData.rooms = appData.rooms.filter(r => r.id !== activeRoomId);
             saveData(); renderUI(); closeModals();
         }
@@ -1435,7 +1509,7 @@
             if (editingPatientId) findPatientAndRoom(editingPatientId).patient.name = name;
             else if (activeRoomId) {
                 appData.rooms.find(r => r.id === activeRoomId).patients.push({
-                    id: Date.now(), name: name, vitals: { hr: "", bp: "", temp: "", spo2: "", rr: "", rbg: "" }, tasks: []
+                    id: Date.now(), name: name, vitals: { hr: "", bp: "", temp: "", spo2: "", rr: "", rbg: "" }, notes: ""
                 });
             }
             saveData(); renderUI(); closeModals();
@@ -1450,6 +1524,7 @@
         function deletePatientFromMenu() {
             if (confirm("Delete this patient?")) {
                 appData.rooms.forEach(r => r.patients = r.patients.filter(p => p.id !== editingPatientId));
+                appData.tasks = appData.tasks.filter(t => t.patientId !== editingPatientId);
                 saveData(); renderUI(); closeModals();
             }
         }
@@ -1604,46 +1679,9 @@
         // =============================================
         // MEDSCAPE & LAB VALUES
         // =============================================
-        let medscapeWindow = null;
-        let medscapeChecker = null;
-
         function openMedscapeAI() {
             closeModals();
-            if (medscapeWindow && !medscapeWindow.closed) {
-                try { medscapeWindow.focus(); } catch(e) {}
-                showToast("Medscape AI is already open — switch tabs to find it");
-                return;
-            }
-            medscapeWindow = window.open('https://www.medscape.com/ai-search', '_blank');
-            showMedscapePill();
-        }
-
-        function showMedscapePill() {
-            const pill = document.getElementById('medscape-pill');
-            pill.style.display = 'flex';
-            if (medscapeChecker) clearInterval(medscapeChecker);
-            medscapeChecker = setInterval(() => {
-                if (!medscapeWindow || medscapeWindow.closed) {
-                    pill.style.display = 'none';
-                    medscapeWindow = null;
-                    clearInterval(medscapeChecker);
-                    medscapeChecker = null;
-                }
-            }, 2000);
-        }
-
-        function focusMedscape() {
-            if (medscapeWindow && !medscapeWindow.closed) {
-                try { medscapeWindow.focus(); } catch(e) {}
-                showToast("Switch to the Medscape tab in your browser ↗");
-            } else { openMedscapeAI(); }
-        }
-
-        function closeMedscapePill() {
-            document.getElementById('medscape-pill').style.display = 'none';
-            if (medscapeWindow && !medscapeWindow.closed) { try { medscapeWindow.close(); } catch(e) {} }
-            medscapeWindow = null;
-            if (medscapeChecker) { clearInterval(medscapeChecker); medscapeChecker = null; }
+            window.open('https://www.medscape.com/ai-search', '_blank');
         }
 
         const LAB_DATA = [
@@ -1886,10 +1924,107 @@
             reader.onload = function (e) {
                 try {
                     const data = JSON.parse(e.target.result); if (data.rooms) appData = data;
-                    if(!appData.generalTasks) appData.generalTasks = [];
+                    if(!appData.tasks) appData.tasks = [];
+                    // Ensure notes property exists for old imports
+                    appData.rooms.forEach(r => r.patients.forEach(p => {
+                        if (typeof p.notes === 'undefined') p.notes = "";
+                    }));
                     saveData(); renderUI(); closeModals(); showToast("Data Loaded"); scheduleAllPendingAlerts();
                 } catch (err) { showToast("Invalid file"); }
             }; reader.readAsText(file); event.target.value = '';
+        }
+
+// =============================================
+        // NOTES FLOATING CONTEXT MENU
+        // =============================================
+        const editorEl = document.getElementById('notes-editor');
+        const formatTooltip = document.getElementById('format-tooltip');
+
+        function checkTextSelection() {
+            setTimeout(() => { // small delay for mobile touch event settling
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed && editorEl.contains(selection.anchorNode)) {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    
+                    formatTooltip.style.display = 'flex';
+                    
+                    // Center horizontally
+                    let leftPos = rect.left + (rect.width / 2);
+                    // Prevent tooltip from overflowing screen edges horizontally
+                    if (leftPos < 100) leftPos = 100;
+                    if (leftPos > window.innerWidth - 100) leftPos = window.innerWidth - 100;
+                    
+                    // Position BELOW the text (to avoid native mobile menu overlapping)
+                    let topPos = rect.bottom + 15; 
+                    
+                    // Fallback to top if there isn't enough space at the bottom of the screen
+                    if (topPos + 50 > window.innerHeight) {
+                        topPos = rect.top - 50; 
+                    }
+                    
+                    formatTooltip.style.left = leftPos + 'px';
+                    formatTooltip.style.top = topPos + 'px'; 
+                } else {
+                    formatTooltip.style.display = 'none';
+                }
+            }, 50);
+        }
+
+        function applyFormat(command, value = null) {
+            // This forces the browser to use modern CSS styling instead of legacy HTML tags.
+            // This fixes the bug where the underline is a different color than the text!
+            document.execCommand('styleWithCSS', false, true);
+            
+            document.execCommand(command, false, value);
+            editorEl.focus();
+            checkTextSelection();
+        }
+
+        function clearAllFormatting() {
+            // Removes Bold, Underline, etc.
+            document.execCommand('removeFormat', false, null);
+            
+            // Cleans up any lingering color styles
+            document.execCommand('styleWithCSS', false, false);
+            document.execCommand('foreColor', false, '');
+            
+            editorEl.focus();
+            checkTextSelection();
+        }
+
+        // Attach listeners for selection events
+        ['mouseup', 'keyup', 'touchend'].forEach(evt => {
+            editorEl.addEventListener(evt, checkTextSelection);
+        });
+
+        // Hide tooltip if typing normally or scrolling
+        editorEl.addEventListener('input', () => formatTooltip.style.display = 'none');
+        editorEl.addEventListener('scroll', () => formatTooltip.style.display = 'none');
+        
+        // Hide if clicking elsewhere
+        document.addEventListener('mousedown', (e) => {
+            if (!formatTooltip.contains(e.target) && !editorEl.contains(e.target)) {
+                formatTooltip.style.display = 'none';
+            }
+        });
+
+        // =============================================
+        // DELETE ALL TASKS LOGIC
+        // =============================================
+        function deleteAllTasks() {
+            if (appData.tasks.length === 0) return showToast("No tasks to delete");
+            if (confirm("Are you sure you want to permanently delete ALL tasks?")) {
+                // Clear active timeouts
+                appData.tasks.forEach(t => cancelLocalAlert(t.id));
+                
+                appData.tasks = [];
+                appData.notifiedTaskIds = [];
+                saveData();
+                renderAllTasksList();
+                renderUI();
+                showToast("All tasks deleted 🗑️");
+            }
         }
 
         function showToast(msg) {
