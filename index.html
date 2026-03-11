@@ -241,7 +241,17 @@
         .ddx-disease-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .ddx-score-badge { background: #fef9c3; color: #a16207; padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; }
         .ddx-feat-title { font-size: 0.95rem; color: var(--text-main); margin-top: 12px; font-weight: 800; text-transform: uppercase; }
-        .ddx-compact-list { margin: 4px 0 0 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); }
+        .ddx-compact-list { 
+    margin: 4px 0 0 0; 
+    font-size: 0.85rem; 
+    line-height: 1.4; 
+    color: var(--text-muted); 
+    word-break: normal;        /* Prevents splitting words like Hypo-tension */
+    overflow-wrap: break-word; /* Only breaks a word if it's wider than the card */
+    display: block;            /* Ensures it behaves as a full-width block */
+    width: 100%;               /* Forces it to use all available space in the card */
+}
+
         .ddx-compact-list span.matched { font-weight: 800; color: var(--primary-dark); }
         .ddx-compact-list span.normal { color: var(--text-muted); }
         .ddx-compact-separator { color: var(--divider); margin: 0 6px; font-weight: bold; }
@@ -2907,7 +2917,7 @@ function closeDdxSymptomsModal() {
                     const isMatched = matchedArr.includes(f);
                     return isMatched ? `<span class="matched">${f}</span>` : `<span class="normal">${f}</span>`;
                 });
-                return `<div class="ddx-compact-list">${items.join('<span class="ddx-compact-separator">|</span>')}</div>`;
+                return `<div class="ddx-compact-list">${items.join('<span class="ddx-compact-separator">-</span>')}</div>`;
             };
 
             let html = '';
