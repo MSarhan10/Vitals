@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mirimate-v10';
+const CACHE_NAME = 'mirimate-v11';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -36,28 +36,15 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    // Don't cache external sites (like Medscape)
-    if (url.origin !== location.origin) {
-        return;
+    // 1. NEVER cache the service worker itself or external sites
+    if (url.pathname.includes('sw.js') || url.origin !== location.origin) {
+        return; 
     }
 
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {
-            if (cachedResponse) {
-                // Serve from cache immediately, but also update cache in background
-                fetch(event.request).then(networkResponse => {
-                    if (networkResponse && networkResponse.status === 200) {
-                        caches.open(CACHE_NAME).then(cache => {
-                            cache.put(event.request, networkResponse);
-                        });
-                    }
-                }).catch(() => {});
-
-                return cachedResponse;
-            }
-
-            // Not in cache — fetch from network and cache it
-            return fetch(event.request).then(networkResponse => {
+            // 2. Stale-While-Revalidate Logic
+            const fetchPromise = fetch(event.request).then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => {
@@ -65,7 +52,14 @@ self.addEventListener('fetch', event => {
                     });
                 }
                 return networkResponse;
+            }).catch(() => {
+                // Return cached response if network fails
+                return cachedResponse;
             });
+
+            // Return cached version immediately if we have it, 
+            // otherwise wait for the network fetch
+            return cachedResponse || fetchPromise;
         })
     );
 });
