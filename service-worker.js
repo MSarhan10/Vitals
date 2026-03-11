@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mirimate-v11';
+const CACHE_NAME = 'mirimate-v12';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -19,32 +19,48 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// Activate — clean up old caches
+// Activate — clean up old caches, claim clients, THEN notify
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.keys().then(keys => {
-            return Promise.all(
-                keys.filter(key => key !== CACHE_NAME)
-                    .map(key => caches.delete(key))
-            );
-        })
+        caches.keys()
+            .then(keys => {
+                return Promise.all(
+                    keys.filter(key => key !== CACHE_NAME)
+                        .map(key => caches.delete(key))
+                );
+            })
+            .then(() => self.clients.claim())          // ← chained properly now
+            .then(() => self.clients.matchAll())
+            .then(clients => {
+                clients.forEach(client => {
+                    client.postMessage({ type: 'SW_UPDATED' }); // ← tell the page
+                });
+            })
     );
-    self.clients.claim();
 });
 
 // Fetch — serve from cache first, fall back to network
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    // 1. NEVER cache the service worker itself or external sites
-    if (url.pathname.includes('sw.js') || url.origin !== location.origin) {
-        return; 
+    if (url.origin !== location.origin) {
+        return;
     }
 
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {
-            // 2. Stale-While-Revalidate Logic
-            const fetchPromise = fetch(event.request).then(networkResponse => {
+            if (cachedResponse) {
+                fetch(event.request).then(networkResponse => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        caches.open(CACHE_NAME).then(cache => {
+                            cache.put(event.request, networkResponse);
+                        });
+                    }
+                }).catch(() => {});
+                return cachedResponse;
+            }
+
+            return fetch(event.request).then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => {
@@ -52,14 +68,7 @@ self.addEventListener('fetch', event => {
                     });
                 }
                 return networkResponse;
-            }).catch(() => {
-                // Return cached response if network fails
-                return cachedResponse;
             });
-
-            // Return cached version immediately if we have it, 
-            // otherwise wait for the network fetch
-            return cachedResponse || fetchPromise;
         })
     );
 });
