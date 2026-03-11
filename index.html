@@ -240,9 +240,11 @@
         .ddx-disease-card { background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--divider); margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
         .ddx-disease-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
         .ddx-score-badge { background: #fef9c3; color: #a16207; padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; }
-        .ddx-feat-title { font-size: 0.85rem; color: var(--text-muted); margin-top: 10px; font-weight: 700; text-transform: uppercase; }
-        .ddx-feat-list { margin: 4px 0 0 0; padding-left: 20px; font-size: 0.95rem; color: var(--text-main); }
-        .ddx-feat-list li.matched { font-weight: 800; color: var(--primary-dark); list-style-type: '✅ ';}
+        .ddx-feat-title { font-size: 0.95rem; color: var(--text-main); margin-top: 12px; font-weight: 800; text-transform: uppercase; }
+        .ddx-compact-list { margin: 4px 0 0 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); }
+        .ddx-compact-list span.matched { font-weight: 800; color: var(--primary-dark); }
+        .ddx-compact-list span.normal { color: var(--text-muted); }
+        .ddx-compact-separator { color: var(--divider); margin: 0 6px; font-weight: bold; }
 
         /* Swipeable Tasks Styling */
         .task-list-container { max-height: 40vh; overflow-x: hidden; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
@@ -327,9 +329,11 @@
         }
         .notes-toolbar {
             display: flex; gap: 6px; padding: 10px; background: var(--surface);
-            border-bottom: 1px solid var(--divider); flex-wrap: wrap; flex-shrink: 0;
-            align-items: center; justify-content: flex-start;
+            border-bottom: 1px solid var(--divider); flex-wrap: nowrap; flex-shrink: 0;
+            align-items: center; justify-content: flex-start; overflow-x: auto;
+            -webkit-overflow-scrolling: touch; -ms-overflow-style: none; scrollbar-width: none;
         }
+        .notes-toolbar::-webkit-scrollbar { display: none; }
         .notes-toolbar button {
             background: var(--bg); border: 1px solid var(--divider); border-radius: 6px;
             min-width: 36px; height: 36px; font-size: 1.1rem; color: var(--text-main);
@@ -344,6 +348,15 @@
             flex-grow: 1; padding: 16px; background: var(--bg); color: var(--text-main);
             font-size: 1.1rem; overflow-y: auto; outline: none; line-height: 1.6;
             white-space: pre-wrap; word-break: break-word; -webkit-overflow-scrolling: touch;
+        }
+        /* Reduce bullet padding and margins */
+        .notes-editor ul, .notes-editor ol {
+            padding-inline-start: 24px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+        .notes-editor li {
+            margin-bottom: 2px;
         }
         .notes-editor:empty:before { content: attr(placeholder); color: var(--text-muted); pointer-events: none; }
 
@@ -480,8 +493,8 @@
     <div id="notes-modal">
         <div class="notes-header">
             <button class="notes-header-close" onclick="closeNotes()">✕</button>
-            <span id="notes-title" style="font-weight:700; font-size:1.1rem;">Patient Notes</span>
-            <div style="width:38px;"></div>
+            <div style="flex-grow: 1;"></div>
+            <button onclick="clearNotes()" style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px;">🗑️ Clear Notes</button>
         </div>
         <div class="notes-toolbar">
             <button onmousedown="event.preventDefault(); formatNote('bold')" title="Bold">B</button>
@@ -490,14 +503,18 @@
             <button onmousedown="event.preventDefault(); formatNote('strikeThrough')" title="Strikethrough" style="text-decoration: line-through;">S</button>
             <div class="divider"></div>
             <button id="color-cycle-btn" class="color-btn" style="background: var(--text-main);" onmousedown="event.preventDefault(); cycleColor()" title="Cycle Color"></button>
+            <button onmousedown="event.preventDefault(); formatNote('removeFormat')" title="Reset Formatting" style="font-size: 1.1rem; font-weight: bold;">↺</button>
             <div class="divider"></div>
             <button onmousedown="event.preventDefault(); alignText('left')" title="Align Left">⬅️</button>
+            <button onmousedown="event.preventDefault(); alignText('center')" title="Align Center">⏺️</button>
             <button onmousedown="event.preventDefault(); alignText('right')" title="Align Right">➡️</button>
-            <div class="divider" style="margin-left: auto;"></div>
-            <button onmousedown="event.preventDefault(); clearNotes()" title="Clear Notes" style="color: #b91c1c; background: #fee2e2; border: none; font-size: 1rem;">🗑️</button>
+            <button onmousedown="event.preventDefault(); formatNote('insertUnorderedList')" title="List" style="font-size: 1.1rem; font-weight: bold;">☰</button>
         </div>
-        <div id="notes-editor" class="notes-editor" contenteditable="true" dir="auto" placeholder="Type case notes, plans, reminders..." oninput="autoSaveNotes()"></div>
-</div>
+        
+        <div id="notes-title" style="padding: 16px 16px 0 16px; font-weight: 800; font-size: 1.25rem; color: var(--primary-dark); background: var(--bg); flex-shrink: 0; text-align: center;">Patient Name</div>
+        
+        <div id="notes-editor" class="notes-editor" contenteditable="true" dir="auto" placeholder="Type case notes, plans, reminders..." oninput="autoSaveNotes()" style="padding-top: 10px;"></div>
+    </div>
 
     <!-- Overdue Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="overdue-tasks-sheet">
@@ -1012,7 +1029,7 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
         function openNotes(patientId) {
             editingPatientId = patientId;
             const { patient } = findPatientAndRoom(patientId);
-            document.getElementById('notes-title').innerText = `${patient.name} Notes`;
+            document.getElementById('notes-title').innerText = patient.name;
             document.getElementById('notes-editor').innerHTML = patient.notes || "";
             document.getElementById('notes-modal').style.display = 'flex';
             
@@ -1027,7 +1044,16 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
 
         function formatNote(command, value = null) {
             document.execCommand('styleWithCSS', false, true);
-            document.execCommand(command, false, value);
+            
+            if (command === 'removeFormat') {
+                document.execCommand('removeFormat', false, null);
+                // Escapes bullets/lists:
+                document.execCommand('outdent', false, null); 
+                document.execCommand('formatBlock', false, 'div');
+            } else {
+                document.execCommand(command, false, value);
+            }
+            
             document.getElementById('notes-editor').focus();
         }
 
@@ -1050,21 +1076,29 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         function alignText(alignDir) {
             document.execCommand('styleWithCSS', false, true);
             
-            // 1. Align the text visually
-            document.execCommand(alignDir === 'right' ? 'justifyRight' : 'justifyLeft', false, null);
-
-            // 2. Fix the cursor placement bug by explicitly setting the text direction
-            let node = window.getSelection().anchorNode;
-            if (node && node.nodeType === 3) node = node.parentNode; // Get parent if text node
+            let command = 'justifyLeft';
+            if (alignDir === 'right') command = 'justifyRight';
+            if (alignDir === 'center') command = 'justifyCenter';
             
-            // Find the block element wrapping the line
-            while (node && node.id !== 'notes-editor' && window.getComputedStyle(node).display !== 'block') {
-                if(node.parentNode) node = node.parentNode;
-                else break;
-            }
+            document.execCommand(command, false, null);
 
-            if (node && node.id !== 'notes-editor') {
-                node.setAttribute('dir', alignDir === 'right' ? 'rtl' : 'ltr');
+            // Force physical bullet placement to match text alignment
+            let sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                let node = sel.anchorNode;
+                // If the selection is a text node, grab its parent element
+                if (node && node.nodeType === 3) node = node.parentNode; 
+                
+                if (node && typeof node.closest === 'function') {
+                    // Apply direction to the list itself if inside a list, otherwise the text block
+                    let targetNode = node.closest('ul, ol') || node.closest('div, p, h1, h2, h3') || node;
+                    
+                    if (targetNode && targetNode.id !== 'notes-editor') {
+                        if (alignDir === 'left') targetNode.setAttribute('dir', 'ltr');
+                        if (alignDir === 'right') targetNode.setAttribute('dir', 'rtl');
+                        if (alignDir === 'center') targetNode.setAttribute('dir', 'auto');
+                    }
+                }
             }
             
             document.getElementById('notes-editor').focus();
@@ -2083,11 +2117,15 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             symptoms: {
                 git: {
                     symptoms: ["Abdominal pain", "Nausea", "Vomiting", "Diarrhea", "Constipation", "Heartburn", "Dysphagia", "Anorexia"],
-                    signs: ["Jaundice", "Right upper quadrant tenderness", "Rebound tenderness", "McBurney's point tenderness", "Hepatomegaly"]
+                    signs: ["Jaundice", "Right upper quadrant tenderness", "Rebound tenderness", "McBurney's point tenderness", "Hepatomegaly"],
+                    labs: ["Leukocytosis", "Elevated AST/ALT", "Elevated Lipase", "Elevated Bilirubin", "Anemia"],
+                    radiology: ["Free air under diaphragm", "Thickened appendix", "Dilated bowel loops", "Gallstones on US"]
                 },
                 resp: {
                     symptoms: ["Cough", "Shortness of breath", "Chest pain", "Hemoptysis"],
-                    signs: ["Wheezing", "Crackles", "Tachypnea", "Fever", "Cyanosis"]
+                    signs: ["Wheezing", "Crackles", "Tachypnea", "Fever", "Cyanosis"],
+                    labs: ["Elevated WBC", "Positive sputum culture", "Hypoxemia (low PaO2)", "Elevated D-Dimer"],
+                    radiology: ["Lobar infiltrate", "Pleural effusion", "Pneumothorax", "Ground-glass opacities"]
                 }
             },
             diseases: [
@@ -2096,21 +2134,27 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
                     system: "git",
                     medscapeLink: "https://emedicine.medscape.com/article/773895-overview",
                     keyFeatures: ["Abdominal pain", "McBurney's point tenderness", "Rebound tenderness"],
-                    possibleFeatures: ["Nausea", "Vomiting", "Fever", "Anorexia"]
+                    possibleFeatures: ["Nausea", "Vomiting", "Fever", "Anorexia"],
+                    labs: ["Leukocytosis"],
+                    radiology: ["Thickened appendix"]
                 },
                 {
                     name: "GERD (Gastroesophageal Reflux)",
                     system: "git",
-                    medscapeLink: "", // Leave empty if no link
+                    medscapeLink: "", 
                     keyFeatures: ["Heartburn", "Dysphagia"],
-                    possibleFeatures: ["Cough", "Nausea", "Chest pain"]
+                    possibleFeatures: ["Cough", "Nausea", "Chest pain"],
+                    labs: [],
+                    radiology: []
                 },
                 {
                     name: "Pneumonia",
                     system: "resp",
                     medscapeLink: "https://emedicine.medscape.com/article/300157-overview",
                     keyFeatures: ["Cough", "Fever", "Crackles", "Shortness of breath"],
-                    possibleFeatures: ["Chest pain", "Tachypnea", "Hemoptysis"]
+                    possibleFeatures: ["Chest pain", "Tachypnea", "Hemoptysis"],
+                    labs: ["Elevated WBC", "Hypoxemia (low PaO2)", "Positive sputum culture"],
+                    radiology: ["Lobar infiltrate", "Pleural effusion"]
                 }
             ]
         };
@@ -2161,31 +2205,30 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             const data = DDX_DATA.symptoms[sysId];
             if (!data) return;
 
-            let html = `<div class="ddx-symp-group-title">Patient Symptoms</div>`;
-            data.symptoms.forEach(symp => {
-                const isSel = ddxSelectedSymptoms.includes(symp);
-                // We use backticks (\`) around ${symp} so apostrophes don't break the code
-                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${symp}\`)">${symp}</div>`;
-            });
+            const renderGroup = (title, items) => {
+                if (!items || items.length === 0) return '';
+                let groupHtml = `<div class="ddx-symp-group-title" style="margin-top:15px;">${title}</div>`;
+                items.forEach(item => {
+                    const isSel = ddxSelectedSymptoms.includes(item);
+                    groupHtml += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${item}\`)">${item}</div>`;
+                });
+                return groupHtml;
+            };
 
-            html += `<div class="ddx-symp-group-title" style="margin-top:15px;">Clinical Signs</div>`;
-            data.signs.forEach(sign => {
-                const isSel = ddxSelectedSymptoms.includes(sign);
-                // We use backticks (\`) around ${sign} here too
-                html += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${sign}\`)">${sign}</div>`;
-            });
+            let html = renderGroup("Patient Symptoms", data.symptoms);
+            html += renderGroup("Clinical Signs", data.signs);
+            html += renderGroup("Labs", data.labs);
+            html += renderGroup("Radiology", data.radiology);
+
+            html = html.replace('style="margin-top:15px;"', ''); // Remove margin on the first element
 
             container.innerHTML = html;
         }
 
         function toggleDdxSymptom(feature) {
-            if (ddxSelectedSymptoms.includes(feature)) {
-                ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
-            } else {
-                ddxSelectedSymptoms.push(feature);
-            }
+            if (ddxSelectedSymptoms.includes(feature)) ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
+            else ddxSelectedSymptoms.push(feature);
             
-            // Sync with app data and save locally!
             appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
             saveData();
 
@@ -2206,20 +2249,20 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             let results = [];
 
             DDX_DATA.diseases.forEach(disease => {
-                // 1. Text Search Filter
                 if (query && !disease.name.toLowerCase().includes(query)) return;
 
-                // 2. Symptom Cross-Matching
                 let keyMatches = disease.keyFeatures.filter(f => ddxSelectedSymptoms.includes(f));
                 let possibleMatches = disease.possibleFeatures.filter(f => ddxSelectedSymptoms.includes(f));
+                let labMatches = (disease.labs || []).filter(f => ddxSelectedSymptoms.includes(f));
+                let radMatches = (disease.radiology || []).filter(f => ddxSelectedSymptoms.includes(f));
                 
-                // If we selected symptoms, the disease MUST match at least one to be shown
-                if (ddxSelectedSymptoms.length > 0 && keyMatches.length === 0 && possibleMatches.length === 0) return;
+                const totalMatches = keyMatches.length + possibleMatches.length + labMatches.length + radMatches.length;
+                
+                if (ddxSelectedSymptoms.length > 0 && totalMatches === 0) return;
 
-                // Score: Key features are weighted heavier
-                let score = (keyMatches.length * 2) + possibleMatches.length;
+                let score = (keyMatches.length * 2) + possibleMatches.length + labMatches.length + radMatches.length;
                 
-                results.push({ ...disease, keyMatches, possibleMatches, score });
+                results.push({ ...disease, keyMatches, possibleMatches, labMatches, radMatches, totalMatches, score });
             });
 
             results.sort((a, b) => b.score - a.score);
@@ -2229,33 +2272,40 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
                 return;
             }
 
+            const formatCompactList = (features, matchedArr) => {
+                if (!features || features.length === 0) return `<div class="ddx-compact-list"><span class="normal">None specified</span></div>`;
+                const items = features.map(f => {
+                    const isMatched = matchedArr.includes(f);
+                    return isMatched ? `<span class="matched">${f}</span>` : `<span class="normal">${f}</span>`;
+                });
+                return `<div class="ddx-compact-list">${items.join('<span class="ddx-compact-separator">|</span>')}</div>`;
+            };
+
             let html = '';
             results.forEach(d => {
-                const totalMatches = d.keyMatches.length + d.possibleMatches.length;
-                const matchBadge = totalMatches > 0 ? `<div class="ddx-score-badge">🎯 ${totalMatches} Matches</div>` : '';
+                const matchBadge = d.totalMatches > 0 ? `<div class="ddx-score-badge">🎯 ${d.totalMatches} Matches</div>` : '';
 
                 html += `<div class="ddx-disease-card">
                     <div class="ddx-disease-title">${d.name} ${matchBadge}</div>`;
 
-                // Key Features Rendering
-                html += `<div class="ddx-feat-title">🔑 Key Features</div><ul class="ddx-feat-list">`;
-                d.keyFeatures.forEach(f => {
-                    const matched = d.keyMatches.includes(f) ? 'class="matched"' : '';
-                    html += `<li ${matched}>${f}</li>`;
-                });
-                html += `</ul>`;
+                html += `<div class="ddx-feat-title">🔑 Key Features</div>`;
+                html += formatCompactList(d.keyFeatures, d.keyMatches);
 
-                // Possible Features Rendering
-                html += `<div class="ddx-feat-title">📋 Possible Features</div><ul class="ddx-feat-list">`;
-                d.possibleFeatures.forEach(f => {
-                    const matched = d.possibleMatches.includes(f) ? 'class="matched"' : '';
-                    html += `<li ${matched}>${f}</li>`;
-                });
-                html += `</ul>`;
+                html += `<div class="ddx-feat-title">📋 Possible Features</div>`;
+                html += formatCompactList(d.possibleFeatures, d.possibleMatches);
+
+                if (d.labs && d.labs.length > 0) {
+                    html += `<div class="ddx-feat-title">🧪 Labs</div>`;
+                    html += formatCompactList(d.labs, d.labMatches);
+                }
+
+                if (d.radiology && d.radiology.length > 0) {
+                    html += `<div class="ddx-feat-title">🩻 Radiology</div>`;
+                    html += formatCompactList(d.radiology, d.radMatches);
+                }
                 
-                // Medscape Link Button (Smaller and Aligned Right)
                 if (d.medscapeLink && d.medscapeLink.trim() !== '') {
-                    html += `<div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                    html += `<div style="display: flex; justify-content: flex-end; margin-top: 12px;">
                                  <a href="${d.medscapeLink}" target="_blank" class="ddx-medscape-link" style="font-size: 0.75rem; padding: 5px 10px; margin-top: 0;">🔗 Read on Medscape</a>
                              </div>`;
                 }
@@ -2265,6 +2315,22 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
 
             container.innerHTML = html;
         }
+
+        function toggleDdxSymptom(feature) {
+            if (ddxSelectedSymptoms.includes(feature)) {
+                ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
+            } else {
+                ddxSelectedSymptoms.push(feature);
+            }
+            
+            // Sync with app data and save locally!
+            appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
+            saveData();
+
+            if (ddxActiveSystem) renderDdxSymptomsPanel(ddxActiveSystem);
+            updateDdxResults();
+        }
+
 
         function renderDdxSystems() {
             const bar = document.getElementById('ddx-systems-bar');
@@ -2319,6 +2385,42 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             const toast = document.getElementById("toast"); toast.innerText = msg; toast.className = "show";
             setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
         }
+
+// =============================================
+// SERVICE WORKER REGISTRATION & AUTO-UPDATE
+// =============================================
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // Check for updates on a loop (every 30 mins) or when page is focused
+            setInterval(() => { reg.update(); }, 1000 * 60 * 30);
+
+            reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed') {
+                        if (navigator.serviceWorker.controller) {
+                            // New content is available; show toast then reload
+                            showToast("Updating MiriMate... 🔄");
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        }
+                    }
+                };
+            };
+        }).catch(err => console.error("SW Register Error:", err));
+    });
+
+    // Handle the actual controller change (the reload)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+        }
+    });
+}
 
     </script>
 </body>
