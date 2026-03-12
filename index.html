@@ -1971,6 +1971,7 @@ function toggleRoomCollapse(roomId) {
                     let currVal = parseFloat(val.split('/')[0]);
                     if (currVal > prevVal) arrow = '↑ ';
                     else if (currVal < prevVal) arrow = '↓ ';
+                    else arrow = '— '; // Added the em-dash for static/unchanged entries
                 }
 
                 html += `<span style="background: ${bgColor}; color: ${textColor}; padding: 3px 8px; border-radius: 8px; font-size: 0.8rem; border: 1px solid ${textColor}40;">${arrow}${val}</span>`;
@@ -2214,11 +2215,10 @@ function toggleRoomCollapse(roomId) {
             }
 
             const { patient } = findPatientAndRoom(activeVitalInfo.patientId);
-            let oldVal = patient.vitals[activeVitalInfo.vitalKey] || "";
             patient.vitals[activeVitalInfo.vitalKey] = val;
             
-            // Log to History if the value actually changed (avoids duplicates from accidental saves)
-            if (val !== "" && val !== oldVal) {
+            // Log to History AS LONG AS it's not empty (Allows saving identical values now)
+            if (val !== "") {
                 if (!patient.vitalHistory) patient.vitalHistory = {};
                 if (!patient.vitalHistory[activeVitalInfo.vitalKey]) patient.vitalHistory[activeVitalInfo.vitalKey] = [];
                 
