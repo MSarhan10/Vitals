@@ -425,6 +425,14 @@
         :root[data-theme="dark"] .lab-range .male { color: #60a5fa; }
         :root[data-theme="dark"] .lab-range .female { color: #f472b6; }
 
+/* Prevent background scrolling and "ghost" clicks */
+html.modal-open, body.modal-open {
+    overflow: hidden !important;
+    height: 100% !important;
+    position: fixed !important;
+    width: 100% !important;
+}
+
 /* Floating Add Patient Button */
         .fab-add {
             position: fixed; bottom: 24px; right: 24px;
@@ -1191,24 +1199,32 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
             return null;
         }
 
+function lockScroll() {
+            document.documentElement.classList.add('modal-open');
+            document.body.classList.add('modal-open');
+        }
+
+        function unlockScroll() {
+            document.documentElement.classList.remove('modal-open');
+            document.body.classList.remove('modal-open');
+        }
+
         // =============================================
         // NOTES SYSTEM
         // =============================================
         function openNotes(patientId) {
-            document.body.style.overflow = 'hidden'; // Lock background
+            lockScroll();
             editingPatientId = patientId;
             const { patient } = findPatientAndRoom(patientId);
             document.getElementById('notes-title').innerText = patient.name;
             document.getElementById('notes-editor').innerHTML = patient.notes || "";
             document.getElementById('notes-modal').style.display = 'flex';
-            
-            // Reset Color button
             currentColorIndex = 0;
             document.getElementById('color-cycle-btn').style.background = 'var(--text-main)';
         }
 
         function closeNotes() {
-            document.body.style.overflow = ''; // Unlock background
+            unlockScroll();
             document.getElementById('notes-modal').style.display = 'none';
         }
 
@@ -1658,14 +1674,14 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         // OVERLAYS & MODALS
         // =============================================
         function showOverlay() {
-            document.body.style.overflow = 'hidden'; // Locks background scrolling
+            lockScroll(); 
             const overlay = document.getElementById('main-overlay');
             overlay.style.display = 'block';
             setTimeout(() => overlay.style.opacity = '1', 10);
         }
 
         function closeModals() {
-            document.body.style.overflow = ''; // Unlocks background scrolling
+            unlockScroll();
             document.getElementById('main-overlay').style.opacity = '0';
             setTimeout(() => document.getElementById('main-overlay').style.display = 'none', 300);
             document.querySelectorAll('.center-modal').forEach(m => {
@@ -1694,18 +1710,16 @@ function checkNewsBadge() {
         }
 
         function openNewsModal() {
-            document.body.style.overflow = 'hidden'; // Lock background
-            // Update saved index and hide red dot
+            closeModals(); 
+            lockScroll(); // Lock again after closeModals cleared it
             appData.settings.savedNewsIndex = LATEST_NEWS_INDEX;
             saveData();
             checkNewsBadge();
-            
-            closeModals(); // Closes menus/overlays
             document.getElementById('news-modal').style.display = 'flex';
         }
 
         function closeNewsModal() {
-            document.body.style.overflow = ''; // Unlock background
+            unlockScroll();
             document.getElementById('news-modal').style.display = 'none';
         }
 
@@ -2412,15 +2426,15 @@ function toggleRoomCollapse(roomId) {
         ];
 
         function openLabValues() {
-            document.body.style.overflow = 'hidden'; // Lock background
             closeModals();
+            lockScroll(); 
             document.getElementById('lab-search-input').value = '';
             renderLabValues('');
             document.getElementById('lab-modal').style.display = 'flex';
         }
 
         function closeLabValues() {
-            document.body.style.overflow = ''; // Unlock background
+            unlockScroll();
             document.getElementById('lab-modal').style.display = 'none';
         }
 
@@ -3253,8 +3267,8 @@ let ddxActiveSystem = null;
 let ddxSelectedSymptoms = [];
 
 function openDDx() {
-            document.body.style.overflow = 'hidden'; // Lock background
             closeModals();
+            lockScroll(); 
             document.getElementById('ddx-search-input').value = '';
             ddxActiveSystem = null;
             renderDdxSystems();
@@ -3263,7 +3277,7 @@ function openDDx() {
         }
 
         function closeDDx() {
-            document.body.style.overflow = ''; // Unlock background
+            unlockScroll();
             document.getElementById('ddx-modal').style.display = 'none';
             closeDdxSymptomsModal();
         }
