@@ -434,15 +434,18 @@ html.modal-open, body.modal-open {
 }
 
 /* Floating Add Patient Button */
-        .fab-add {
-            position: fixed; bottom: 24px; right: 24px;
-            width: 60px; height: 60px; background-color: var(--primary); color: white;
-            border-radius: 50%; display: flex; justify-content: center; align-items: center;
-            font-size: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            cursor: pointer; z-index: 95; border: none; font-weight: bold;
-            transition: transform 0.2s, background-color 0.3s;
-        }
-        .fab-add:active { transform: scale(0.9); }
+.fab-add {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 14px 24px; /* Added padding instead of fixed width/height */
+    background-color: var(--primary); color: white;
+    border-radius: 30px; /* Changed from 50% to make it a rounded pill/rectangle */
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1.1rem; /* Smaller font size to fit the text */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer; z-index: 95; border: none; font-weight: bold;
+    transition: transform 0.2s, background-color 0.3s;
+}
+.fab-add:active { transform: scale(0.9); }
 
         #toast {
     visibility: hidden;
@@ -499,7 +502,7 @@ html.modal-open, body.modal-open {
     <div id="floating-timer" onclick="openStopwatch()">⏱️ 15s</div>
     <div class="container" id="app-content"></div>
 <div class="container" id="app-content"></div>
-    <button class="fab-add" onclick="openNameModal()" title="Add Patient">+</button>
+    <button class="fab-add" onclick="openNameModal()" title="Add Patient">+ Patient</button>
     <div class="overlay" id="main-overlay" onclick="closeModals()"></div>
 
     <!-- Stopwatch Modal -->
