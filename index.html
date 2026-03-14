@@ -64,13 +64,50 @@
             display: inline-flex; justify-content: center; align-items: center;
         }
 
+/* Main Scrollable Toolbar */
+.main-toolbar {
+    display: flex; gap: 10px; padding: 10px 16px; background: var(--surface);
+    border-bottom: 1px solid var(--divider); overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    position: sticky; top: 58px; z-index: 99; /* Sticks just under the header */
+}
+.main-toolbar::-webkit-scrollbar { display: none; }
+.toolbar-btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border-radius: 20px; font-weight: 700; white-space: nowrap; font-size: 0.95rem;
+    background: var(--bg); border: 2px solid var(--primary);
+    color: var(--text-main); cursor: pointer; transition: 0.2s;
+}
+.toolbar-btn:active { background: var(--primary); color: white; }
+.toolbar-btn.has-tasks { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important; animation: pulse 1.5s infinite; }
+
+/* Customize Toolbar Menu */
+.toolbar-edit-item {
+    display: flex; align-items: center; background: var(--bg);
+    border: 1px solid var(--divider); border-radius: 12px;
+    padding: 10px 16px; margin-bottom: 8px; transition: opacity 0.2s;
+}
+.toolbar-edit-item.dragging { opacity: 0.5; background: var(--surface); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.toolbar-drag-handle { font-size: 1.5rem; color: var(--text-muted); padding-right: 15px; cursor: grab; touch-action: none; }
+.toolbar-edit-text { flex-grow: 1; font-weight: 700; color: var(--text-main); font-size: 1.1rem; }
+.toolbar-edit-actions { display: flex; gap: 8px; }
+.toolbar-action-btn {
+    background: var(--surface); border: 1px solid var(--divider);
+    border-radius: 8px; width: 40px; height: 40px; display: flex;
+    align-items: center; justify-content: center; cursor: pointer;
+    font-size: 1.2rem; transition: 0.2s;
+}
+.toolbar-action-btn.active { background: var(--primary); color: white; border-color: var(--primary-dark); }
+.toolbar-action-btn.hidden-active { background: #ef4444; color: white; border-color: #b91c1c; }
+
+
         .container { max-width: 600px; margin: 0 auto; padding: 16px; }
 
         #floating-timer {
             display: none; position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
             background: var(--text-main); color: var(--bg); padding: 8px 20px; border-radius: 30px;
             font-weight: 800; font-size: 1.2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 90; cursor: pointer; border: 2px solid var(--primary);
+            z-index: 1000; cursor: pointer; border: 2px solid var(--primary);
         }
 
         .room-section { margin-bottom: 24px; background: transparent; }
@@ -500,7 +537,6 @@ html.modal-open, body.modal-open {
     </div>
         <div class="header-btns">
             <div style="position: relative; display: inline-block;">
-<button onclick="openToolbox()" title="Toolbox">🧰</button>
                 <button onclick="openNewsModal()" title="News & Updates">📰</button>
                 <div id="news-badge" style="position: absolute; top: 0; right: 0; background: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--primary); display: none;"></div>
             </div>
@@ -508,6 +544,8 @@ html.modal-open, body.modal-open {
             <button onclick="openSettings()" title="Settings">⚙️</button>
         </div>
     </header>
+<div class="main-toolbar" id="main-toolbar"></div>
+
 
     <div id="floating-timer" onclick="openStopwatch()">⏱️ 15s</div>
     <div class="container" id="app-content"></div>
@@ -530,32 +568,7 @@ html.modal-open, body.modal-open {
         <button class="btn-secondary" style="margin-top: 15px; border:none; background:transparent;" onclick="closeModals()">Close</button>
     </div>
 
-    <!-- Toolbox Main Modal -->
-    <div class="center-modal" id="toolbox-modal">
-        <h2>🧰 Toolbox</h2>
-        <div class="btn-col">
-            <button class="btn-secondary btn-medscape" onclick="openMedscapeAI()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>🩺</span> Medscape AI
-            </button>
-<button class="btn-secondary btn-ddx" onclick="openDDx()" style="font-size: 1.2rem; padding: 12px 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.5rem;">🧠</span> 
-                <div style="display: flex; flex-direction: column;">
-                    <span style="font-weight: bold;">DDx Search</span>
-                    <small style="font-size: 0.75rem; font-weight: 600; opacity: 0.8;">(Under Development)</small>
-                </div>
-            </button>
-            <button class="btn-secondary btn-labs" onclick="openLabValues()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>🔬</span> Lab Values
-            </button>
-            <button class="btn-secondary" id="btn-toolbox-tasks" onclick="openAllTasks()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>✅</span> Tasks
-            </button>
-            <button class="btn-secondary" onclick="openStopwatch()" style="font-size: 1.2rem; padding: 16px; text-align: left; display: flex; align-items: center; gap: 10px;">
-                <span>⏱️</span> Stopwatch
-            </button>
-        </div>
-        <button class="btn-secondary" style="margin-top: 15px; border:none; background:transparent;" onclick="closeModals()">Close</button>
-    </div>
+    
 
     <!-- All Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="all-tasks-sheet">
@@ -699,6 +712,10 @@ html.modal-open, body.modal-open {
                 <input type="checkbox" id="setting-empty-patients" style="width:20px; height:20px; margin:0;"> Include Patients with No Vitals
             </label>
         </div>
+<div class="settings-group" style="margin-bottom: 15px; border-top: 1px solid var(--divider); padding-top: 15px;">
+    <label style="font-weight:600; margin-bottom: 10px; display:block;">Toolbar Customization</label>
+    <button class="btn-secondary" onclick="openCustomizeToolbar()">🛠️ Edit Toolbar Layout</button>
+</div>
         <button class="btn-main" onclick="saveSettings()" style="margin-bottom: 25px;">Save Settings</button>
         
         <div class="settings-group">
@@ -712,6 +729,20 @@ html.modal-open, body.modal-open {
         </div>
         <button class="btn-secondary" style="margin-top: 15px; border:none; background:transparent;" onclick="closeModals()">Close</button>
     </div>
+
+<div class="bottom-sheet" id="customize-toolbar-sheet">
+    <div class="numpad-header" style="margin-bottom: 5px;">
+        <h2 style="color: var(--primary);">🛠️ Customize Toolbar</h2>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;">
+        <b>☰</b> to reorder tools, <b>🔤</b> to hide tool's text, <b>👁️</b> to hide tool.
+    </div>
+    <div id="toolbar-edit-list" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
+    <button class="btn-main" onclick="saveToolbarCustomization()" style="margin-top: 15px;">Save Toolbar</button>
+    <button class="btn-secondary" onclick="closeModals()" style="margin-top: 10px; border:none; background:transparent;">Cancel</button>
+</div>
+
+
 
     <div class="bottom-sheet" id="numpad-sheet">
         <div class="numpad-header">
@@ -1050,6 +1081,18 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
             if (typeof appData.settings.includeEmptyPatients === 'undefined') appData.settings.includeEmptyPatients = false;
             if (!appData.notifiedTaskIds) appData.notifiedTaskIds = [];
 
+const DEFAULT_TOOLBAR = [
+    { id: 'medscape', icon: '🩺', text: 'Medscape AI', action: 'openMedscapeAI()', hidden: false, shorten: false },
+    { id: 'ddx', icon: '🧠', text: 'DDx Search', action: 'openDDx()', hidden: false, shorten: false },
+    { id: 'labs', icon: '🔬', text: 'Lab Values', action: 'openLabValues()', hidden: false, shorten: false },
+    { id: 'tasks', icon: '✅', text: 'Tasks', action: 'openAllTasks()', hidden: false, shorten: false },
+    { id: 'stopwatch', icon: '⏱️', text: 'Stopwatch', action: 'openStopwatch()', hidden: false, shorten: false }
+];
+
+if (!appData.settings.toolbar) {
+    appData.settings.toolbar = JSON.parse(JSON.stringify(DEFAULT_TOOLBAR));
+}
+
             // Apply Theme On Load
             document.documentElement.setAttribute('data-theme', appData.settings.theme);
         }
@@ -1097,13 +1140,7 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
 
             const allOverdue = appData.tasks.filter(t => t.type === 'timed' && t.status === 'pending' && t.time <= Date.now() + (5 * 60 * 1000));
             
-            // Update Toolbox button pulsation (Pulsate if ANY task is pending)
-            const anyPending = appData.tasks.some(t => t.status === 'pending');
-            const tbTasksBtn = document.getElementById('btn-toolbox-tasks');
-            if (tbTasksBtn) {
-                if (anyPending) tbTasksBtn.classList.add('has-tasks');
-                else tbTasksBtn.classList.remove('has-tasks');
-            }
+renderToolbar();
             
             if (allOverdue.length > 0) {
                 const banner = document.createElement('div');
@@ -1221,6 +1258,27 @@ function lockScroll() {
             document.documentElement.classList.remove('modal-open');
             document.body.classList.remove('modal-open');
         }
+
+function renderToolbar() {
+    const bar = document.getElementById('main-toolbar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    
+    const anyPending = appData.tasks.some(t => t.status === 'pending');
+
+    (appData.settings.toolbar || []).forEach(tool => {
+        if (tool.hidden) return;
+        
+        const btn = document.createElement('button');
+        btn.className = 'toolbar-btn';
+        if (tool.id === 'tasks' && anyPending) btn.classList.add('has-tasks');
+        
+        btn.setAttribute('onclick', tool.action);
+        btn.innerHTML = `<span>${tool.icon}</span>${tool.shorten ? '' : `<span>${tool.text}</span>`}`;
+        bar.appendChild(btn);
+    });
+}
+
 
         // =============================================
         // NOTES SYSTEM
@@ -1443,11 +1501,11 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         }
 
         function openAllTasks() {
-            document.getElementById('toolbox-modal').style.display = 'none'; 
-            renderAllTasksList();
-            showOverlay();
-            document.getElementById('all-tasks-sheet').style.bottom = '0';
-        }
+    renderAllTasksList();
+    showOverlay();
+    document.getElementById('all-tasks-sheet').style.bottom = '0';
+}
+
 
         function renderAllTasksList() {
             const container = document.getElementById('all-tasks-container');
@@ -1701,14 +1759,16 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
                 m.style.opacity = '0'; m.style.transform = 'translate(-50%, -50%) scale(0.9)';
                 setTimeout(() => m.style.display = 'none', 300);
             });
-            document.getElementById('numpad-sheet').style.bottom = '-100%';
-            document.getElementById('patient-menu-sheet').style.bottom = '-100%';
-            document.getElementById('room-menu-sheet').style.bottom = '-100%';
+            document.getElementById('numpad-sheet').style.bottom = '-200%';
+            document.getElementById('patient-menu-sheet').style.bottom = '-200%';
+            document.getElementById('room-menu-sheet').style.bottom = '-200%';
             document.getElementById('all-tasks-sheet').style.bottom = '-100%';
-            document.getElementById('overdue-tasks-sheet').style.bottom = '-100%';
+            document.getElementById('overdue-tasks-sheet').style.bottom = '-200%';
             document.getElementById('notes-modal').style.display = 'none';
             document.getElementById('news-modal').style.display = 'none';
             activeRoomId = null;
+document.getElementById('customize-toolbar-sheet').style.bottom = '-200%';
+
         }
 
 function checkNewsBadge() {
@@ -1788,25 +1848,20 @@ function checkNewsBadge() {
             } catch (e) {}
         }
 
-        function openToolbox() {
-            showOverlay();
-            const modal = document.getElementById('toolbox-modal');
-            modal.style.display = 'block';
-            setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
-        }
+    
 
         function openStopwatch() {
-            document.getElementById('toolbox-modal').style.display = 'none'; 
-            document.getElementById('sw-duration').value = appData.settings.stopwatchDuration || 15;
-            if (!stopwatchTimer) {
-                stopwatchCurrent = appData.settings.stopwatchDuration || 15;
-                document.getElementById('sw-display').innerText = stopwatchCurrent;
-            }
-            showOverlay();
-            const modal = document.getElementById('stopwatch-modal');
-            modal.style.display = 'block';
-            setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
-        }
+    document.getElementById('sw-duration').value = appData.settings.stopwatchDuration || 15;
+    if (!stopwatchTimer) {
+        stopwatchCurrent = appData.settings.stopwatchDuration || 15;
+        document.getElementById('sw-display').innerText = stopwatchCurrent;
+    }
+    showOverlay();
+    const modal = document.getElementById('stopwatch-modal');
+    modal.style.display = 'block';
+    setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+}
+
 
         function saveStopwatchDuration() {
             const val = parseInt(document.getElementById('sw-duration').value) || 15;
@@ -3519,6 +3574,123 @@ function closeDdxSymptomsModal() {
     // Add the class back
     toast.classList.add("show");
 }
+
+// =============================================
+// TOOLBAR CUSTOMIZATION
+// =============================================
+let tempToolbarState = [];
+let tDragEl = null, tStartIndex = 0;
+
+function openCustomizeToolbar() {
+    document.getElementById('settings-modal').style.display = 'none'; 
+    tempToolbarState = JSON.parse(JSON.stringify(appData.settings.toolbar));
+    
+    // Safety check in case new tools were added to default but aren't in user's saved array
+    const defaultIds = ['medscape', 'ddx', 'labs', 'tasks', 'stopwatch'];
+    const currentIds = tempToolbarState.map(t => t.id);
+    defaultIds.forEach(id => {
+        if (!currentIds.includes(id)) {
+            tempToolbarState.push(DEFAULT_TOOLBAR.find(d => d.id === id));
+        }
+    });
+
+    renderCustomizeList();
+    showOverlay();
+    document.getElementById('customize-toolbar-sheet').style.bottom = '0';
+}
+
+function renderCustomizeList() {
+    const list = document.getElementById('toolbar-edit-list');
+    list.innerHTML = '';
+    
+    tempToolbarState.forEach((tool, index) => {
+        const item = document.createElement('div');
+        item.className = 'toolbar-edit-item';
+        item.dataset.index = index;
+        
+        item.innerHTML = `
+            <div class="toolbar-drag-handle">☰</div>
+            <div class="toolbar-edit-text">${tool.icon} ${tool.text}</div>
+                        <div class="toolbar-edit-actions">
+                <button class="toolbar-action-btn ${tool.shorten ? 'hidden-active' : ''}" onclick="toggleToolbarShorten(${index})" title="Icon Only">
+                    <span style="${tool.shorten ? 'text-decoration: line-through; color: white;' : ''}">🔤</span>
+                </button>
+                <button class="toolbar-action-btn ${tool.hidden ? 'hidden-active' : ''}" onclick="toggleToolbarHidden(${index})" title="Toggle Visibility">
+                    <span style="${tool.hidden ? 'text-decoration: line-through; color: white;' : ''}">👁️</span>
+                </button>
+            </div>
+        `;
+        
+        const handle = item.querySelector('.toolbar-drag-handle');
+        handle.addEventListener('touchstart', toolbarDragStart, {passive: false});
+        handle.addEventListener('mousedown', toolbarDragStart);
+        list.appendChild(item);
+    });
+}
+
+function toggleToolbarShorten(index) {
+    tempToolbarState[index].shorten = !tempToolbarState[index].shorten;
+    renderCustomizeList();
+}
+
+function toggleToolbarHidden(index) {
+    tempToolbarState[index].hidden = !tempToolbarState[index].hidden;
+    renderCustomizeList();
+}
+
+function saveToolbarCustomization() {
+    appData.settings.toolbar = JSON.parse(JSON.stringify(tempToolbarState));
+    saveData();
+    renderToolbar();
+    closeModals();
+    showToast("Toolbar Updated!");
+}
+
+function toolbarDragStart(e) {
+    if (e.type === 'touchstart') e.preventDefault();
+    tDragEl = e.target.closest('.toolbar-edit-item');
+    if (!tDragEl) return;
+    tStartIndex = parseInt(tDragEl.dataset.index);
+    tDragEl.classList.add('dragging');
+    document.addEventListener('touchmove', toolbarDragMove, { passive: false });
+    document.addEventListener('touchend', toolbarDragEnd);
+    document.addEventListener('mousemove', toolbarDragMove);
+    document.addEventListener('mouseup', toolbarDragEnd);
+}
+
+function toolbarDragMove(e) {
+    e.preventDefault();
+    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+    const target = document.elementFromPoint(e.clientX || (e.touches && e.touches[0].clientX) || 0, clientY);
+    if (!target) return;
+    const targetItem = target.closest('.toolbar-edit-item');
+    if (targetItem && targetItem !== tDragEl) {
+        const rect = targetItem.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if (clientY < mid) targetItem.parentNode.insertBefore(tDragEl, targetItem);
+        else targetItem.parentNode.insertBefore(tDragEl, targetItem.nextSibling);
+    }
+}
+
+function toolbarDragEnd() {
+    if (!tDragEl) return;
+    tDragEl.classList.remove('dragging');
+    
+    const newOrder = [];
+    document.querySelectorAll('.toolbar-edit-item').forEach(item => {
+        const oldIndex = parseInt(item.dataset.index);
+        newOrder.push(tempToolbarState[oldIndex]);
+    });
+    tempToolbarState = newOrder;
+    renderCustomizeList(); 
+
+    tDragEl = null;
+    document.removeEventListener('touchmove', toolbarDragMove);
+    document.removeEventListener('touchend', toolbarDragEnd);
+    document.removeEventListener('mousemove', toolbarDragMove);
+    document.removeEventListener('mouseup', toolbarDragEnd);
+}
+
 
 // =============================================
 // SERVICE WORKER REGISTRATION & AUTO-UPDATE
