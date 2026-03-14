@@ -802,6 +802,17 @@ html.modal-open, body.modal-open {
             <!-- ⬇️ MSarhan ADD OR REMOVE NEWS HTML CARDS HERE ⬇️ -->
             <!-- ========================================== -->
             <!-- New Update Card (March 12) -->
+<div style="background: var(--surface); border: 1px solid var(--divider); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.04);">
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">14 March 2026</div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 12px;">New Tools Toolbar 🛠️</div>           
+
+                <div style="font-size: 1.05rem; color: var(--text-main); line-height: 1.5;">
+                    <ul style="margin: 0; padding-left: 20px; margin-bottom: 14px; color: var(--text-muted);">
+                        <li style="margin-bottom: 6px;"><strong>Scrollable Toolbar:</strong> The old Toolbox is gone! All your favorite tools (Medscape, DDx, Labs, Tasks) are now instantly accessible in the new scrollable toolbar under the header. 🚀</li>
+                        <li><strong>Customizable Layout:</strong> Go to <strong>Settings ⚙️</strong> to reorder tools, hide their text to save space, or hide them completely to fit your workflow!</li>
+                    </ul>
+                </div>
+            </div>
             <div style="background: var(--surface); border: 1px solid var(--divider); border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.04);">
                 <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: bold; margin-bottom: 6px; text-transform: uppercase;">12 March 2026</div>
                 <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 12px;">Trends & Fixes 📈</div>           
@@ -851,17 +862,18 @@ html.modal-open, body.modal-open {
                 <div style="font-weight: 800; color: var(--primary); font-size: 1.05rem; margin-bottom: 5px;">📝 Notes</div>
                 <div style="font-size: 0.9rem; color: var(--text-main); line-height: 1.4;">Tap <b>📝</b> on a patient to type rich-text case notes, reminders, and plans.</div>
             </div>
-            <div style="margin-bottom: 15px;">
-                <div style="font-weight: 800; color: var(--primary); font-size: 1.05rem; margin-bottom: 5px;">🛠️ Advanced Tools</div>
+                        <div style="margin-bottom: 15px;">
+                <div style="font-weight: 800; color: var(--primary); font-size: 1.05rem; margin-bottom: 5px;">🛠️ Tools Toolbar</div>
                 <div style="font-size: 0.9rem; color: var(--text-main); line-height: 1.4;">
-  Helpful tools accessed through the Toolbox:
-  <div style="padding-left: 5px;">
+  Access helpful tools directly from the scrollable toolbar under the main header. You can customize this toolbar (reorder, hide text, or hide tools) in <b>Settings ⚙️</b>.
+  <div style="padding-left: 5px; margin-top: 8px;">
     🩺<b> Medscape AI:</b> Quick medical AI search.<br>
     🧠<b> DDx Search:</b> Find differential diagnoses based on selected symptoms and labs.<br>
     🔬<b> Lab Values:</b> A comprehensive clinical reference sheet.
   </div>
 </div>
 </div>
+
 
 </div>
     </div>
@@ -916,7 +928,7 @@ html.modal-open, body.modal-open {
         // =============================================
 
 // 🟢 MSarhan INCREASE THIS NUMBER WHENEVER YOU ADD NEW NEWS HTML CARDS!
-        const LATEST_NEWS_INDEX = 2;
+        const LATEST_NEWS_INDEX = 3;
 
 
         let appData = {
