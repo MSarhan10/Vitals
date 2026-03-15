@@ -1,4 +1,5 @@
-const CACHE_NAME = 'mirimate-v33';
+const CACHE_NAME = 'mirimate-v34';
+
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -6,7 +7,10 @@ const ASSETS_TO_CACHE = [
     './icon-192.png',
     './icon-512.png',
     './icon-maskable-192.png',
-    './icon-maskable-512.png'
+    './icon-maskable-512.png',
+    './news.js',
+    './labs.js',
+    './ddx.js'
 ];
 
 // Install — cache all app files
@@ -26,14 +30,14 @@ self.addEventListener('activate', event => {
             .then(keys => {
                 return Promise.all(
                     keys.filter(key => key !== CACHE_NAME)
-                        .map(key => caches.delete(key))
+                        .map(key => caches.delete(key)) // Deletes old versions like v33
                 );
             })
             .then(() => self.clients.claim())          // ← chained properly now
             .then(() => self.clients.matchAll())
             .then(clients => {
                 clients.forEach(client => {
-                    client.postMessage({ type: 'SW_UPDATED' }); // ← tell the page
+                    client.postMessage({ type: 'SW_UPDATED' }); // ← tell the page to reload
                 });
             })
     );
@@ -50,6 +54,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request).then(cachedResponse => {
             if (cachedResponse) {
+                // Return from cache immediately, but fetch in the background to update the cache
                 fetch(event.request).then(networkResponse => {
                     if (networkResponse && networkResponse.status === 200) {
                         caches.open(CACHE_NAME).then(cache => {
@@ -60,6 +65,7 @@ self.addEventListener('fetch', event => {
                 return cachedResponse;
             }
 
+            // If not in cache, fetch from network and add to cache
             return fetch(event.request).then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
