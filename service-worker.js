@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mirimate-v35';
+const CACHE_NAME = 'mirimate-v36';
 
 const ASSETS_TO_CACHE = [
     './',
