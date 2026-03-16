@@ -3263,10 +3263,21 @@ function updateDdxResults() {
         return;
     }
 
+    // Determine active systems based on selected Key Features for the "System Bonus"
+    const activeSystems = new Set();
+    if (DDX_DATA.diseases) {
+        DDX_DATA.diseases.forEach(d => {
+            // Check if the disease has a system ID, and if any of its key features are currently selected
+            if (d.system && d.keyFeatures && d.keyFeatures.some(kf => ddxSelectedSymptoms.includes(kf))) {
+                activeSystems.add(d.system);
+            }
+        });
+    }
+
     // Filter, Score, Sort, and Slice
     const results = DDX_DATA.diseases
         .filter(disease => !query || disease.name.toLowerCase().includes(query))
-.map(disease => {
+        .map(disease => {
             const screenLabs = (disease.labs && disease.labs.screening) ? disease.labs.screening : [];
             const confLabs = (disease.labs && disease.labs.confirmatory) ? disease.labs.confirmatory : [];
             const screenRads = (disease.radiology && disease.radiology.screening) ? disease.radiology.screening : [];
@@ -3288,25 +3299,33 @@ function updateDdxResults() {
             
             const totalMatches = demoMatches.length + keyMatches.length + possibleMatches.length + labMatches.length + radMatches.length;
             
-            // Base scoring: Key=2, Confirmatory=2, Possible/Screening=1
-            let score = (keyMatches.length * 2) + possibleMatches.length + screenLabMatches.length + (confLabMatches.length * 2) + screenRadMatches.length + (confRadMatches.length * 2);
+            // NEW Base scoring: Key=5.0, Confirmatory=10.0, Possible=2.0, Screening=1.5
+            let score = (keyMatches.length * 5.0) + 
+                        (possibleMatches.length * 2.0) + 
+                        (screenLabMatches.length * 1.5) + 
+                        (confLabMatches.length * 10.0) + 
+                        (screenRadMatches.length * 1.5) + 
+                        (confRadMatches.length * 10.0);
             
-            // Weighted Demographic Scoring (Bonus for hitting the bias)
+            // NEW Weighted Demographic Scoring (Bias=1.0, Standard=0.5)
             demoMatches.forEach(match => {
                 if (match === disease.genderBias || match === disease.onsetBias || match === disease.ageBias) {
-                    score += 2; 
+                    score += 1.0; 
                 } else {
-                    score += 1;
+                    score += 0.5;
                 }
             });
 
-            // Severely punish impossible combinations
-            if (DDX_DATA.rules && DDX_DATA.rules.strictFilters) {
-                DDX_DATA.rules.strictFilters.forEach(strictFilter => {
-                    if (ddxSelectedSymptoms.includes(strictFilter)) {
-                        if (disease.demographics && !disease.demographics.includes(strictFilter)) {
-                            score -= 50;
-                        }
+            // NEW System Bonus Multiplier (1.5x) using your existing 'system' IDs
+            if (disease.system && activeSystems.has(disease.system)) {
+                score *= 1.5;
+            }
+
+// Severely punish explicitly excluded diseases (e.g., "Female" excludes "Testicular Torsion")
+            if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
+                ddxSelectedSymptoms.forEach(symp => {
+                    if (DDX_DATA.rules.excludes[symp] && DDX_DATA.rules.excludes[symp].includes(disease.name)) {
+                        score -= 100;
                     }
                 });
             }
@@ -3331,7 +3350,6 @@ function updateDdxResults() {
         return `<div class="ddx-compact-list">${items.join('<span class="ddx-compact-separator">-</span>')}</div>`;
     };
 
-    // Custom Formatter for Demographics Block
     const formatDemographics = (d, demoArray, matchedArr) => {
         if (!demoArray || demoArray.length === 0) return '';
         
@@ -3350,7 +3368,6 @@ function updateDdxResults() {
         let vitals = demoArray.filter(x => vitalsData.includes(x));
         let risks = demoArray.filter(x => riskData.includes(x));
         
-        // --- Smart Age Logic ---
         let ageStr = '';
         let isAgeMatched = ages.some(a => matchedArr.includes(a));
         if (d.ageBias) {
@@ -3362,7 +3379,6 @@ function updateDdxResults() {
             else ageStr = "Any";
         }
 
-        // --- Gender Logic ---
         let genderStr = '';
         let isGenderMatched = genders.some(g => matchedArr.includes(g));
         if (d.genderBias) {
@@ -3375,7 +3391,6 @@ function updateDdxResults() {
             genderStr = "Any";
         }
         
-        // --- Onset Logic ---
         let onsetStr = '';
         let isOnsetMatched = onsets.some(o => matchedArr.includes(o));
         if (d.onsetBias) {
@@ -3388,7 +3403,6 @@ function updateDdxResults() {
             onsetStr = "Any";
         }
         
-        // --- Final Assembly ---
         let parts = [];
         parts.push(`<span style="color:var(--text-main); font-weight:700;">Age:</span> ${highlightText(ageStr, isAgeMatched)}`);
         parts.push(`<span style="color:var(--text-main); font-weight:700;">Gender:</span> ${highlightText(genderStr, isGenderMatched)}`);
@@ -4011,26 +4025,40 @@ let isQuizAnswered = true;    // Tracks if a question is active or pending
             let selectedLabs = getRandomQuizItems(labPool, 1, 2);
             let selectedRads = getRandomQuizItems(radPool, 1, 2);
 
-            // 5. EXACT DDx Scoring Engine for Validation
+// 5. EXACT DDx Scoring Engine for Validation
             const scoreVignette = (features) => {
+                // Determine active systems for Quiz Distractor Validation
+                const activeSystems = new Set();
+                diseases.forEach(d => {
+                    if (d.system && d.keyFeatures && d.keyFeatures.some(kf => features.includes(kf))) {
+                        activeSystems.add(d.system);
+                    }
+                });
+
                 return diseases.map(d => {
                     let score = 0;
-                    if (d.keyFeatures) score += d.keyFeatures.filter(f => features.includes(f)).length * 2;
-                    if (d.possibleFeatures) score += d.possibleFeatures.filter(f => features.includes(f)).length;
-                    if (d.labs && d.labs.screening) score += d.labs.screening.filter(f => features.includes(f)).length;
-                    if (d.labs && d.labs.confirmatory) score += d.labs.confirmatory.filter(f => features.includes(f)).length * 2;
-                    if (d.radiology && d.radiology.screening) score += d.radiology.screening.filter(f => features.includes(f)).length;
-                    if (d.radiology && d.radiology.confirmatory) score += d.radiology.confirmatory.filter(f => features.includes(f)).length * 2;
+                    if (d.keyFeatures) score += d.keyFeatures.filter(f => features.includes(f)).length * 5.0;
+                    if (d.possibleFeatures) score += d.possibleFeatures.filter(f => features.includes(f)).length * 2.0;
+                    if (d.labs && d.labs.screening) score += d.labs.screening.filter(f => features.includes(f)).length * 1.5;
+                    if (d.labs && d.labs.confirmatory) score += d.labs.confirmatory.filter(f => features.includes(f)).length * 10.0;
+                    if (d.radiology && d.radiology.screening) score += d.radiology.screening.filter(f => features.includes(f)).length * 1.5;
+                    if (d.radiology && d.radiology.confirmatory) score += d.radiology.confirmatory.filter(f => features.includes(f)).length * 10.0;
                     
                     let demoMatches = (d.demographics || []).filter(f => features.includes(f));
                     demoMatches.forEach(match => {
-                        if (match === d.genderBias || match === d.onsetBias || match === d.ageBias) score += 2;
-                        else score += 1;
+                        if (match === d.genderBias || match === d.onsetBias || match === d.ageBias) score += 1.0;
+                        else score += 0.5;
                     });
                     
-                    if (DDX_DATA.rules && DDX_DATA.rules.strictFilters) {
-                        DDX_DATA.rules.strictFilters.forEach(sf => {
-                            if (features.includes(sf) && d.demographics && !d.demographics.includes(sf)) score -= 50;
+                    if (d.system && activeSystems.has(d.system)) {
+                        score *= 1.5;
+                    }
+
+if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
+                        features.forEach(symp => {
+                            if (DDX_DATA.rules.excludes[symp] && DDX_DATA.rules.excludes[symp].includes(d.name)) {
+                                score -= 100;
+                            }
                         });
                     }
                     return { ...d, score };
