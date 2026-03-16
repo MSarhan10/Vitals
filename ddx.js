@@ -307,7 +307,7 @@ const DDX_DATA = {
     rules: {
         excludes: {
             "Male":               ["Female", "Pregnancy"],
-            "Female":             ["Male", "Benign Prostatic Hyperplasia", "Testicular Torsion"],
+            "Female":             ["Male", "Benign Prostatic Hyperplasia", "Testicular Torsion", "Prostate Cancer"],
             "Pregnancy":          ["Male"],
             "Neonate (<1m)":      ["Smoking", "Alcohol use", "Pregnancy", "Hypertension (Hx)", "Diabetes", "Obesity", "Hyperlipidemia", "Elderly (>55y)"],
             "Pediatric (1m-18y)": ["Smoking", "Alcohol use", "Pregnancy", "Elderly (>55y)", "Hyperlipidemia"],
