@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mirimate-v46'; // <-- Remember to bump this on every update!
+const CACHE_NAME = 'mirimate-v47'; // <-- Remember to bump this on every update!
 
 const ASSETS_TO_CACHE = [
     './',
