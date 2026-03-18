@@ -1692,15 +1692,28 @@ function clearSearch(inputId) {
             return null;
         }
 
-function lockScroll() {
-            document.documentElement.classList.add('modal-open');
-            document.body.classList.add('modal-open');
-        }
+let pageScrollPos = 0; // Tracks the scroll position
 
-        function unlockScroll() {
-            document.documentElement.classList.remove('modal-open');
-            document.body.classList.remove('modal-open');
-        }
+function lockScroll() {
+    // Capture current scroll position
+    pageScrollPos = window.scrollY || document.documentElement.scrollTop;
+    
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    
+    // Visually lock the page in its current place
+    document.body.style.top = `-${pageScrollPos}px`; 
+}
+
+function unlockScroll() {
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    
+    // Clear the visual lock and restore actual scroll position
+    document.body.style.top = '';
+    window.scrollTo(0, pageScrollPos);
+}
+
 
 function renderToolbar() {
     const bar = document.getElementById('main-toolbar');
@@ -2533,20 +2546,31 @@ function checkNewsBadge() {
         }
 
         function startStopwatch() {
-            if (stopwatchTimer) return;
-            initAudio(); document.getElementById('sw-start-btn').disabled = true;
-            document.getElementById('floating-timer').style.display = 'block';
-            stopwatchTimer = setInterval(() => {
-                stopwatchCurrent--; document.getElementById('sw-display').innerText = stopwatchCurrent;
-                document.getElementById('floating-timer').innerText = `⏱️ ${stopwatchCurrent}s`;
-                if (stopwatchCurrent <= 0) {
-                    clearInterval(stopwatchTimer); stopwatchTimer = null; playBeep();
-                    document.getElementById('sw-display').innerText = "0";
-                    document.getElementById('floating-timer').style.display = 'none';
-                    document.getElementById('sw-start-btn').disabled = false; showToast("Timer Finished!");
-                }
-            }, 1000);
+    if (stopwatchTimer) return;
+    initAudio(); 
+    document.getElementById('sw-start-btn').disabled = true;
+    
+    // Set the initial text IMMEDIATELY before the 1-second interval delay
+    document.getElementById('floating-timer').innerText = `⏱️ ${stopwatchCurrent}s`;
+    document.getElementById('floating-timer').style.display = 'block';
+    
+    stopwatchTimer = setInterval(() => {
+        stopwatchCurrent--; 
+        document.getElementById('sw-display').innerText = stopwatchCurrent;
+        document.getElementById('floating-timer').innerText = `⏱️ ${stopwatchCurrent}s`;
+        
+        if (stopwatchCurrent <= 0) {
+            clearInterval(stopwatchTimer); 
+            stopwatchTimer = null; 
+            playBeep();
+            document.getElementById('sw-display').innerText = "0";
+            document.getElementById('floating-timer').style.display = 'none';
+            document.getElementById('sw-start-btn').disabled = false; 
+            showToast("Timer Finished!");
         }
+    }, 1000);
+}
+
 
         // =============================================
         // ROOMS & PATIENT OPTIONS
@@ -3197,12 +3221,18 @@ function toggleDdxSystem(sysId) {
     setTimeout(() => overlay.style.opacity = '1', 10);
 
     const modal = document.getElementById('ddx-symptoms-modal');
-    modal.style.display = 'block';
+    modal.style.display = 'block'; // Make it visible FIRST
+    
     setTimeout(() => {
         modal.style.opacity = '1';
         modal.style.transform = 'translate(-50%, -50%) scale(1)';
+        
+        // Force scroll reset AFTER the browser has rendered the layout
+        document.getElementById('ddx-symptoms-container').scrollTop = 0;
     }, 10);
 }
+
+
 
 function filterDdxSymptoms(val) {
     if (ddxActiveSystem) {
@@ -3263,13 +3293,14 @@ function updateDdxResults() {
         return;
     }
 
-    // Determine active systems based on selected Key Features for the "System Bonus"
+    // 1. Determine active systems (Now supports both strings and arrays of strings)
     const activeSystems = new Set();
     if (DDX_DATA.diseases) {
         DDX_DATA.diseases.forEach(d => {
-            // Check if the disease has a system ID, and if any of its key features are currently selected
             if (d.system && d.keyFeatures && d.keyFeatures.some(kf => ddxSelectedSymptoms.includes(kf))) {
-                activeSystems.add(d.system);
+                // Convert to array if it's a single string, then add to Set
+                const sysArray = Array.isArray(d.system) ? d.system : [d.system];
+                sysArray.forEach(sys => activeSystems.add(sys));
             }
         });
     }
@@ -3299,7 +3330,7 @@ function updateDdxResults() {
             
             const totalMatches = demoMatches.length + keyMatches.length + possibleMatches.length + labMatches.length + radMatches.length;
             
-            // NEW Base scoring: Key=5.0, Confirmatory=10.0, Possible=2.0, Screening=1.5
+            // Base scoring
             let score = (keyMatches.length * 5.0) + 
                         (possibleMatches.length * 2.0) + 
                         (screenLabMatches.length * 1.5) + 
@@ -3307,7 +3338,7 @@ function updateDdxResults() {
                         (screenRadMatches.length * 1.5) + 
                         (confRadMatches.length * 10.0);
             
-            // NEW Weighted Demographic Scoring (Bias=1.0, Standard=0.5)
+            // Weighted Demographic Scoring
             demoMatches.forEach(match => {
                 if (match === disease.genderBias || match === disease.onsetBias || match === disease.ageBias) {
                     score += 1.0; 
@@ -3316,12 +3347,19 @@ function updateDdxResults() {
                 }
             });
 
-            // NEW System Bonus Multiplier (1.5x) using your existing 'system' IDs
-            if (disease.system && activeSystems.has(disease.system)) {
-                score *= 1.5;
+            // UPDATED: System Bonus Multiplier (1.25x)
+            if (disease.system) {
+                // Ensure we are working with an array
+                const diseaseSystems = Array.isArray(disease.system) ? disease.system : [disease.system];
+                // .some() returns true the moment it finds ONE match, ensuring the multiplier applies exactly once
+                const hasSystemBonus = diseaseSystems.some(sys => activeSystems.has(sys));
+                
+                if (hasSystemBonus) {
+                    score *= 1.25;
+                }
             }
 
-// Severely punish explicitly excluded diseases (e.g., "Female" excludes "Testicular Torsion")
+            // Exclusion Rules
             if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
                 ddxSelectedSymptoms.forEach(symp => {
                     if (DDX_DATA.rules.excludes[symp] && DDX_DATA.rules.excludes[symp].includes(disease.name)) {
@@ -3438,6 +3476,7 @@ function updateDdxResults() {
 
     container.innerHTML = html;
 }
+
 
 
 function toggleDdxSymptom(feature) {
