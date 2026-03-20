@@ -1,1357 +1,2282 @@
-/**
- * ============================================================================
- * MIRIMATE CLINICAL DATABASE (ddx.js) - MASTER SCHEMA & DOCUMENTATION
- * ============================================================================
- * @version 2.0 - Expanded to 100 diseases across 8 systems
- *
- * This file powers both the "DDx Search" engine and the "Quiz Me" generator.
- * Every string must match exactly across the arrays for the logic to work.
- *
- * ----------------------------------------------------------------------------
- * 1. SYSTEMS ARRAY
- * ----------------------------------------------------------------------------
- * Maps the internal ID to the UI Display Name and Icon.
- * e.g., { id: "git", name: "Gastrointestinal", icon: "🍏" }
- *
- * ----------------------------------------------------------------------------
- * 2. SYMPTOMS OBJECT
- * ----------------------------------------------------------------------------
- * This is the master list of all available "Chips" the user can click in the UI.
- * - Categories (symptoms, signs, labs, radiology) group the UI chips.
- * - If a symptom/lab is used in a disease, IT MUST BE LISTED HERE FIRST.
- * - Chips are matched globally across all system categories, so a chip defined
- *   in cvs.labs (e.g., "Elevated ESR") is valid for use in any disease.
- *
- * ----------------------------------------------------------------------------
- * 3. RULES ENGINE (Mutual Exclusions)
- * ----------------------------------------------------------------------------
- * Prevents impossible clinical scenarios (e.g., male pregnancy, neonatal smoking).
- * - excludes: If Key chip is selected, the array items are removed/hidden.
- *             Disease names (e.g., "BPH") may also be listed to exclude them
- *             from DDx results entirely when a conflicting chip is active.
- * - implies:  If Key chip is selected, the array items are auto-selected.
- * - strictFilters: Severely punishes the DDx score if the user selects one
- *   of these but the disease doesn't explicitly support it.
- *
- * ----------------------------------------------------------------------------
- * 4. DISEASES ARRAY (The Core Logic)
- * ----------------------------------------------------------------------------
- * Each object represents a clinical diagnosis. How fields affect the app:
- *
- * @property {string}  name          - The display name of the disease.
- * @property {string}  system        - Must match an id from the Systems Array.
- * @property {string}  medscapeLink  - URL opened when the user clicks the reference button.
- *
- * --- BIAS & DEMOGRAPHICS ---
- * @property {array}   demographics  - Includes Age, Gender, Onset, Vitals, and Risk Factors.
- *    -> Quiz Engine: Randomly selects from these to build the patient.
- *    -> DDx Engine:  Awards +1 point for each matched chip.
- *
- * @property {string}  ageBias, genderBias, onsetBias - The "Classic" presentation.
- *    -> Quiz Engine (The 80/20 Rule): 80% chance the vignette uses this bias,
- *       and 20% chance it uses another valid demographic.
- *    -> DDx Engine: Awards a BONUS +2 points if the user selects this exact chip.
- *
- * --- CLINICAL FEATURES ---
- * @property {array}   keyFeatures      - The "Smoking Guns" or defining symptoms.
- *    -> Quiz Engine: Always picks 1 or 2 of these to include in the question.
- *    -> DDx Engine:  Highly weighted. Awards +2 points per match.
- *
- * @property {array}   possibleFeatures - Associated/secondary symptoms.
- *    -> Quiz Engine: Randomly picks 1 to 3 of these to add flavor to the case.
- *    -> DDx Engine:  Standard weight. Awards +1 point per match.
- *
- * --- INVESTIGATIONS & DIFFICULTY SCALING ---
- * @property {object}  labs & radiology - Split into "screening" and "confirmatory".
- *    -> DDx Engine: Treats both equally (+1 point per match).
- *    -> Quiz Engine (Difficulty Scaling):
- *       - Easy:   100% chance to include a "confirmatory" test.
- *       - Inter:   50% chance to include confirmatory tests.
- *       - Hard:     0% chance. Only vague "screening" tests are provided.
- *       - Hints: Unused confirmatory tests are sent to the "Hint" button pool.
- * ============================================================================
- */
+// ============================================================================
+// DDX.JS  —  Differential Diagnosis Data  (v3 Standardized)
+// ============================================================================
+//
+// NORMALIZATION RULES:
+//   Age    → one or more of the 7 standard groups (t: "age")
+//   Onset  → one or more of the 5 standard types  (t: "onset")
+//   Sex    → Male AND Female on every disease by default;
+//             omit only when biologically impossible
+//
+// PREVALENCE:
+//   prevalence: 0.0–1.0  (relative frequency in general/ED practice)
+//   Scoring multiplier = Math.pow(prevalence, 0.2)
+//
+// FEATURE TYPE HIERARCHY:
+//   pathognomonic-sp  > specific-sp > nonspecific-sp
+//   confirmatory-lab  > screening-lab
+//   confirmatory-rad  > nonspecific-rad
+//   risk-factor, age, onset, sex — lower fixed weights
+//
+// DICTIONARY STANDARDIZATION:
+//   Radiology is prefixed: "CXR: ", "CT: ", "US: ", "MRI: ", "ECG: ", "Echo: ", "Angiography: "
+//   Labs are prefixed when applicable: "urinalysis: ", "CSF: "
+//   Symptoms are short, deduplicated strings (e.g. "chest pain", "nausea", "leukocytosis")
+// ============================================================================
 
 const DDX_DATA = {
 
-    // ============================================================================
-    // 1. SYSTEMS
-    // ============================================================================
-    systems: [
-        { id: "demo",  name: "Demographics",      icon: "🧑‍⚕️" },
-        { id: "git",   name: "Gastrointestinal",   icon: "🍏"   },
-        { id: "resp",  name: "Respiratory",        icon: "🫁"   },
-        { id: "cvs",   name: "Cardiovascular",     icon: "❤️"   },
-        { id: "renal", name: "Renal / Urological", icon: "🫘"   },
-        { id: "neuro", name: "Neurological",       icon: "🧠"   },
-        { id: "endo",  name: "Endocrine",          icon: "⚛️"   },
-        { id: "msk",   name: "Musculoskeletal",    icon: "🦴"   }
+    ageGroups: [
+        "< 1 month",
+        "1 month - 2 years",
+        "2 - 12 years",
+        "12 - 18 years",
+        "18 - 40 years",
+        "40 - 60 years",
+        "> 60 years"
     ],
 
-    // ============================================================================
-    // 2. SYMPTOMS OBJECT
-    // ============================================================================
-    symptoms: {
-        demo: {
-            age: [
-                "Neonate (<1m)", "Pediatric (1m-18y)", "Young Adult (18-35y)",
-                "Middle-aged (36-55y)", "Elderly (>55y)"
-            ],
-            gender: ["Male", "Female"],
-            onset:  ["Acute", "Subacute", "Chronic", "Episodic"],
-            vitals: [
-                "Tachycardia", "Bradycardia", "Hypertension (Vital)", "Hypotension",
-                "Tachypnea", "Bradypnea", "Fever", "Hypothermia", "Hypoxia"
-            ],
-            riskFactors: [
-                "Smoking", "Hypertension (Hx)", "Diabetes", "Obesity", "Hyperlipidemia",
-                "Recent Travel", "Immunosuppression", "Pregnancy", "IV Drug Use", "Trauma",
-                "Alcohol use", "Prior Surgery", "Immobilization", "Malignancy",
-                "Atrial Fibrillation", "Recent Viral Illness", "Dehydration",
-                "Family History of CAD", "Family History of Gallstones",
-                "Family History of Kidney Stones", "Family History of Autoimmune Disease",
-                "Family History of Asthma", "Family History of Appendicitis",
-                "Family History of Aneurysms", "Family History of Cancer",
-                "Family History of IBD", "Corticosteroid use"
-            ]
-        },
-        git: {
-            symptoms: [
-                "Abdominal pain", "Nausea", "Vomiting", "Diarrhea", "Constipation",
-                "Heartburn", "Dysphagia", "Anorexia", "Bloating", "Hematemesis",
-                "Melena", "Hematochezia", "Weight loss", "Steatorrhea",
-                "Tenesmus", "Currant jelly stool"
-            ],
-            signs: [
-                "Jaundice", "Right upper quadrant tenderness", "Rebound tenderness",
-                "McBurney's point tenderness", "Hepatomegaly", "Murphy's sign", "Guarding",
-                "Abdominal distension", "Absent bowel sounds", "Left lower quadrant tenderness",
-                "Ascites", "Spider angiomata", "Caput medusae", "Palmar erythema",
-                "Pain out of proportion"
-            ],
-            labs: [
-                "Leukocytosis", "Elevated AST/ALT", "Elevated lipase", "Elevated bilirubin",
-                "Anemia", "Elevated amylase", "Elevated ALP", "Elevated GGT",
-                "Metabolic alkalosis", "Elevated lactate", "Positive stool occult blood",
-                "Positive tTG-IgA", "Positive hepatitis serology", "Elevated INR",
-                "Elevated ESR", "Positive ASCA", "Positive p-ANCA", "Low albumin",
-                "Positive blood culture", "Elevated CRP"
-            ],
-            radiology: [
-                "Free air under diaphragm", "Thickened appendix on US", "Dilated bowel loops",
-                "Gallstones on US", "Pancreatic inflammation on CT", "Air-fluid levels on X-ray",
-                "GB wall thickening on US", "Pericholecystic fluid on US", "Transition point on CT",
-                "Colonic outpouchings on CT", "Bowel wall thickening on CT",
-                "Apple-core lesion on Barium Enema", "Target sign on US",
-                "Portal hypertension on US", "Pneumobilia on CT"
-            ]
-        },
-        resp: {
-            symptoms: [
-                "Cough", "Shortness of breath", "Chest pain", "Hemoptysis",
-                "Pleuritic chest pain", "Wheezing", "Sputum production", "Orthopnea",
-                "Night sweats", "Drooling", "Hoarseness", "Barking cough"
-            ],
-            signs: [
-                "Crackles", "Cyanosis", "Decreased breath sounds", "Accessory muscle use",
-                "Tracheal deviation", "Dullness to percussion", "Hyperresonance to percussion",
-                "Barrel chest", "Clubbing", "Inspiratory stridor", "Tripod positioning",
-                "Pleural friction rub"
-            ],
-            labs: [
-                "Positive sputum culture", "Hypoxemia (low PaO2)", "Elevated D-dimer",
-                "Respiratory alkalosis", "Respiratory acidosis", "Positive blood culture",
-                "Elevated procalcitonin", "Positive AFB smear", "Elevated ACE level"
-            ],
-            radiology: [
-                "Lobar infiltrate", "Pleural effusion", "Pneumothorax on CXR",
-                "Ground-glass opacities", "CT angiography filling defect", "Hyperinflation on CXR",
-                "Mediastinal shift on CXR", "Air bronchograms", "Hampton hump on CXR",
-                "Westermark sign on CXR", "Apical cavitary lesion", "Lung mass on CT",
-                "Bilateral hilar lymphadenopathy on CXR", "Thumb sign on X-ray",
-                "Steeple sign on X-ray", "Tram-track opacities on CT"
-            ]
-        },
-        cvs: {
-            symptoms: [
-                "Palpitations", "Syncope", "Paroxysmal nocturnal dyspnea", "Leg swelling",
-                "Diaphoresis", "Fatigue", "Dizziness", "Claudication", "Tearing chest pain"
-            ],
-            signs: [
-                "Jugular venous distension", "S3 gallop", "S4 gallop", "Peripheral edema",
-                "New murmur", "Pericardial friction rub", "Elevated JVP", "Muffled heart sounds",
-                "Pulsus paradoxus", "Absent distal pulses", "Asymmetric blood pressure",
-                "Unilateral leg swelling", "Janeway lesions", "Osler nodes",
-                "Irregular pulse", "Slow-rising pulse"
-            ],
-            labs: [
-                "Elevated troponin", "Elevated BNP", "Elevated CRP", "Elevated ESR",
-                "ECG ST elevation", "ECG ST depression", "Elevated LDH", "Elevated CK-MB",
-                "Metabolic acidosis", "Positive blood culture (Cardiac)",
-                "ECG atrial fibrillation", "ECG wide complex tachycardia",
-                "ECG saddle-shaped ST elevation", "Ankle-Brachial Index < 0.9"
-            ],
-            radiology: [
-                "Cardiomegaly on CXR", "Pulmonary edema on CXR", "Pericardial effusion on echo",
-                "Wall motion abnormality on echo", "Valvular abnormality on echo",
-                "Aortic dilation on CT", "Intimal flap on CT", "Reduced ejection fraction on echo",
-                "Non-compressible vein on US", "Mediastinal widening on CXR",
-                "Hypertensive retinopathy on fundoscopy"
-            ]
-        },
-        renal: {
-            symptoms: [
-                "Flank pain", "Dysuria", "Hematuria", "Urinary frequency", "Urinary urgency",
-                "Oliguria", "Polyuria", "Suprapubic pain", "Hesitancy", "Testicular pain"
-            ],
-            signs: [
-                "Costovertebral angle tenderness", "Suprapubic tenderness", "Enlarged prostate",
-                "Absent cremasteric reflex", "High-riding testicle", "Flank mass",
-                "Hard irregular prostate"
-            ],
-            labs: [
-                "Elevated creatinine", "Elevated BUN", "Pyuria", "Hematuria on urinalysis",
-                "Proteinuria", "Positive urine culture", "Urine WBC casts",
-                "Muddy brown casts on urinalysis", "RBC casts on urinalysis",
-                "Hypoalbuminemia", "Lipiduria", "Elevated PSA"
-            ],
-            radiology: [
-                "Hydronephrosis on US", "Renal calculus on CT", "Perinephric stranding on CT",
-                "Bladder wall thickening on US", "Ureteral dilation on CT",
-                "Decreased testicular blood flow on US", "Multiple renal cysts on US",
-                "Renal mass on CT", "Small kidneys on US", "Bladder mass on CT",
-                "Bone metastases on bone scan"
-            ]
-        },
-        neuro: {
-            symptoms: [
-                "Headache", "Altered mental status", "Seizures", "Focal weakness",
-                "Vision changes", "Neck stiffness", "Photophobia", "Unilateral throbbing headache",
-                "Band-like headache", "Severe orbital pain", "Ipsilateral eye pain"
-            ],
-            signs: [
-                "Nuchal rigidity", "Kernig's sign", "Brudzinski's sign",
-                "Focal neurological deficit", "Papilledema", "Hemiparesis", "Aphasia",
-                "GCS < 15", "Cranial nerve palsy", "Resting tremor", "Cogwheel rigidity",
-                "Bradykinesia", "Ascending paralysis", "Absent deep tendon reflexes",
-                "Unilateral facial palsy", "Ipsilateral lacrimation"
-            ],
-            labs: [
-                "Positive CSF culture", "Elevated CSF protein", "Decreased CSF glucose",
-                "Elevated CSF WBC", "Xanthochromia in CSF", "Elevated CSF opening pressure",
-                "Oligoclonal bands in CSF", "EEG abnormality"
-            ],
-            radiology: [
-                "CT hyperdense lesion", "MRI diffusion restriction", "Cerebral edema on CT",
-                "Midline shift on CT", "Subarachnoid hemorrhage on CT",
-                "CT angiography vessel occlusion", "Meningeal enhancement on MRI",
-                "CT angiography aneurysm", "Loss of gray-white differentiation on CT",
-                "Crescent-shaped hemorrhage on CT", "Lens-shaped hemorrhage on CT",
-                "Periventricular white matter plaques on MRI"
-            ]
-        },
-        endo: {
-            symptoms: [
-                "Polydipsia", "Heat intolerance", "Cold intolerance", "Tremor",
-                "Weight gain", "Striae", "Hyperpigmentation", "Tetany"
-            ],
-            signs: [
-                "Kussmaul breathing", "Exophthalmos", "Goiter", "Warm moist skin", "Lid lag",
-                "Dry skin", "Moon facies", "Buffalo hump", "Delayed relaxation of DTRs",
-                "Positive Chvostek's sign", "Positive Trousseau's sign", "Acanthosis nigricans"
-            ],
-            labs: [
-                "Hyperglycemia", "Elevated HbA1c", "Elevated anion gap", "Ketonuria",
-                "Ketonemia", "Decreased TSH", "Elevated free T4", "Elevated TSH",
-                "Decreased free T4", "Hyperkalemia", "Hyponatremia", "Low morning cortisol",
-                "High midnight cortisol", "Elevated metanephrines",
-                "Hypercalcemia", "Hypocalcemia", "Low serum osmolality", "Hypernatremia"
-            ],
-            radiology: [
-                "Thyroid nodule on US", "Diffusely increased thyroid uptake scan",
-                "Adrenal mass on CT", "Pituitary adenoma on MRI"
-            ]
-        },
-        msk: {
-            symptoms: [
-                "Joint pain", "Joint swelling", "Limited range of motion", "Morning stiffness",
-                "Back pain", "Muscle weakness", "Redness over joint", "Numbness in hands",
-                "Severe toe pain", "Widespread pain", "Bone pain"
-            ],
-            signs: [
-                "Joint effusion", "Warmth over joint", "Erythema over joint",
-                "Restricted range of motion", "Tenderness on palpation", "Crepitus",
-                "Soft tissue swelling", "Positive Tinel's sign", "Positive Phalen's sign",
-                "Tophi", "Pain out of proportion", "Tender points on exam",
-                "Tense compartment", "Localized bone tenderness", "Malar rash"
-            ],
-            labs: [
-                "Elevated uric acid", "Positive synovial fluid culture",
-                "Synovial fluid WBC > 50,000", "Positive rheumatoid factor", "Positive anti-CCP",
-                "Negatively birefringent crystals", "Positive HLA-B27",
-                "Positively birefringent crystals", "Positive ANA", "Positive anti-dsDNA"
-            ],
-            radiology: [
-                "Joint space narrowing on X-ray", "Erosions on X-ray", "MRI bone marrow edema",
-                "Periosteal reaction on X-ray", "Bamboo spine on X-ray", "Osteophytes on X-ray",
-                "Punched-out erosions on X-ray", "Sacroiliitis on MRI",
-                "Chondrocalcinosis on X-ray", "Femoral head flattening on X-ray",
-                "Soft tissue swelling on X-ray", "Joint effusion on US"
-            ]
-        }
-    },
+    onsetTypes: [
+        "acute onset",
+        "subacute onset",
+        "insidious onset",
+        "chronic onset",
+        "episodic onset"
+    ],
 
-    // ============================================================================
-    // 3. RULES ENGINE
-    // ============================================================================
     rules: {
         excludes: {
-            "Male":               ["Female", "Pregnancy"],
-            "Female":             ["Male", "Benign Prostatic Hyperplasia", "Testicular Torsion", "Prostate Cancer"],
-            "Pregnancy":          ["Male"],
-            "Neonate (<1m)":      ["Smoking", "Alcohol use", "Pregnancy", "Hypertension (Hx)", "Diabetes", "Obesity", "Hyperlipidemia", "Elderly (>55y)"],
-            "Pediatric (1m-18y)": ["Smoking", "Alcohol use", "Pregnancy", "Elderly (>55y)", "Hyperlipidemia"],
-            "Smoking":            ["Neonate (<1m)", "Pediatric (1m-18y)"],
-            "Alcohol use":        ["Neonate (<1m)", "Pediatric (1m-18y)"]
+            "Male":   ["Female"],
+            "Female": ["Male"]
         },
         implies: {
-            "Pregnancy": ["Female"]
-        },
-        strictFilters: ["Male", "Female", "Pregnancy"]
+            "pregnancy": ["Female"]
+        }
     },
 
-    // ============================================================================
-    // 4. DISEASES — 100 total
-    //    GIT (18) | RESP (14) | CVS (14) | RENAL (13) | NEURO (15) | ENDO (13) | MSK (13)
-    // ============================================================================
+
+    // ═════════════════════════════════════════════════════════════════════
+    // DISEASES
+    // ═════════════════════════════════════════════════════════════════════
     diseases: [
 
-        // =====================================================================
-        // GASTROINTESTINAL (18)
-        // =====================================================================
+        // ── CARDIOVASCULAR ───────────────────────────────────────────────
+
         {
-            name: "Acute Appendicitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/773895-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Fever", "Tachycardia", "Family History of Appendicitis"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "McBurney's point tenderness", "Rebound tenderness"],
-            possibleFeatures: ["Nausea", "Vomiting", "Anorexia", "Guarding", "Diarrhea"],
-            labs:      { screening: ["Leukocytosis", "Elevated CRP"],  confirmatory: [] },
-            radiology: { screening: [],                                confirmatory: ["Thickened appendix on US"] }
-        },
-        {
-            name: "GERD", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/176595-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Episodic", "Obesity", "Smoking", "Pregnancy", "Alcohol use"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Heartburn", "Dysphagia"],
-            possibleFeatures: ["Cough", "Nausea", "Chest pain", "Bloating"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Acute Cholecystitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/171886-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Acute", "Fever", "Tachycardia", "Obesity", "Pregnancy", "Family History of Gallstones"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Acute",
-            keyFeatures:      ["Right upper quadrant tenderness", "Murphy's sign", "Abdominal pain"],
-            possibleFeatures: ["Nausea", "Vomiting", "Jaundice", "Anorexia", "Guarding"],
-            labs:      { screening: ["Leukocytosis", "Elevated AST/ALT", "Elevated ALP", "Elevated bilirubin"], confirmatory: [] },
-            radiology: { screening: [],                                                                          confirmatory: ["Gallstones on US", "GB wall thickening on US", "Pericholecystic fluid on US"] }
-        },
-        {
-            name: "Acute Pancreatitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/181364-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Fever", "Alcohol use", "Obesity", "Family History of Gallstones"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "Nausea", "Vomiting"],
-            possibleFeatures: ["Guarding", "Abdominal distension", "Jaundice", "Diarrhea"],
-            labs:      { screening: ["Leukocytosis", "Elevated AST/ALT", "Elevated bilirubin"], confirmatory: ["Elevated lipase", "Elevated amylase"] },
-            radiology: { screening: [],                                                         confirmatory: ["Pancreatic inflammation on CT"] }
-        },
-        {
-            name: "Small Bowel Obstruction", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/774140-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Prior Surgery"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "Vomiting", "Abdominal distension", "Constipation"],
-            possibleFeatures: ["Nausea", "Anorexia", "Absent bowel sounds", "Fever"],
-            labs:      { screening: ["Leukocytosis", "Elevated lactate", "Metabolic alkalosis"], confirmatory: [] },
-            radiology: { screening: ["Dilated bowel loops", "Air-fluid levels on X-ray"],       confirmatory: ["Transition point on CT"] }
-        },
-        {
-            name: "Peptic Ulcer Disease", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/181753-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Episodic", "Smoking", "Alcohol use"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Episodic",
-            keyFeatures:      ["Abdominal pain", "Heartburn", "Melena"],
-            possibleFeatures: ["Nausea", "Hematemesis", "Weight loss", "Anorexia"],
-            labs:      { screening: ["Anemia"],  confirmatory: ["Positive stool occult blood"] },
-            radiology: { screening: [],          confirmatory: [] }
-        },
-        {
-            name: "Diverticulitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/173388-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Fever", "Obesity", "Smoking"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "Left lower quadrant tenderness", "Fever"],
-            possibleFeatures: ["Constipation", "Diarrhea", "Nausea", "Vomiting", "Guarding", "Rebound tenderness"],
-            labs:      { screening: ["Leukocytosis", "Elevated CRP"], confirmatory: [] },
-            radiology: { screening: [],                               confirmatory: ["Bowel wall thickening on CT", "Colonic outpouchings on CT"] }
-        },
-        {
-            name: "Colorectal Cancer", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/277496-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Smoking", "Obesity", "Family History of Cancer"],
-            ageBias: "Elderly (>55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Weight loss", "Hematochezia", "Melena"],
-            possibleFeatures: ["Constipation", "Diarrhea", "Abdominal pain", "Fatigue", "Anemia"],
-            labs:      { screening: ["Anemia", "Positive stool occult blood"], confirmatory: [] },
-            radiology: { screening: [],                                        confirmatory: ["Apple-core lesion on Barium Enema", "Bowel wall thickening on CT"] }
-        },
-        {
-            name: "Acute Viral Hepatitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/175655-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Subacute", "Fever", "Recent Travel", "IV Drug Use", "Alcohol use"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Subacute",
-            keyFeatures:      ["Jaundice", "Right upper quadrant tenderness", "Hepatomegaly", "Anorexia"],
-            possibleFeatures: ["Nausea", "Vomiting", "Abdominal pain", "Fatigue", "Weight loss"],
-            labs:      { screening: ["Elevated AST/ALT", "Elevated bilirubin", "Elevated ALP"], confirmatory: ["Positive hepatitis serology", "Elevated INR"] },
-            radiology: { screening: [],                                                         confirmatory: [] }
-        },
-        {
-            name: "Crohn's Disease", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/172940-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Chronic", "Episodic", "Smoking", "Family History of IBD"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Chronic",
-            keyFeatures:      ["Abdominal pain", "Diarrhea", "Weight loss"],
-            possibleFeatures: ["Hematochezia", "Steatorrhea", "Anorexia", "Fever", "Anemia"],
-            labs:      { screening: ["Elevated CRP", "Elevated ESR", "Anemia"], confirmatory: ["Positive ASCA"] },
-            radiology: { screening: ["Bowel wall thickening on CT"],            confirmatory: [] }
-        },
-        {
-            name: "Ulcerative Colitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/183084-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Chronic", "Episodic", "Family History of IBD"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Chronic",
-            keyFeatures:      ["Hematochezia", "Tenesmus", "Diarrhea", "Left lower quadrant tenderness"],
-            possibleFeatures: ["Abdominal pain", "Weight loss", "Fever", "Anorexia"],
-            labs:      { screening: ["Elevated CRP", "Elevated ESR", "Anemia"], confirmatory: ["Positive p-ANCA"] },
-            radiology: { screening: ["Bowel wall thickening on CT"],            confirmatory: [] }
-        },
-        {
-            name: "Celiac Disease", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/171805-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Chronic", "Family History of Autoimmune Disease"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Steatorrhea", "Diarrhea", "Weight loss", "Anemia"],
-            possibleFeatures: ["Abdominal pain", "Bloating", "Anorexia", "Fatigue"],
-            labs:      { screening: ["Anemia"],  confirmatory: ["Positive tTG-IgA"] },
-            radiology: { screening: [],          confirmatory: [] }
-        },
-        {
-            name: "Mesenteric Ischemia", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/189140-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Hypotension", "Atrial Fibrillation", "Malignancy"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "Pain out of proportion", "Absent bowel sounds"],
-            possibleFeatures: ["Nausea", "Vomiting", "Hematochezia", "Diarrhea", "Fever"],
-            labs:      { screening: ["Leukocytosis", "Elevated lactate"],  confirmatory: [] },
-            radiology: { screening: ["Dilated bowel loops"],               confirmatory: ["Bowel wall thickening on CT", "Pneumobilia on CT"] }
-        },
-        {
-            name: "Esophageal Varices", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/174958-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Acute", "Alcohol use", "Malignancy"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Hematemesis", "Melena", "Jaundice"],
-            possibleFeatures: ["Ascites", "Hepatomegaly", "Spider angiomata", "Caput medusae"],
-            labs:      { screening: ["Elevated AST/ALT", "Elevated bilirubin", "Anemia", "Low albumin", "Elevated INR"], confirmatory: [] },
-            radiology: { screening: ["Portal hypertension on US"],                                                       confirmatory: [] }
-        },
-        {
-            name: "Acute Gastroenteritis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/176515-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Fever", "Recent Travel", "Dehydration"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Diarrhea", "Vomiting", "Abdominal pain"],
-            possibleFeatures: ["Nausea", "Fever", "Anorexia"],
-            labs:      { screening: ["Leukocytosis"], confirmatory: [] },
-            radiology: { screening: [],               confirmatory: [] }
-        },
-        {
-            name: "Liver Cirrhosis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/185856-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Chronic", "Alcohol use", "Family History of Cancer"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Jaundice", "Ascites", "Spider angiomata", "Hepatomegaly"],
-            possibleFeatures: ["Caput medusae", "Palmar erythema", "Weight loss", "Fatigue", "Hematemesis"],
-            labs:      { screening: ["Elevated AST/ALT", "Elevated bilirubin", "Elevated GGT", "Anemia", "Elevated INR"], confirmatory: ["Low albumin"] },
-            radiology: { screening: ["Portal hypertension on US"],                                                        confirmatory: [] }
-        },
-        {
-            name: "Ascending Cholangitis", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/183324-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Fever", "Tachycardia", "Hypotension", "Prior Surgery", "Family History of Gallstones"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Right upper quadrant tenderness", "Fever", "Jaundice", "Altered mental status"],
-            possibleFeatures: ["Nausea", "Vomiting", "Abdominal pain", "Guarding"],
-            labs:      { screening: ["Leukocytosis", "Elevated AST/ALT", "Elevated bilirubin", "Elevated ALP"], confirmatory: ["Positive blood culture"] },
-            radiology: { screening: ["Gallstones on US", "GB wall thickening on US"],                           confirmatory: ["Pneumobilia on CT"] }
-        },
-        {
-            name: "Intussusception", system: "git",
-            medscapeLink: "https://emedicine.medscape.com/article/930237-overview",
-            demographics: ["Pediatric (1m-18y)", "Male", "Acute", "Recent Viral Illness"],
-            ageBias: "Pediatric (1m-18y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Abdominal pain", "Currant jelly stool", "Vomiting"],
-            possibleFeatures: ["Abdominal distension", "Guarding", "Fever", "Anorexia"],
-            labs:      { screening: ["Leukocytosis"], confirmatory: [] },
-            radiology: { screening: [],               confirmatory: ["Target sign on US"] }
+            name: "STEMI",
+            prevalence: 0.60,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "Hx of dyslipidemia",                           t: "risk-factor"      },
+                { f: "fHx of CAD",                                   t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "diaphoresis",                                  t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "syncope",                                      t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "crushing chest pain",                          t: "pathognomonic-sp" },
+                { f: "chest pain radiation to arm/jaw",              t: "pathognomonic-sp" },
+                { f: "cardiogenic shock",                            t: "pathognomonic-sp" },
+                { f: "elevated troponin",                            t: "screening-lab"    },
+                { f: "elevated CK-MB",                               t: "screening-lab"    },
+                { f: "ECG: ST elevation",                            t: "confirmatory-lab" },
+                { f: "ECG: new LBBB",                                t: "confirmatory-lab" },
+                { f: "CXR: pulmonary edema",                         t: "nonspecific-rad"  },
+                { f: "Angiography: culprit occlusion",               t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // RESPIRATORY (14)
-        // =====================================================================
         {
-            name: "Pneumonia", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/300157-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Fever", "Tachypnea", "Tachycardia", "Hypoxia", "Immunosuppression", "Smoking"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Cough", "Crackles", "Shortness of breath"],
-            possibleFeatures: ["Pleuritic chest pain", "Hemoptysis", "Sputum production", "Dullness to percussion", "Fever"],
-            labs:      { screening: ["Leukocytosis", "Hypoxemia (low PaO2)", "Elevated procalcitonin"], confirmatory: ["Positive sputum culture"] },
-            radiology: { screening: ["Pleural effusion"],                                               confirmatory: ["Lobar infiltrate", "Air bronchograms"] }
-        },
-        {
-            name: "Pulmonary Embolism", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/300901-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Tachypnea", "Hypoxia", "Immobilization", "Prior Surgery", "Smoking", "Pregnancy", "Malignancy"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Pleuritic chest pain", "Shortness of breath"],
-            possibleFeatures: ["Hemoptysis", "Syncope", "Hypotension", "Cyanosis", "Leg swelling"],
-            labs:      { screening: ["Hypoxemia (low PaO2)", "Respiratory alkalosis", "Elevated troponin"], confirmatory: ["Elevated D-dimer"] },
-            radiology: { screening: ["Hampton hump on CXR", "Westermark sign on CXR"],                     confirmatory: ["CT angiography filling defect"] }
-        },
-        {
-            name: "Pneumothorax", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/424547-overview",
-            demographics: ["Young Adult (18-35y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Tachypnea", "Hypoxia", "Smoking", "Trauma"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Chest pain", "Shortness of breath", "Decreased breath sounds", "Hyperresonance to percussion"],
-            possibleFeatures: ["Cyanosis", "Tracheal deviation", "Hypotension"],
-            labs:      { screening: ["Hypoxemia (low PaO2)"],    confirmatory: [] },
-            radiology: { screening: ["Mediastinal shift on CXR"], confirmatory: ["Pneumothorax on CXR"] }
-        },
-        {
-            name: "Acute Asthma Exacerbation", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/296301-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Episodic", "Tachypnea", "Tachycardia", "Hypoxia", "Family History of Asthma"],
-            ageBias: "Pediatric (1m-18y)", onsetBias: "Acute",
-            keyFeatures:      ["Wheezing", "Shortness of breath", "Accessory muscle use"],
-            possibleFeatures: ["Cough", "Chest pain", "Cyanosis"],
-            labs:      { screening: ["Hypoxemia (low PaO2)", "Respiratory alkalosis"], confirmatory: [] },
-            radiology: { screening: ["Hyperinflation on CXR"],                         confirmatory: [] }
-        },
-        {
-            name: "COPD Exacerbation", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/297664-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachypnea", "Tachycardia", "Hypoxia", "Smoking"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Shortness of breath", "Wheezing", "Sputum production", "Barrel chest"],
-            possibleFeatures: ["Cough", "Accessory muscle use", "Cyanosis", "Fatigue", "Clubbing"],
-            labs:      { screening: ["Hypoxemia (low PaO2)", "Respiratory acidosis"], confirmatory: [] },
-            radiology: { screening: ["Hyperinflation on CXR"],                        confirmatory: [] }
-        },
-        {
-            name: "Tuberculosis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/230802-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Fever", "Recent Travel", "Immunosuppression"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Cough", "Hemoptysis", "Night sweats", "Weight loss"],
-            possibleFeatures: ["Chest pain", "Fatigue", "Shortness of breath", "Fever"],
-            labs:      { screening: ["Elevated ESR"],                               confirmatory: ["Positive AFB smear", "Positive sputum culture"] },
-            radiology: { screening: ["Apical cavitary lesion", "Pleural effusion"], confirmatory: [] }
-        },
-        {
-            name: "Lung Cancer", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/279960-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Smoking", "Malignancy"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Cough", "Hemoptysis", "Weight loss", "Hoarseness"],
-            possibleFeatures: ["Shortness of breath", "Chest pain", "Night sweats", "Fatigue"],
-            labs:      { screening: ["Hypoxemia (low PaO2)"], confirmatory: [] },
-            radiology: { screening: ["Lung mass on CT"],      confirmatory: [] }
-        },
-        {
-            name: "Pleuritis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/300049-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Recent Viral Illness", "Family History of Autoimmune Disease"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Pleuritic chest pain", "Pleural friction rub", "Shortness of breath"],
-            possibleFeatures: ["Cough", "Fever", "Fatigue"],
-            labs:      { screening: ["Elevated CRP", "Elevated ESR"], confirmatory: [] },
-            radiology: { screening: ["Pleural effusion"],              confirmatory: [] }
-        },
-        {
-            name: "Acute Bronchitis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/297108-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Smoking", "Recent Viral Illness"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Cough", "Sputum production"],
-            possibleFeatures: ["Wheezing", "Fever", "Shortness of breath", "Chest pain"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Bronchiectasis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/296961-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Smoking", "Immunosuppression"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Cough", "Sputum production", "Hemoptysis", "Clubbing"],
-            possibleFeatures: ["Crackles", "Fever", "Shortness of breath", "Night sweats"],
-            labs:      { screening: ["Positive sputum culture"],    confirmatory: [] },
-            radiology: { screening: ["Tram-track opacities on CT"], confirmatory: [] }
-        },
-        {
-            name: "Sarcoidosis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/301914-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Subacute", "Chronic"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Subacute",
-            keyFeatures:      ["Shortness of breath", "Cough", "Fatigue"],
-            possibleFeatures: ["Night sweats", "Weight loss", "Fever", "Vision changes"],
-            labs:      { screening: ["Elevated ESR", "Hypercalcemia"], confirmatory: ["Elevated ACE level"] },
-            radiology: { screening: ["Bilateral hilar lymphadenopathy on CXR"], confirmatory: ["Ground-glass opacities"] }
-        },
-        {
-            name: "Epiglottitis", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/763612-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Fever", "Tachycardia", "Immunosuppression"],
-            ageBias: "Pediatric (1m-18y)", onsetBias: "Acute",
-            keyFeatures:      ["Drooling", "Inspiratory stridor", "Tripod positioning", "Fever"],
-            possibleFeatures: ["Dysphagia", "Hoarseness", "Shortness of breath", "Cough"],
-            labs:      { screening: ["Leukocytosis"], confirmatory: [] },
-            radiology: { screening: [],               confirmatory: ["Thumb sign on X-ray"] }
-        },
-        {
-            name: "Croup", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/803321-overview",
-            demographics: ["Pediatric (1m-18y)", "Male", "Female", "Acute", "Fever", "Recent Viral Illness"],
-            ageBias: "Pediatric (1m-18y)", onsetBias: "Acute",
-            keyFeatures:      ["Barking cough", "Inspiratory stridor"],
-            possibleFeatures: ["Fever", "Tachypnea", "Shortness of breath", "Cyanosis"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: ["Steeple sign on X-ray"] }
-        },
-        {
-            name: "Aspiration Pneumonia", system: "resp",
-            medscapeLink: "https://emedicine.medscape.com/article/296998-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Subacute", "Fever", "Tachypnea", "Hypoxia", "Alcohol use", "Immunosuppression"],
-            ageBias: "Elderly (>55y)", onsetBias: "Subacute",
-            keyFeatures:      ["Cough", "Crackles", "Shortness of breath", "Sputum production"],
-            possibleFeatures: ["Fever", "Dullness to percussion", "Cyanosis", "Hemoptysis"],
-            labs:      { screening: ["Leukocytosis", "Elevated procalcitonin"], confirmatory: ["Positive sputum culture"] },
-            radiology: { screening: ["Lobar infiltrate"],                       confirmatory: ["Air bronchograms"] }
+            name: "NSTEMI / Unstable Angina",
+            prevalence: 0.70,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "Hx of dyslipidemia",                           t: "risk-factor"      },
+                { f: "fHx of CAD",                                   t: "risk-factor"      },
+                { f: "Hx of prior CAD/PCI/CABG",                     t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "diaphoresis",                                  t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "chest pain at rest",                           t: "pathognomonic-sp" },
+                { f: "chest pain radiation to arm/jaw",              t: "pathognomonic-sp" },
+                { f: "ECG: ST depression",                           t: "pathognomonic-sp" },
+                { f: "ECG: T-wave inversion",                        t: "pathognomonic-sp" },
+                { f: "elevated troponin",                            t: "screening-lab"    },
+                { f: "Angiography: stenosis >70%",                   t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // CARDIOVASCULAR (14)
-        // =====================================================================
         {
-            name: "Acute Myocardial Infarction", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/155919-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Bradycardia", "Hypertension (Vital)", "Hypotension", "Smoking", "Hypertension (Hx)", "Diabetes", "Obesity", "Family History of CAD", "Hyperlipidemia"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Chest pain", "Diaphoresis", "Shortness of breath"],
-            possibleFeatures: ["Nausea", "Palpitations", "Syncope", "S4 gallop", "Fatigue"],
-            labs:      { screening: ["Elevated BNP"],  confirmatory: ["Elevated troponin", "ECG ST elevation", "ECG ST depression", "Elevated CK-MB"] },
-            radiology: { screening: [],                confirmatory: ["Wall motion abnormality on echo"] }
-        },
-        {
-            name: "Congestive Heart Failure", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/163062-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Subacute", "Chronic", "Tachycardia", "Tachypnea", "Hypoxia", "Hypertension (Hx)", "Diabetes", "Obesity", "Family History of CAD"],
-            ageBias: "Elderly (>55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Shortness of breath", "Orthopnea", "Peripheral edema", "Jugular venous distension", "S3 gallop"],
-            possibleFeatures: ["Paroxysmal nocturnal dyspnea", "Cough", "Fatigue", "Leg swelling", "Crackles"],
-            labs:      { screening: ["Elevated creatinine", "Hyponatremia"],               confirmatory: ["Elevated BNP"] },
-            radiology: { screening: ["Cardiomegaly on CXR", "Pleural effusion"],           confirmatory: ["Pulmonary edema on CXR", "Reduced ejection fraction on echo"] }
-        },
-        {
-            name: "Aortic Dissection", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/2062452-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Hypertension (Vital)", "Tachycardia", "Hypertension (Hx)", "Smoking", "Family History of Aneurysms"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Tearing chest pain", "Asymmetric blood pressure", "Absent distal pulses"],
-            possibleFeatures: ["Syncope", "Shortness of breath", "New murmur", "Focal neurological deficit"],
-            labs:      { screening: ["Elevated D-dimer", "Elevated creatinine"], confirmatory: [] },
-            radiology: { screening: ["Mediastinal widening on CXR"],             confirmatory: ["Intimal flap on CT", "Aortic dilation on CT"] }
-        },
-        {
-            name: "Cardiac Tamponade", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/152083-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Hypotension", "Trauma", "Malignancy"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Acute",
-            keyFeatures:      ["Hypotension", "Jugular venous distension", "Muffled heart sounds", "Pulsus paradoxus"],
-            possibleFeatures: ["Shortness of breath", "Chest pain", "Dizziness", "Tachypnea"],
-            labs:      { screening: ["Elevated troponin", "Metabolic acidosis"], confirmatory: [] },
-            radiology: { screening: ["Cardiomegaly on CXR"],                     confirmatory: ["Pericardial effusion on echo"] }
-        },
-        {
-            name: "Infective Endocarditis", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/216650-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Subacute", "Fever", "IV Drug Use", "Prior Surgery", "Immunosuppression"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Subacute",
-            keyFeatures:      ["Fever", "New murmur", "Janeway lesions", "Osler nodes"],
-            possibleFeatures: ["Fatigue", "Weight loss", "Night sweats", "Hematuria"],
-            labs:      { screening: ["Leukocytosis", "Elevated ESR", "Elevated CRP"], confirmatory: ["Positive blood culture (Cardiac)"] },
-            radiology: { screening: [],                                               confirmatory: ["Valvular abnormality on echo"] }
-        },
-        {
-            name: "Deep Vein Thrombosis", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/1911303-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Pregnancy", "Immobilization", "Prior Surgery", "Malignancy", "Smoking"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Unilateral leg swelling", "Leg swelling"],
-            possibleFeatures: ["Warmth over joint", "Erythema over joint", "Tenderness on palpation", "Fatigue"],
-            labs:      { screening: ["Elevated D-dimer"], confirmatory: [] },
-            radiology: { screening: [],                   confirmatory: ["Non-compressible vein on US"] }
-        },
-        {
-            name: "Pericarditis", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/156951-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Fever", "Recent Viral Illness", "Immunosuppression", "Malignancy"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Pleuritic chest pain", "Pericardial friction rub", "Fever"],
-            possibleFeatures: ["Shortness of breath", "Fatigue", "Palpitations"],
-            labs:      { screening: ["Elevated CRP", "Elevated ESR", "Elevated troponin"], confirmatory: ["ECG saddle-shaped ST elevation"] },
-            radiology: { screening: [],                                                    confirmatory: ["Pericardial effusion on echo"] }
-        },
-        {
-            name: "Atrial Fibrillation", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/151066-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Episodic", "Tachycardia", "Hypertension (Hx)", "Alcohol use", "Hyperlipidemia"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Episodic",
-            keyFeatures:      ["Palpitations", "Irregular pulse"],
-            possibleFeatures: ["Syncope", "Shortness of breath", "Dizziness", "Fatigue", "Chest pain"],
-            labs:      { screening: ["Elevated troponin"],   confirmatory: ["ECG atrial fibrillation"] },
-            radiology: { screening: [],                      confirmatory: [] }
-        },
-        {
-            name: "Hypertensive Emergency", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/1952052-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Hypertension (Vital)", "Hypertension (Hx)", "Diabetes", "Smoking"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Headache", "Altered mental status"],
-            possibleFeatures: ["Vision changes", "Shortness of breath", "Chest pain", "Nausea", "Papilledema"],
-            labs:      { screening: ["Elevated creatinine", "Elevated troponin"],    confirmatory: [] },
-            radiology: { screening: ["Hypertensive retinopathy on fundoscopy"],      confirmatory: [] }
-        },
-        {
-            name: "Stable Angina", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/150215-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Episodic", "Hypertension (Hx)", "Diabetes", "Smoking", "Hyperlipidemia", "Family History of CAD"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Episodic",
-            keyFeatures:      ["Chest pain", "Diaphoresis"],
-            possibleFeatures: ["Shortness of breath", "Fatigue", "Palpitations", "Claudication"],
-            labs:      { screening: ["ECG ST depression"], confirmatory: [] },
-            radiology: { screening: [],                    confirmatory: ["Wall motion abnormality on echo"] }
-        },
-        {
-            name: "Myocarditis", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/156330-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Subacute", "Tachycardia", "Fever", "Recent Viral Illness"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Subacute",
-            keyFeatures:      ["Chest pain", "Fatigue", "Shortness of breath"],
-            possibleFeatures: ["Palpitations", "Fever", "S3 gallop", "Peripheral edema"],
-            labs:      { screening: ["Elevated troponin", "Elevated CRP", "Elevated ESR"], confirmatory: [] },
-            radiology: { screening: [],                                                    confirmatory: ["Reduced ejection fraction on echo"] }
-        },
-        {
-            name: "Aortic Stenosis", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/150638-overview",
-            demographics: ["Elderly (>55y)", "Middle-aged (36-55y)", "Male", "Female", "Chronic", "Hypertension (Hx)", "Diabetes"],
-            ageBias: "Elderly (>55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Syncope", "Shortness of breath", "New murmur", "Slow-rising pulse"],
-            possibleFeatures: ["Chest pain", "Fatigue", "Dizziness"],
-            labs:      { screening: ["Elevated BNP"], confirmatory: [] },
-            radiology: { screening: [],               confirmatory: ["Valvular abnormality on echo"] }
-        },
-        {
-            name: "Peripheral Artery Disease", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/761556-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Smoking", "Hypertension (Hx)", "Diabetes", "Hyperlipidemia", "Family History of CAD"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Claudication", "Absent distal pulses"],
-            possibleFeatures: ["Leg swelling", "Fatigue"],
-            labs:      { screening: ["Ankle-Brachial Index < 0.9"], confirmatory: [] },
-            radiology: { screening: [],                             confirmatory: [] }
-        },
-        {
-            name: "Ventricular Tachycardia", system: "cvs",
-            medscapeLink: "https://emedicine.medscape.com/article/159625-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Tachycardia", "Hypertension (Hx)", "Diabetes", "Family History of CAD"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Palpitations", "Syncope"],
-            possibleFeatures: ["Chest pain", "Shortness of breath", "Dizziness"],
-            labs:      { screening: ["Elevated troponin"],            confirmatory: ["ECG wide complex tachycardia"] },
-            radiology: { screening: [],                               confirmatory: [] }
+            name: "Acute Heart Failure",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of heart failure",                          t: "risk-factor"      },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of ischemic heart disease",                 t: "risk-factor"      },
+                { f: "Hx of atrial fibrillation",                    t: "risk-factor"      },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "orthopnea",                                    t: "pathognomonic-sp" },
+                { f: "paroxysmal nocturnal dyspnea",                 t: "pathognomonic-sp" },
+                { f: "bilateral basal crackles",                     t: "pathognomonic-sp" },
+                { f: "JVD",                                          t: "pathognomonic-sp" },
+                { f: "S3 gallop",                                    t: "pathognomonic-sp" },
+                { f: "elevated BNP",                                 t: "screening-lab"    },
+                { f: "hyponatremia",                                 t: "screening-lab"    },
+                { f: "CXR: cardiomegaly",                            t: "confirmatory-rad" },
+                { f: "CXR: pulmonary edema",                         t: "confirmatory-rad" },
+                { f: "Echo: EF <40%",                                t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // RENAL / UROLOGICAL (13)
-        // =====================================================================
         {
-            name: "Acute Pyelonephritis", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/245559-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Acute", "Fever", "Tachycardia", "Pregnancy", "Diabetes"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Acute",
-            keyFeatures:      ["Flank pain", "Fever", "Costovertebral angle tenderness", "Dysuria"],
-            possibleFeatures: ["Nausea", "Vomiting", "Urinary frequency", "Urinary urgency", "Hematuria"],
-            labs:      { screening: ["Leukocytosis", "Pyuria"],           confirmatory: ["Positive urine culture", "Urine WBC casts"] },
-            radiology: { screening: [],                                   confirmatory: ["Perinephric stranding on CT"] }
-        },
-        {
-            name: "Nephrolithiasis", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/437096-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Episodic", "Tachycardia", "Dehydration", "Family History of Kidney Stones"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Flank pain", "Hematuria"],
-            possibleFeatures: ["Nausea", "Vomiting", "Dysuria", "Urinary urgency"],
-            labs:      { screening: ["Hematuria on urinalysis"],                         confirmatory: [] },
-            radiology: { screening: ["Hydronephrosis on US", "Ureteral dilation on CT"], confirmatory: ["Renal calculus on CT"] }
-        },
-        {
-            name: "Cystitis (UTI)", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/233101-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Acute", "Pregnancy", "Diabetes"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Acute",
-            keyFeatures:      ["Dysuria", "Urinary frequency", "Urinary urgency", "Suprapubic pain"],
-            possibleFeatures: ["Hematuria", "Suprapubic tenderness"],
-            labs:      { screening: ["Pyuria", "Hematuria on urinalysis"],           confirmatory: ["Positive urine culture"] },
-            radiology: { screening: [],                                              confirmatory: ["Bladder wall thickening on US"] }
-        },
-        {
-            name: "Benign Prostatic Hyperplasia", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/437359-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Chronic", "Obesity"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Urinary frequency", "Hesitancy", "Enlarged prostate"],
-            possibleFeatures: ["Urinary urgency", "Oliguria", "Suprapubic pain"],
-            labs:      { screening: ["Elevated creatinine", "Hematuria on urinalysis"],         confirmatory: [] },
-            radiology: { screening: ["Bladder wall thickening on US", "Hydronephrosis on US"], confirmatory: [] }
-        },
-        {
-            name: "Testicular Torsion", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/2036003-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Acute", "Trauma"],
-            ageBias: "Pediatric (1m-18y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Testicular pain", "Absent cremasteric reflex", "High-riding testicle"],
-            possibleFeatures: ["Nausea", "Vomiting", "Abdominal pain"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: ["Decreased testicular blood flow on US"] }
-        },
-        {
-            name: "Acute Kidney Injury", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/243492-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Dehydration", "Trauma", "Immunosuppression", "Malignancy", "Diabetes"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Oliguria"],
-            possibleFeatures: ["Altered mental status", "Nausea", "Vomiting", "Fatigue", "Peripheral edema"],
-            labs:      { screening: ["Elevated creatinine", "Elevated BUN", "Hyperkalemia"], confirmatory: ["Muddy brown casts on urinalysis"] },
-            radiology: { screening: [],                                                      confirmatory: [] }
-        },
-        {
-            name: "Chronic Kidney Disease", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/238798-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Hypertension (Hx)", "Diabetes", "Obesity"],
-            ageBias: "Elderly (>55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Fatigue", "Oliguria"],
-            possibleFeatures: ["Nausea", "Vomiting", "Leg swelling", "Weight loss", "Dizziness"],
-            labs:      { screening: ["Elevated creatinine", "Elevated BUN", "Proteinuria"], confirmatory: ["Hypoalbuminemia"] },
-            radiology: { screening: ["Small kidneys on US"],                                confirmatory: [] }
-        },
-        {
-            name: "Nephrotic Syndrome", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/244631-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Subacute", "Diabetes", "Immunosuppression"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Subacute",
-            keyFeatures:      ["Peripheral edema", "Proteinuria", "Leg swelling"],
-            possibleFeatures: ["Fatigue", "Oliguria", "Weight gain"],
-            labs:      { screening: ["Proteinuria", "Hypoalbuminemia"], confirmatory: ["Lipiduria"] },
-            radiology: { screening: [],                                 confirmatory: [] }
-        },
-        {
-            name: "Acute Glomerulonephritis", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/239494-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Recent Viral Illness", "Hypertension (Vital)"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Hematuria", "Proteinuria", "Oliguria"],
-            possibleFeatures: ["Peripheral edema", "Fatigue", "Hypertension (Vital)"],
-            labs:      { screening: ["Hematuria on urinalysis", "Proteinuria", "Elevated creatinine"], confirmatory: ["RBC casts on urinalysis"] },
-            radiology: { screening: [],                                                               confirmatory: [] }
-        },
-        {
-            name: "Renal Cell Carcinoma", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/281335-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Chronic", "Smoking", "Obesity", "Hypertension (Hx)"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Flank pain", "Hematuria", "Flank mass"],
-            possibleFeatures: ["Weight loss", "Fatigue", "Night sweats", "Fever"],
-            labs:      { screening: ["Hematuria on urinalysis", "Anemia"], confirmatory: [] },
-            radiology: { screening: ["Renal mass on CT"],                  confirmatory: [] }
-        },
-        {
-            name: "Polycystic Kidney Disease", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/244907-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Chronic", "Hypertension (Hx)", "Family History of Aneurysms"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Chronic",
-            keyFeatures:      ["Flank pain", "Hematuria"],
-            possibleFeatures: ["Urinary frequency", "Costovertebral angle tenderness", "Headache"],
-            labs:      { screening: ["Hematuria on urinalysis", "Elevated creatinine"], confirmatory: [] },
-            radiology: { screening: ["Multiple renal cysts on US"],                     confirmatory: [] }
-        },
-        {
-            name: "Bladder Cancer", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/231930-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Chronic", "Smoking"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Hematuria", "Dysuria", "Urinary frequency"],
-            possibleFeatures: ["Suprapubic pain", "Weight loss", "Oliguria"],
-            labs:      { screening: ["Hematuria on urinalysis"], confirmatory: [] },
-            radiology: { screening: ["Bladder mass on CT"],      confirmatory: [] }
-        },
-        {
-            name: "Prostate Cancer", system: "renal",
-            medscapeLink: "https://emedicine.medscape.com/article/378253-overview",
-            demographics: ["Elderly (>55y)", "Male", "Chronic", "Family History of Cancer"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Hesitancy", "Urinary frequency", "Hard irregular prostate"],
-            possibleFeatures: ["Dysuria", "Hematuria", "Back pain", "Weight loss"],
-            labs:      { screening: ["Elevated PSA"],                  confirmatory: [] },
-            radiology: { screening: ["Bladder wall thickening on US"], confirmatory: ["Bone metastases on bone scan"] }
+            name: "Pulmonary Embolism",
+            prevalence: 0.45,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of immobilization",                         t: "risk-factor"      },
+                { f: "Hx of recent surgery",                         t: "risk-factor"      },
+                { f: "Hx of malignancy",                             t: "risk-factor"      },
+                { f: "Hx of oral contraceptive use",                 t: "risk-factor"      },
+                { f: "pregnancy",                                    t: "risk-factor"      },
+                { f: "Hx of prior DVT/PE",                           t: "risk-factor"      },
+                { f: "Hx of thrombophilia",                          t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "unilateral leg swelling",                      t: "nonspecific-sp"   },
+                { f: "sudden dyspnea",                               t: "pathognomonic-sp" },
+                { f: "pleuritic chest pain",                         t: "pathognomonic-sp" },
+                { f: "hypoxemia",                                    t: "pathognomonic-sp" },
+                { f: "hemoptysis",                                   t: "pathognomonic-sp" },
+                { f: "elevated D-dimer",                             t: "screening-lab"    },
+                { f: "ECG: S1Q3T3",                                  t: "screening-lab"    },
+                { f: "ECG: sinus tachycardia",                       t: "screening-lab"    },
+                { f: "CT: filling defect in pulmonary artery",       t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // NEUROLOGICAL (15)
-        // =====================================================================
         {
-            name: "Acute Ischemic Stroke", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1916852-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Hypertension (Vital)", "Hypertension (Hx)", "Diabetes", "Smoking", "Atrial Fibrillation", "Hyperlipidemia"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Focal weakness", "Focal neurological deficit", "Aphasia", "Hemiparesis"],
-            possibleFeatures: ["Altered mental status", "Vision changes", "Headache", "Dizziness", "GCS < 15"],
-            labs:      { screening: ["Hyperglycemia"],                                             confirmatory: [] },
-            radiology: { screening: ["Loss of gray-white differentiation on CT"],                  confirmatory: ["MRI diffusion restriction", "CT angiography vessel occlusion"] }
-        },
-        {
-            name: "Bacterial Meningitis", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/961497-overview",
-            demographics: ["Neonate (<1m)", "Pediatric (1m-18y)", "Young Adult (18-35y)", "Elderly (>55y)", "Male", "Female", "Acute", "Fever", "Tachycardia", "Immunosuppression"],
-            ageBias: "Pediatric (1m-18y)", onsetBias: "Acute",
-            keyFeatures:      ["Headache", "Fever", "Nuchal rigidity", "Altered mental status"],
-            possibleFeatures: ["Photophobia", "Seizures", "Kernig's sign", "Brudzinski's sign", "Vomiting"],
-            labs:      { screening: ["Leukocytosis", "Positive blood culture"],                         confirmatory: ["Elevated CSF WBC", "Positive CSF culture", "Decreased CSF glucose", "Elevated CSF opening pressure"] },
-            radiology: { screening: ["Cerebral edema on CT"],                                           confirmatory: ["Meningeal enhancement on MRI"] }
-        },
-        {
-            name: "Subarachnoid Hemorrhage", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1164341-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Hypertension (Vital)", "Hypertension (Hx)", "Smoking", "Family History of Aneurysms"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Acute",
-            keyFeatures:      ["Headache", "Nuchal rigidity", "Altered mental status"],
-            possibleFeatures: ["Vomiting", "Photophobia", "Seizures", "Focal neurological deficit", "GCS < 15"],
-            labs:      { screening: ["Elevated CSF opening pressure"], confirmatory: ["Xanthochromia in CSF"] },
-            radiology: { screening: [],                                confirmatory: ["Subarachnoid hemorrhage on CT", "CT angiography aneurysm"] }
-        },
-        {
-            name: "Migraine", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1142556-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Episodic"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Episodic",
-            keyFeatures:      ["Unilateral throbbing headache", "Photophobia", "Nausea"],
-            possibleFeatures: ["Vision changes", "Vomiting", "Dizziness"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Multiple Sclerosis", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1146199-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Episodic", "Subacute", "Family History of Autoimmune Disease"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Episodic",
-            keyFeatures:      ["Vision changes", "Focal weakness", "Fatigue", "Numbness in hands"],
-            possibleFeatures: ["Dizziness", "Altered mental status", "Muscle weakness"],
-            labs:      { screening: ["Elevated CSF protein"],           confirmatory: ["Oligoclonal bands in CSF"] },
-            radiology: { screening: [],                                 confirmatory: ["Periventricular white matter plaques on MRI"] }
-        },
-        {
-            name: "Parkinson's Disease", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1831191-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Resting tremor", "Cogwheel rigidity", "Bradykinesia"],
-            possibleFeatures: ["Fatigue", "Altered mental status", "Constipation"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Epidural Hematoma", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/824029-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Male", "Female", "Acute", "Trauma"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Headache", "Altered mental status", "GCS < 15"],
-            possibleFeatures: ["Vomiting", "Focal weakness", "Seizures", "Focal neurological deficit"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: ["Midline shift on CT"], confirmatory: ["Lens-shaped hemorrhage on CT"] }
-        },
-        {
-            name: "Guillain-Barré Syndrome", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/315632-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Subacute", "Recent Viral Illness"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Subacute",
-            keyFeatures:      ["Ascending paralysis", "Absent deep tendon reflexes", "Focal weakness"],
-            possibleFeatures: ["Fatigue", "Cranial nerve palsy", "Neck stiffness", "Shortness of breath"],
-            labs:      { screening: ["Elevated CSF protein"], confirmatory: [] },
-            radiology: { screening: [],                       confirmatory: [] }
-        },
-        {
-            name: "Bell's Palsy", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1146903-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Recent Viral Illness", "Pregnancy"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Unilateral facial palsy", "Cranial nerve palsy"],
-            possibleFeatures: ["Headache", "Neck stiffness", "Ipsilateral lacrimation", "Vision changes"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Epilepsy (New-onset Seizure)", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1184846-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Episodic", "Alcohol use", "Immunosuppression"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Seizures", "Altered mental status", "GCS < 15"],
-            possibleFeatures: ["Headache", "Focal neurological deficit", "Fatigue"],
-            labs:      { screening: [],  confirmatory: ["EEG abnormality"] },
-            radiology: { screening: [],  confirmatory: [] }
-        },
-        {
-            name: "Subdural Hematoma", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1137207-overview",
-            demographics: ["Elderly (>55y)", "Middle-aged (36-55y)", "Male", "Female", "Subacute", "Trauma", "Alcohol use", "Malignancy"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Subacute",
-            keyFeatures:      ["Headache", "Altered mental status", "GCS < 15"],
-            possibleFeatures: ["Focal weakness", "Focal neurological deficit", "Seizures", "Vomiting"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: ["Midline shift on CT"], confirmatory: ["Crescent-shaped hemorrhage on CT"] }
-        },
-        {
-            name: "Intracerebral Hemorrhage", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1163977-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Hypertension (Vital)", "Hypertension (Hx)", "Smoking", "Alcohol use"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Headache", "Focal neurological deficit", "GCS < 15", "Altered mental status"],
-            possibleFeatures: ["Vomiting", "Seizures", "Hemiparesis", "Aphasia"],
-            labs:      { screening: [],                      confirmatory: [] },
-            radiology: { screening: ["CT hyperdense lesion"], confirmatory: ["Midline shift on CT"] }
-        },
-        {
-            name: "Tension Headache", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1142908-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Episodic", "Chronic"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Episodic",
-            keyFeatures:      ["Band-like headache", "Headache"],
-            possibleFeatures: ["Neck stiffness", "Fatigue"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Cluster Headache", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1142459-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Episodic", "Smoking", "Alcohol use"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Episodic",
-            keyFeatures:      ["Severe orbital pain", "Ipsilateral lacrimation", "Ipsilateral eye pain"],
-            possibleFeatures: ["Headache", "Photophobia", "Vomiting"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
-        },
-        {
-            name: "Transient Ischemic Attack (TIA)", system: "neuro",
-            medscapeLink: "https://emedicine.medscape.com/article/1145913-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Episodic", "Hypertension (Hx)", "Diabetes", "Smoking", "Atrial Fibrillation", "Hyperlipidemia"],
-            ageBias: "Elderly (>55y)", genderBias: "Male", onsetBias: "Episodic",
-            keyFeatures:      ["Focal weakness", "Focal neurological deficit", "Aphasia"],
-            possibleFeatures: ["Vision changes", "Dizziness", "Headache", "Hemiparesis"],
-            labs:      { screening: ["Hyperglycemia"],                                             confirmatory: [] },
-            radiology: { screening: ["Loss of gray-white differentiation on CT"],                  confirmatory: ["MRI diffusion restriction", "CT angiography vessel occlusion"] }
+            name: "Aortic Dissection",
+            prevalence: 0.10,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of Marfan syndrome",                        t: "risk-factor"      },
+                { f: "Hx of bicuspid aortic valve",                  t: "risk-factor"      },
+                { f: "Hx of cocaine use",                            t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "diaphoresis",                                  t: "nonspecific-sp"   },
+                { f: "syncope",                                      t: "nonspecific-sp"   },
+                { f: "tearing chest pain",                           t: "pathognomonic-sp" },
+                { f: "tearing back pain",                            t: "pathognomonic-sp" },
+                { f: "BP differential between arms",                 t: "pathognomonic-sp" },
+                { f: "pulse deficit",                                t: "pathognomonic-sp" },
+                { f: "aortic regurgitation murmur",                  t: "pathognomonic-sp" },
+                { f: "CXR: widened mediastinum",                     t: "nonspecific-rad"  },
+                { f: "CT: intimal flap",                             t: "confirmatory-rad" },
+                { f: "CT: false lumen",                              t: "confirmatory-rad" },
+                { f: "Echo: aortic dissection flap",                 t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // ENDOCRINE (13)
-        // =====================================================================
         {
-            name: "Diabetic Ketoacidosis (DKA)", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/118361-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Tachycardia", "Tachypnea", "Hypotension", "Diabetes"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Acute",
-            keyFeatures:      ["Polyuria", "Polydipsia", "Kussmaul breathing", "Elevated anion gap"],
-            possibleFeatures: ["Nausea", "Vomiting", "Abdominal pain", "Altered mental status", "Fatigue"],
-            labs:      { screening: ["Hyperglycemia", "Hyponatremia", "Hyperkalemia"], confirmatory: ["Ketonuria", "Ketonemia"] },
-            radiology: { screening: [],                                                confirmatory: [] }
-        },
-        {
-            name: "Hyperthyroidism", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/120619-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Subacute", "Chronic", "Tachycardia", "Hypertension (Vital)", "Family History of Autoimmune Disease"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Heat intolerance", "Tremor", "Weight loss", "Goiter", "Exophthalmos"],
-            possibleFeatures: ["Palpitations", "Fatigue", "Warm moist skin", "Lid lag", "Diarrhea"],
-            labs:      { screening: [],                                       confirmatory: ["Decreased TSH", "Elevated free T4"] },
-            radiology: { screening: [],                                       confirmatory: ["Diffusely increased thyroid uptake scan"] }
-        },
-        {
-            name: "Hypothyroidism", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/122393-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Chronic", "Bradycardia", "Family History of Autoimmune Disease"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Weight gain", "Cold intolerance", "Fatigue", "Dry skin", "Delayed relaxation of DTRs"],
-            possibleFeatures: ["Constipation", "Bradycardia", "Goiter", "Muscle weakness"],
-            labs:      { screening: ["Anemia"],                               confirmatory: ["Elevated TSH", "Decreased free T4"] },
-            radiology: { screening: [],                                       confirmatory: [] }
-        },
-        {
-            name: "Addison's Disease", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/116467-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Chronic", "Hypotension", "Family History of Autoimmune Disease"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Fatigue", "Weight loss", "Hyperpigmentation", "Hypotension"],
-            possibleFeatures: ["Nausea", "Vomiting", "Abdominal pain", "Dizziness"],
-            labs:      { screening: ["Hyponatremia", "Hyperkalemia"], confirmatory: ["Low morning cortisol"] },
-            radiology: { screening: [],                               confirmatory: [] }
-        },
-        {
-            name: "Cushing's Syndrome", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/117365-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Chronic", "Hypertension (Vital)", "Obesity"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Weight gain", "Moon facies", "Buffalo hump", "Striae"],
-            possibleFeatures: ["Fatigue", "Muscle weakness", "Hypertension (Vital)"],
-            labs:      { screening: ["Hyperglycemia"],         confirmatory: ["High midnight cortisol"] },
-            radiology: { screening: [],                        confirmatory: ["Adrenal mass on CT"] }
-        },
-        {
-            name: "Type 2 Diabetes Mellitus", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/117853-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Chronic", "Obesity", "Hypertension (Hx)", "Hyperlipidemia"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Chronic",
-            keyFeatures:      ["Polydipsia", "Fatigue", "Acanthosis nigricans"],
-            possibleFeatures: ["Weight gain", "Polyuria", "Vision changes", "Numbness in hands"],
-            labs:      { screening: ["Hyperglycemia"],          confirmatory: ["Elevated HbA1c"] },
-            radiology: { screening: [],                         confirmatory: [] }
-        },
-        {
-            name: "Thyroid Storm", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/121865-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Acute", "Fever", "Tachycardia", "Family History of Autoimmune Disease"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Acute",
-            keyFeatures:      ["Heat intolerance", "Tremor", "Altered mental status", "Exophthalmos"],
-            possibleFeatures: ["Vomiting", "Diarrhea", "Warm moist skin", "Palpitations"],
-            labs:      { screening: [],                                       confirmatory: ["Decreased TSH", "Elevated free T4"] },
-            radiology: { screening: [],                                       confirmatory: ["Diffusely increased thyroid uptake scan"] }
-        },
-        {
-            name: "Primary Hyperparathyroidism", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/127350-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Chronic"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Fatigue", "Constipation", "Polydipsia"],
-            possibleFeatures: ["Bone pain", "Nausea", "Altered mental status", "Abdominal pain"],
-            labs:      { screening: ["Hypercalcemia"], confirmatory: [] },
-            radiology: { screening: [],                confirmatory: [] }
-        },
-        {
-            name: "Hypoparathyroidism", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/127351-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Chronic", "Prior Surgery"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Tetany", "Positive Chvostek's sign", "Positive Trousseau's sign"],
-            possibleFeatures: ["Seizures", "Numbness in hands", "Muscle weakness", "Fatigue"],
-            labs:      { screening: ["Hypocalcemia"], confirmatory: [] },
-            radiology: { screening: [],               confirmatory: [] }
-        },
-        {
-            name: "Pheochromocytoma", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/124059-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Episodic", "Hypertension (Vital)", "Tachycardia"],
-            ageBias: "Middle-aged (36-55y)", onsetBias: "Episodic",
-            keyFeatures:      ["Diaphoresis", "Tremor", "Headache"],
-            possibleFeatures: ["Palpitations", "Fatigue", "Weight loss", "Heat intolerance"],
-            labs:      { screening: [],                            confirmatory: ["Elevated metanephrines"] },
-            radiology: { screening: [],                            confirmatory: ["Adrenal mass on CT"] }
-        },
-        {
-            name: "SIADH", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/246694-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Subacute", "Malignancy", "Immunosuppression"],
-            ageBias: "Elderly (>55y)", onsetBias: "Subacute",
-            keyFeatures:      ["Altered mental status", "Headache", "Nausea"],
-            possibleFeatures: ["Seizures", "Fatigue", "Vomiting"],
-            labs:      { screening: ["Hyponatremia", "Low serum osmolality"], confirmatory: [] },
-            radiology: { screening: [],                                       confirmatory: [] }
-        },
-        {
-            name: "Diabetes Insipidus", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/117648-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Chronic", "Trauma", "Malignancy"],
-            ageBias: "Young Adult (18-35y)", onsetBias: "Chronic",
-            keyFeatures:      ["Polydipsia", "Polyuria"],
-            possibleFeatures: ["Fatigue", "Dizziness", "Altered mental status"],
-            labs:      { screening: ["Hypernatremia"], confirmatory: [] },
-            radiology: { screening: [],                confirmatory: ["Pituitary adenoma on MRI"] }
-        },
-        {
-            name: "Hyperosmolar Hyperglycemic State (HHS)", system: "endo",
-            medscapeLink: "https://emedicine.medscape.com/article/119132-overview",
-            demographics: ["Elderly (>55y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Tachycardia", "Hypotension", "Diabetes", "Dehydration"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Altered mental status", "Polydipsia", "Polyuria"],
-            possibleFeatures: ["Fatigue", "Nausea", "Vomiting", "Seizures"],
-            labs:      { screening: ["Hyperglycemia", "Hypernatremia"], confirmatory: ["Elevated HbA1c"] },
-            radiology: { screening: [],                                 confirmatory: [] }
+            name: "Deep Vein Thrombosis",
+            prevalence: 0.45,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of immobilization",                         t: "risk-factor"      },
+                { f: "Hx of recent surgery",                         t: "risk-factor"      },
+                { f: "Hx of malignancy",                             t: "risk-factor"      },
+                { f: "Hx of oral contraceptive use",                 t: "risk-factor"      },
+                { f: "Hx of prior DVT/PE",                           t: "risk-factor"      },
+                { f: "Hx of thrombophilia",                          t: "risk-factor"      },
+                { f: "unilateral calf pain",                         t: "pathognomonic-sp" },
+                { f: "unilateral leg swelling",                      t: "pathognomonic-sp" },
+                { f: "Homan's sign",                                 t: "pathognomonic-sp" },
+                { f: "elevated D-dimer",                             t: "screening-lab"    },
+                { f: "US: non-compressible vein",                    t: "confirmatory-rad" }
+            ]
         },
 
-        // =====================================================================
-        // MUSCULOSKELETAL (13)
-        // =====================================================================
         {
-            name: "Septic Arthritis", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/236299-overview",
-            demographics: ["Pediatric (1m-18y)", "Young Adult (18-35y)", "Elderly (>55y)", "Male", "Female", "Acute", "Fever", "Tachycardia", "Immunosuppression", "Prior Surgery"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Joint pain", "Joint swelling", "Warmth over joint", "Fever", "Restricted range of motion"],
-            possibleFeatures: ["Erythema over joint", "Fatigue", "Joint effusion", "Tenderness on palpation"],
-            labs:      { screening: ["Elevated CRP", "Leukocytosis"],                           confirmatory: ["Synovial fluid WBC > 50,000", "Positive synovial fluid culture"] },
-            radiology: { screening: ["Soft tissue swelling on X-ray"],                          confirmatory: ["Joint effusion on US"] }
+            name: "Hypertensive Emergency",
+            prevalence: 0.60,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of medication non-adherence",               t: "risk-factor"      },
+                { f: "Hx of cocaine use",                            t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "severe hypertension",                          t: "pathognomonic-sp" },
+                { f: "end-organ damage",                             t: "pathognomonic-sp" },
+                { f: "papilledema",                                  t: "pathognomonic-sp" },
+                { f: "elevated creatinine",                          t: "screening-lab"    },
+                { f: "urinalysis: proteinuria",                      t: "screening-lab"    },
+                { f: "CXR: pulmonary edema",                         t: "nonspecific-rad"  },
+                { f: "CT: cerebral edema",                           t: "nonspecific-rad"  },
+                { f: "Echo: LV hypertrophy",                         t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Osteoarthritis", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/330487-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Chronic", "Obesity", "Prior Surgery", "Trauma"],
-            ageBias: "Elderly (>55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Joint pain", "Crepitus", "Limited range of motion"],
-            possibleFeatures: ["Morning stiffness", "Joint swelling", "Restricted range of motion"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: ["Osteophytes on X-ray"], confirmatory: ["Joint space narrowing on X-ray"] }
+            name: "Pericarditis",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "recent viral infection",                       t: "risk-factor"      },
+                { f: "Hx of autoimmune disease",                     t: "risk-factor"      },
+                { f: "Hx of renal failure",                          t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "low-grade fever",                              t: "pathognomonic-sp" },
+                { f: "pleuritic chest pain",                         t: "pathognomonic-sp" },
+                { f: "chest pain relieved by leaning forward",       t: "pathognomonic-sp" },
+                { f: "pericardial friction rub",                     t: "pathognomonic-sp" },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "elevated troponin",                            t: "screening-lab"    },
+                { f: "ECG: saddle-shaped ST elevation",              t: "confirmatory-lab" },
+                { f: "ECG: PR depression",                           t: "confirmatory-lab" },
+                { f: "CXR: enlarged cardiac silhouette",             t: "nonspecific-rad"  },
+                { f: "Echo: pericardial effusion",                   t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Rheumatoid Arthritis", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/331715-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Female", "Male", "Chronic", "Smoking", "Family History of Autoimmune Disease"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Joint pain", "Joint swelling", "Morning stiffness"],
-            possibleFeatures: ["Fatigue", "Warmth over joint", "Restricted range of motion"],
-            labs:      { screening: ["Elevated ESR", "Elevated CRP"],                           confirmatory: ["Positive rheumatoid factor", "Positive anti-CCP"] },
-            radiology: { screening: ["Soft tissue swelling on X-ray"],                          confirmatory: ["Erosions on X-ray", "Joint space narrowing on X-ray"] }
+            name: "Atrial Fibrillation",
+            prevalence: 0.55,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of ischemic heart disease",                 t: "risk-factor"      },
+                { f: "Hx of hyperthyroidism",                        t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "Hx of heart failure",                          t: "risk-factor"      },
+                { f: "Hx of valvular heart disease",                 t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "syncope",                                      t: "nonspecific-sp"   },
+                { f: "palpitations",                                 t: "pathognomonic-sp" },
+                { f: "irregularly irregular pulse",                  t: "pathognomonic-sp" },
+                { f: "ECG: absent P waves",                          t: "confirmatory-lab" },
+                { f: "ECG: irregularly irregular rhythm",            t: "confirmatory-lab" },
+                { f: "low TSH",                                      t: "screening-lab"    },
+                { f: "Echo: LA enlargement",                         t: "nonspecific-rad"  }
+            ]
         },
+
+
+        // ── GASTROINTESTINAL ─────────────────────────────────────────────
+
         {
-            name: "Gout", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/329958-overview",
-            demographics: ["Middle-aged (36-55y)", "Elderly (>55y)", "Male", "Female", "Acute", "Episodic", "Obesity", "Alcohol use", "Hypertension (Hx)"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Severe toe pain", "Joint swelling", "Erythema over joint", "Tophi"],
-            possibleFeatures: ["Joint pain", "Warmth over joint", "Fever"],
-            labs:      { screening: ["Elevated uric acid"],                                     confirmatory: ["Negatively birefringent crystals"] },
-            radiology: { screening: ["Soft tissue swelling on X-ray"],                          confirmatory: ["Punched-out erosions on X-ray"] }
+            name: "Bacterial Gastroenteritis",
+            prevalence: 0.75,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "recent contaminated food/water intake",        t: "risk-factor"      },
+                { f: "recent travel to endemic area",                t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "abdominal cramps",                             t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "bloody diarrhea",                              t: "pathognomonic-sp" },
+                { f: "mucus in stool",                               t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "stool WBCs",                                   t: "screening-lab"    },
+                { f: "positive stool culture",                       t: "confirmatory-lab" }
+            ]
         },
+
         {
-            name: "Pseudogout (CPPD)", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/330936-overview",
-            demographics: ["Elderly (>55y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Episodic", "Trauma"],
-            ageBias: "Elderly (>55y)", onsetBias: "Acute",
-            keyFeatures:      ["Joint pain", "Joint swelling", "Warmth over joint"],
-            possibleFeatures: ["Erythema over joint", "Fever", "Limited range of motion"],
-            labs:      { screening: [],                               confirmatory: ["Positively birefringent crystals"] },
-            radiology: { screening: ["Chondrocalcinosis on X-ray"],   confirmatory: [] }
+            name: "Viral Gastroenteritis",
+            prevalence: 0.90,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "recent sick contact",                          t: "risk-factor"      },
+                { f: "recent community outbreak",                    t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "abdominal cramps",                             t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "low-grade fever",                              t: "pathognomonic-sp" },
+                { f: "watery diarrhea",                              t: "pathognomonic-sp" },
+                { f: "positive stool viral PCR",                     t: "confirmatory-lab" }
+            ]
         },
+
         {
-            name: "Ankylosing Spondylitis", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/332945-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Chronic", "Family History of Autoimmune Disease"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Chronic",
-            keyFeatures:      ["Back pain", "Morning stiffness", "Limited range of motion"],
-            possibleFeatures: ["Joint pain", "Fatigue", "Night sweats"],
-            labs:      { screening: ["Elevated ESR", "Elevated CRP"], confirmatory: ["Positive HLA-B27"] },
-            radiology: { screening: ["Sacroiliitis on MRI"],           confirmatory: ["Bamboo spine on X-ray"] }
+            name: "Acute Appendicitis",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "RLQ pain",                                     t: "nonspecific-sp"   },
+                { f: "RLQ tenderness",                               t: "nonspecific-sp"   },
+                { f: "periumbilical pain",                           t: "pathognomonic-sp" },
+                { f: "McBurney's point tenderness",                  t: "pathognomonic-sp" },
+                { f: "Rovsing's sign",                               t: "pathognomonic-sp" },
+                { f: "Psoas sign",                                   t: "pathognomonic-sp" },
+                { f: "rebound tenderness",                           t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "US: non-compressible appendix",                t: "confirmatory-rad" },
+                { f: "CT: inflamed appendix",                        t: "confirmatory-rad" },
+                { f: "CT: periappendiceal fat stranding",            t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Systemic Lupus Erythematosus (SLE)", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/332244-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Subacute", "Chronic", "Episodic", "Family History of Autoimmune Disease"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Female", onsetBias: "Episodic",
-            keyFeatures:      ["Joint pain", "Malar rash", "Fatigue"],
-            possibleFeatures: ["Fever", "Weight loss", "Hematuria", "Photophobia", "Pleuritic chest pain"],
-            labs:      { screening: ["Elevated ESR", "Anemia"],                                 confirmatory: ["Positive ANA", "Positive anti-dsDNA"] },
-            radiology: { screening: [],                                                         confirmatory: [] }
+            name: "Acute Pancreatitis",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of gallstones",                             t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "Hx of hypertriglyceridemia",                   t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "epigastric pain",                              t: "nonspecific-sp"   },
+                { f: "radiation to back",                            t: "pathognomonic-sp" },
+                { f: "Grey Turner's sign",                           t: "pathognomonic-sp" },
+                { f: "Cullen's sign",                                t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated glucose",                             t: "screening-lab"    },
+                { f: "elevated lipase",                              t: "confirmatory-lab" },
+                { f: "elevated amylase",                             t: "confirmatory-lab" },
+                { f: "CXR: sentinel loop sign",                      t: "nonspecific-rad"  },
+                { f: "CT: pancreatic edema",                         t: "confirmatory-rad" },
+                { f: "CT: pancreatic necrosis",                      t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Carpal Tunnel Syndrome", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/327330-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Male", "Chronic", "Pregnancy", "Obesity", "Diabetes"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Numbness in hands", "Positive Tinel's sign", "Positive Phalen's sign"],
-            possibleFeatures: ["Joint pain", "Muscle weakness", "Limited range of motion"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
+            name: "Peptic Ulcer Disease",
+            prevalence: 0.55,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "Hx of H. pylori infection",                    t: "risk-factor"      },
+                { f: "Hx of NSAID use",                              t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "epigastric pain",                              t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "epigastric pain relieved by food",             t: "pathognomonic-sp" },
+                { f: "epigastric pain worsened by food",             t: "pathognomonic-sp" },
+                { f: "nocturnal epigastric pain",                    t: "pathognomonic-sp" },
+                { f: "melena",                                       t: "pathognomonic-sp" },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "positive H. pylori test",                      t: "confirmatory-lab" },
+                { f: "OGD: gastric or duodenal ulcer",               t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Osteomyelitis", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/1348767-overview",
-            demographics: ["Pediatric (1m-18y)", "Elderly (>55y)", "Male", "Female", "Subacute", "Fever", "Tachycardia", "Diabetes", "IV Drug Use", "Prior Surgery", "Immunosuppression"],
-            ageBias: "Pediatric (1m-18y)", onsetBias: "Subacute",
-            keyFeatures:      ["Bone pain", "Localized bone tenderness", "Fever"],
-            possibleFeatures: ["Joint swelling", "Soft tissue swelling", "Restricted range of motion", "Fatigue"],
-            labs:      { screening: ["Leukocytosis", "Elevated ESR", "Elevated CRP"],           confirmatory: ["Positive blood culture"] },
-            radiology: { screening: ["Periosteal reaction on X-ray"],                           confirmatory: ["MRI bone marrow edema"] }
+            name: "Upper GI Bleed",
+            prevalence: 0.45,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of NSAID use",                              t: "risk-factor"      },
+                { f: "Hx of anticoagulant use",                      t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "Hx of peptic ulcer disease",                   t: "risk-factor"      },
+                { f: "Hx of liver cirrhosis",                        t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "hypotension",                                  t: "nonspecific-sp"   },
+                { f: "hematemesis",                                  t: "pathognomonic-sp" },
+                { f: "coffee-ground emesis",                         t: "pathognomonic-sp" },
+                { f: "melena",                                       t: "pathognomonic-sp" },
+                { f: "syncope",                                      t: "pathognomonic-sp" },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "elevated BUN",                                 t: "screening-lab"    },
+                { f: "coagulopathy",                                 t: "screening-lab"    },
+                { f: "OGD: bleeding source identified",              t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Fibromyalgia", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/329838-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Female", "Chronic"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Female", onsetBias: "Chronic",
-            keyFeatures:      ["Widespread pain", "Tender points on exam", "Fatigue"],
-            possibleFeatures: ["Morning stiffness", "Muscle weakness", "Back pain", "Headache"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [], confirmatory: [] }
+            name: "Small Bowel Obstruction",
+            prevalence: 0.25,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of surgery",                                t: "risk-factor"      },
+                { f: "Hx of hernia",                                 t: "risk-factor"      },
+                { f: "Hx of malignancy",                             t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "colicky abdominal pain",                       t: "pathognomonic-sp" },
+                { f: "abdominal distension",                         t: "pathognomonic-sp" },
+                { f: "obstipation",                                  t: "pathognomonic-sp" },
+                { f: "high-pitched bowel sounds",                    t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated lactate",                             t: "screening-lab"    },
+                { f: "CXR: dilated bowel loops",                     t: "nonspecific-rad"  },
+                { f: "CXR: air-fluid levels",                        t: "nonspecific-rad"  },
+                { f: "CT: transition point",                         t: "confirmatory-rad" },
+                { f: "CT: dilated bowel loops",                      t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Compartment Syndrome", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/307668-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Acute", "Trauma", "Prior Surgery"],
-            ageBias: "Young Adult (18-35y)", genderBias: "Male", onsetBias: "Acute",
-            keyFeatures:      ["Pain out of proportion", "Tense compartment"],
-            possibleFeatures: ["Joint swelling", "Restricted range of motion", "Numbness in hands", "Muscle weakness"],
-            labs:      { screening: ["Elevated CRP", "Elevated lactate"], confirmatory: [] },
-            radiology: { screening: [],                                   confirmatory: [] }
+            name: "Acute Cholecystitis",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of gallstones",                             t: "risk-factor"      },
+                { f: "obesity",                                      t: "risk-factor"      },
+                { f: "pregnancy",                                    t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "RUQ pain",                                     t: "nonspecific-sp"   },
+                { f: "RUQ pain after fatty meal",                    t: "pathognomonic-sp" },
+                { f: "Murphy's sign",                                t: "pathognomonic-sp" },
+                { f: "RUQ tenderness",                               t: "pathognomonic-sp" },
+                { f: "abdominal guarding",                           t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated ALP",                                 t: "screening-lab"    },
+                { f: "elevated GGT",                                 t: "screening-lab"    },
+                { f: "US: gallstones",                               t: "confirmatory-rad" },
+                { f: "US: gallbladder wall thickening",              t: "confirmatory-rad" },
+                { f: "US: pericholecystic fluid",                    t: "confirmatory-rad" },
+                { f: "HIDA: gallbladder non-visualization",          t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Avascular Necrosis (Hip)", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/333364-overview",
-            demographics: ["Young Adult (18-35y)", "Middle-aged (36-55y)", "Male", "Female", "Subacute", "Chronic", "Alcohol use", "Corticosteroid use", "Trauma"],
-            ageBias: "Middle-aged (36-55y)", genderBias: "Male", onsetBias: "Subacute",
-            keyFeatures:      ["Joint pain", "Limited range of motion", "Bone pain"],
-            possibleFeatures: ["Morning stiffness", "Restricted range of motion", "Crepitus"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: ["Joint space narrowing on X-ray"],                         confirmatory: ["Femoral head flattening on X-ray", "MRI bone marrow edema"] }
+            name: "Acute Cholangitis",
+            prevalence: 0.25,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of gallstones",                             t: "risk-factor"      },
+                { f: "Hx of biliary stricture",                      t: "risk-factor"      },
+                { f: "Hx of malignancy",                             t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "RUQ pain",                                     t: "nonspecific-sp"   },
+                { f: "jaundice",                                     t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "Charcot's triad",                              t: "pathognomonic-sp" },
+                { f: "Reynolds pentad",                              t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated bilirubin",                           t: "screening-lab"    },
+                { f: "elevated ALP",                                 t: "screening-lab"    },
+                { f: "elevated GGT",                                 t: "screening-lab"    },
+                { f: "positive blood culture",                       t: "confirmatory-lab" },
+                { f: "US: dilated CBD",                              t: "nonspecific-rad"  },
+                { f: "CT: dilated CBD",                              t: "nonspecific-rad"  },
+                { f: "MRCP: CBD obstruction",                        t: "confirmatory-rad" },
+                { f: "ERCP: biliary obstruction",                    t: "confirmatory-rad" }
+            ]
         },
+
         {
-            name: "Legg-Calvé-Perthes Disease", system: "msk",
-            medscapeLink: "https://emedicine.medscape.com/article/1248079-overview",
-            demographics: ["Pediatric (1m-18y)", "Male", "Subacute"],
-            ageBias: "Pediatric (1m-18y)", genderBias: "Male", onsetBias: "Subacute",
-            keyFeatures:      ["Joint pain", "Limited range of motion", "Bone pain"],
-            possibleFeatures: ["Morning stiffness", "Crepitus", "Muscle weakness"],
-            labs:      { screening: [], confirmatory: [] },
-            radiology: { screening: [],                                                         confirmatory: ["Femoral head flattening on X-ray", "MRI bone marrow edema"] }
+            name: "Acute Diverticulitis",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "obesity",                                      t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "LLQ pain",                                     t: "pathognomonic-sp" },
+                { f: "LLQ tenderness",                               t: "pathognomonic-sp" },
+                { f: "change in bowel habits",                       t: "pathognomonic-sp" },
+                { f: "palpable abdominal mass",                      t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "CT: diverticular inflammation",                t: "confirmatory-rad" },
+                { f: "CT: pericolic fat stranding",                  t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Crohn's Disease",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fHx of IBD",                                   t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "RLQ pain",                                     t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "non-bloody diarrhea",                          t: "pathognomonic-sp" },
+                { f: "perianal fistula",                             t: "pathognomonic-sp" },
+                { f: "oral ulcers",                                  t: "pathognomonic-sp" },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "elevated fecal calprotectin",                  t: "screening-lab"    },
+                { f: "colonoscopy: skip lesions",                    t: "confirmatory-lab" },
+                { f: "colonoscopy: rectal sparing",                  t: "confirmatory-lab" },
+                { f: "biopsy: transmural granulomatous inflammation", t: "confirmatory-lab" },
+                { f: "MRI: bowel wall thickening",                   t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Ulcerative Colitis",
+            prevalence: 0.35,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fHx of IBD",                                   t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "bloody diarrhea",                              t: "pathognomonic-sp" },
+                { f: "mucus in stool",                               t: "pathognomonic-sp" },
+                { f: "tenesmus",                                     t: "pathognomonic-sp" },
+                { f: "nocturnal diarrhea",                           t: "pathognomonic-sp" },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "elevated fecal calprotectin",                  t: "screening-lab"    },
+                { f: "colonoscopy: continuous colitis",              t: "confirmatory-lab" },
+                { f: "biopsy: mucosal crypt abscesses",              t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Colon Cancer",
+            prevalence: 0.25,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "fHx of CAD",                                   t: "risk-factor"      }, // Correction: fHx of colon cancer is better
+                { f: "fHx of colon cancer",                          t: "risk-factor"      },
+                { f: "Hx of IBD",                                    t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "rectal bleeding",                              t: "pathognomonic-sp" },
+                { f: "change in bowel habits",                       t: "pathognomonic-sp" },
+                { f: "pencil-thin stools",                           t: "pathognomonic-sp" },
+                { f: "palpable abdominal mass",                      t: "pathognomonic-sp" },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "elevated CEA",                                 t: "screening-lab"    },
+                { f: "colonoscopy: adenocarcinoma",                  t: "confirmatory-lab" },
+                { f: "CT: apple-core sign",                          t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Acute Viral Hepatitis",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "recent contaminated food/water intake",        t: "risk-factor"      },
+                { f: "Hx of IV drug use",                            t: "risk-factor"      },
+                { f: "recent unprotected sexual contact",            t: "risk-factor"      },
+                { f: "recent travel to endemic area",                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "RUQ pain",                                     t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "low-grade fever",                              t: "pathognomonic-sp" },
+                { f: "jaundice",                                     t: "pathognomonic-sp" },
+                { f: "dark urine",                                   t: "pathognomonic-sp" },
+                { f: "pale stools",                                  t: "pathognomonic-sp" },
+                { f: "RUQ tenderness",                               t: "pathognomonic-sp" },
+                { f: "hepatomegaly",                                 t: "pathognomonic-sp" },
+                { f: "elevated ALT",                                 t: "screening-lab"    },
+                { f: "elevated AST",                                 t: "screening-lab"    },
+                { f: "elevated bilirubin",                           t: "screening-lab"    },
+                { f: "positive viral hepatitis serology",            t: "confirmatory-lab" },
+                { f: "US: hepatomegaly",                             t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Perforated Peptic Ulcer",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of peptic ulcer disease",                   t: "risk-factor"      },
+                { f: "Hx of NSAID use",                              t: "risk-factor"      },
+                { f: "Hx of H. pylori infection",                    t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "epigastric pain",                              t: "nonspecific-sp"   },
+                { f: "sudden severe epigastric pain",                t: "pathognomonic-sp" },
+                { f: "board-like abdomen",                           t: "pathognomonic-sp" },
+                { f: "generalized peritonitis",                      t: "pathognomonic-sp" },
+                { f: "absent bowel sounds",                          t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated lactate",                             t: "screening-lab"    },
+                { f: "CXR: free air under diaphragm",                t: "confirmatory-rad" },
+                { f: "CT: pneumoperitoneum",                         t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Acute Mesenteric Ischemia",
+            prevalence: 0.10,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of atrial fibrillation",                    t: "risk-factor"      },
+                { f: "Hx of CAD",                                    t: "risk-factor"      },
+                { f: "Hx of thrombophilia",                          t: "risk-factor"      },
+                { f: "Hx of heart failure",                          t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "periumbilical pain",                           t: "nonspecific-sp"   },
+                { f: "pain out of proportion to exam",               t: "pathognomonic-sp" },
+                { f: "bloody diarrhea",                              t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated lactate",                             t: "screening-lab"    },
+                { f: "metabolic acidosis",                           t: "screening-lab"    },
+                { f: "CT: mesenteric vessel occlusion",              t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Liver Cirrhosis",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "Hx of chronic viral hepatitis",                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "jaundice",                                     t: "pathognomonic-sp" },
+                { f: "ascites",                                      t: "pathognomonic-sp" },
+                { f: "splenomegaly",                                 t: "pathognomonic-sp" },
+                { f: "caput medusae",                                t: "pathognomonic-sp" },
+                { f: "spider nevi",                                  t: "pathognomonic-sp" },
+                { f: "palmar erythema",                              t: "pathognomonic-sp" },
+                { f: "gynecomastia",                                 t: "pathognomonic-sp" },
+                { f: "leukopenia",                                   t: "screening-lab"    },
+                { f: "thrombocytopenia",                             t: "screening-lab"    },
+                { f: "elevated ALT",                                 t: "screening-lab"    },
+                { f: "elevated AST",                                 t: "screening-lab"    },
+                { f: "elevated bilirubin",                           t: "screening-lab"    },
+                { f: "coagulopathy",                                 t: "screening-lab"    },
+                { f: "low albumin",                                  t: "screening-lab"    },
+                { f: "US: coarse nodular liver",                     t: "nonspecific-rad"  },
+                { f: "US: splenomegaly",                             t: "nonspecific-rad"  },
+                { f: "biopsy: cirrhosis",                            t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Spontaneous Bacterial Peritonitis",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of liver cirrhosis",                        t: "risk-factor"      },
+                { f: "Hx of previous SBP",                           t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "diffuse abdominal tenderness",                 t: "pathognomonic-sp" },
+                { f: "worsening ascites",                            t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "ascitic fluid PMN >250",                       t: "confirmatory-lab" },
+                { f: "positive ascitic fluid culture",               t: "confirmatory-lab" },
+                { f: "US: ascites",                                  t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Hepatic Encephalopathy",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "Hx of liver cirrhosis",                        t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "asterixis",                                    t: "pathognomonic-sp" },
+                { f: "fetor hepaticus",                              t: "pathognomonic-sp" },
+                { f: "elevated serum ammonia",                       t: "screening-lab"    },
+                { f: "coagulopathy",                                 t: "screening-lab"    },
+                { f: "hyponatremia",                                 t: "screening-lab"    },
+                { f: "CT: cerebral edema",                           t: "nonspecific-rad"  }
+            ]
+        },
+
+
+        // ── RESPIRATORY ──────────────────────────────────────────────────
+
+        {
+            name: "Pneumonia",
+            prevalence: 0.75,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "chills",                                       t: "nonspecific-sp"   },
+                { f: "rigors",                                       t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "pleuritic chest pain",                         t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "productive cough",                             t: "pathognomonic-sp" },
+                { f: "purulent sputum",                              t: "pathognomonic-sp" },
+                { f: "lobar dullness to percussion",                 t: "pathognomonic-sp" },
+                { f: "bronchial breathing",                          t: "pathognomonic-sp" },
+                { f: "hypoxemia",                                    t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated procalcitonin",                       t: "screening-lab"    },
+                { f: "positive sputum culture",                      t: "confirmatory-lab" },
+                { f: "positive Legionella/Pneumococcal urine antigen", t: "confirmatory-lab" },
+                { f: "CXR: increased lung markings",                 t: "nonspecific-rad"  },
+                { f: "CXR: lobar consolidation",                     t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Pulmonary Tuberculosis",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "recent sick contact",                          t: "risk-factor"      },
+                { f: "residence in endemic area",                    t: "risk-factor"      },
+                { f: "Hx of HIV",                                    t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "chronic cough",                                t: "pathognomonic-sp" },
+                { f: "hemoptysis",                                   t: "pathognomonic-sp" },
+                { f: "night sweats",                                 t: "pathognomonic-sp" },
+                { f: "positive sputum AFB",                          t: "screening-lab"    },
+                { f: "positive Mantoux",                             t: "screening-lab"    },
+                { f: "positive IGRA",                                t: "screening-lab"    },
+                { f: "positive sputum TB culture",                   t: "confirmatory-lab" },
+                { f: "CXR: upper lobe infiltrate",                   t: "nonspecific-rad"  },
+                { f: "CXR: cavitation",                              t: "confirmatory-rad" },
+                { f: "CT: tree-in-bud pattern",                      t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "COPD Exacerbation",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "chest tightness",                              t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "increased sputum purulence",                   t: "pathognomonic-sp" },
+                { f: "barrel chest",                                 t: "pathognomonic-sp" },
+                { f: "pursed-lip breathing",                         t: "pathognomonic-sp" },
+                { f: "diffuse expiratory wheeze",                    t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "hypercapnia",                                  t: "screening-lab"    },
+                { f: "hypoxemia",                                    t: "screening-lab"    },
+                { f: "spirometry: FEV1/FVC <0.7",                    t: "confirmatory-lab" },
+                { f: "CXR: hyperinflation",                          t: "nonspecific-rad"  },
+                { f: "CT: emphysema",                                t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Asthma Exacerbation",
+            prevalence: 0.65,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "Hx of asthma",                                 t: "risk-factor"      },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "chest tightness",                              t: "nonspecific-sp"   },
+                { f: "episodic expiratory wheeze",                   t: "pathognomonic-sp" },
+                { f: "improvement with bronchodilators",             t: "pathognomonic-sp" },
+                { f: "nocturnal symptoms",                           t: "pathognomonic-sp" },
+                { f: "hypoxemia",                                    t: "screening-lab"    },
+                { f: "spirometry: reversible obstruction",           t: "confirmatory-lab" },
+                { f: "CXR: hyperinflation",                          t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Pneumothorax",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "Hx of Marfan syndrome",                        t: "risk-factor"      },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "sudden pleuritic chest pain",                  t: "pathognomonic-sp" },
+                { f: "sudden dyspnea",                               t: "pathognomonic-sp" },
+                { f: "absent breath sounds",                         t: "pathognomonic-sp" },
+                { f: "tracheal deviation",                           t: "pathognomonic-sp" },
+                { f: "hypoxemia",                                    t: "screening-lab"    },
+                { f: "CXR: pleural line",                            t: "confirmatory-rad" },
+                { f: "CXR: absent lung markings",                    t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Lung Cancer",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "chronic cough",                                t: "pathognomonic-sp" },
+                { f: "hemoptysis",                                   t: "pathognomonic-sp" },
+                { f: "hoarseness",                                   t: "pathognomonic-sp" },
+                { f: "Horner syndrome",                              t: "pathognomonic-sp" },
+                { f: "SVC obstruction",                              t: "pathognomonic-sp" },
+                { f: "CXR: lung mass",                               t: "nonspecific-rad"  },
+                { f: "CXR: hilar enlargement",                       t: "nonspecific-rad"  },
+                { f: "CT: pulmonary mass",                           t: "nonspecific-rad"  },
+                { f: "biopsy: malignant cells",                      t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Pleural Effusion",
+            prevalence: 0.35,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "Hx of heart failure",                          t: "risk-factor"      },
+                { f: "Hx of malignancy",                             t: "risk-factor"      },
+                { f: "Hx of liver cirrhosis",                        t: "risk-factor"      },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "cough",                                        t: "nonspecific-sp"   },
+                { f: "chest pain",                                   t: "nonspecific-sp"   },
+                { f: "pleuritic chest pain",                         t: "nonspecific-sp"   },
+                { f: "dullness to percussion at base",               t: "pathognomonic-sp" },
+                { f: "absent breath sounds at base",                 t: "pathognomonic-sp" },
+                { f: "CXR: blunting of costophrenic angle",          t: "nonspecific-rad"  },
+                { f: "US: anechoic pleural collection",              t: "nonspecific-rad"  },
+                { f: "pleural fluid: exudate",                       t: "confirmatory-lab" }
+            ]
+        },
+
+
+        // ── RENAL / UROLOGICAL ───────────────────────────────────────────
+
+        {
+            name: "Urinary Tract Infection",
+            prevalence: 0.85,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "dysuria",                                      t: "pathognomonic-sp" },
+                { f: "urinary frequency",                            t: "pathognomonic-sp" },
+                { f: "urinary urgency",                              t: "pathognomonic-sp" },
+                { f: "suprapubic tenderness",                        t: "pathognomonic-sp" },
+                { f: "cloudy urine",                                 t: "pathognomonic-sp" },
+                { f: "malodorous urine",                             t: "pathognomonic-sp" },
+                { f: "urinalysis: nitrites",                         t: "screening-lab"    },
+                { f: "urinalysis: leukocyte esterase",               t: "screening-lab"    },
+                { f: "urinalysis: pyuria",                           t: "screening-lab"    },
+                { f: "urinalysis: bacteriuria",                      t: "screening-lab"    },
+                { f: "positive urine culture",                       t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Acute Pyelonephritis",
+            prevalence: 0.55,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "flank pain",                                   t: "nonspecific-sp"   },
+                { f: "dysuria",                                      t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "CVA tenderness",                               t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "urinalysis: pyuria",                           t: "screening-lab"    },
+                { f: "urinalysis: WBC casts",                        t: "screening-lab"    },
+                { f: "positive urine culture",                       t: "confirmatory-lab" },
+                { f: "positive blood culture",                       t: "confirmatory-lab" },
+                { f: "CT: wedge-shaped renal hypoenhancement",       t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Acute Kidney Injury",
+            prevalence: 0.55,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "oliguria",                                     t: "pathognomonic-sp" },
+                { f: "anuria",                                       t: "pathognomonic-sp" },
+                { f: "fluid overload",                               t: "pathognomonic-sp" },
+                { f: "elevated creatinine",                          t: "confirmatory-lab" },
+                { f: "hyperkalemia",                                 t: "screening-lab"    },
+                { f: "metabolic acidosis",                           t: "screening-lab"    },
+                { f: "urinalysis: granular casts",                   t: "screening-lab"    },
+                { f: "US: hydronephrosis",                           t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Nephrolithiasis",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "flank pain",                                   t: "nonspecific-sp"   },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "colicky flank pain",                           t: "pathognomonic-sp" },
+                { f: "radiation to groin",                           t: "pathognomonic-sp" },
+                { f: "hematuria",                                    t: "pathognomonic-sp" },
+                { f: "urinalysis: RBCs",                             t: "screening-lab"    },
+                { f: "elevated creatinine",                          t: "screening-lab"    },
+                { f: "CT: urinary stone",                            t: "confirmatory-rad" },
+                { f: "US: hydronephrosis",                           t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Acute Urinary Retention",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of surgery",                                t: "risk-factor"      },
+                { f: "suprapubic pain",                              t: "pathognomonic-sp" },
+                { f: "inability to void",                            t: "pathognomonic-sp" },
+                { f: "palpable bladder",                             t: "pathognomonic-sp" },
+                { f: "elevated creatinine",                          t: "screening-lab"    },
+                { f: "US: large post-void residual",                 t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Testicular Cancer",
+            prevalence: 0.15,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "dull scrotal ache",                            t: "nonspecific-sp"   },
+                { f: "scrotal heaviness",                            t: "nonspecific-sp"   },
+                { f: "painless testicular lump",                     t: "pathognomonic-sp" },
+                { f: "solid testicular mass",                        t: "pathognomonic-sp" },
+                { f: "elevated AFP",                                 t: "screening-lab"    },
+                { f: "elevated beta-hCG",                            t: "screening-lab"    },
+                { f: "elevated LDH",                                 t: "screening-lab"    },
+                { f: "orchiectomy histopathology",                   t: "confirmatory-lab" },
+                { f: "CT: lymphadenopathy",                          t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Prostate Cancer",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "lower urinary tract symptoms (LUTS)",          t: "pathognomonic-sp" },
+                { f: "hard irregular prostate",                      t: "pathognomonic-sp" },
+                { f: "bone pain",                                    t: "pathognomonic-sp" },
+                { f: "elevated PSA",                                 t: "screening-lab"    },
+                { f: "elevated ALP",                                 t: "screening-lab"    },
+                { f: "prostate biopsy: adenocarcinoma",              t: "confirmatory-lab" },
+                { f: "bone scan: metastases",                        t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Ovarian Cancer",
+            prevalence: 0.15,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "persistent bloating",                          t: "pathognomonic-sp" },
+                { f: "pelvic mass",                                  t: "pathognomonic-sp" },
+                { f: "ascites",                                      t: "pathognomonic-sp" },
+                { f: "pleural effusion",                             t: "pathognomonic-sp" },
+                { f: "elevated CA-125",                              t: "screening-lab"    },
+                { f: "elevated HE4",                                 t: "screening-lab"    },
+                { f: "US: complex adnexal mass",                     t: "nonspecific-rad"  },
+                { f: "CT: ovarian mass",                             t: "confirmatory-rad" },
+                { f: "CT: peritoneal deposits",                      t: "confirmatory-rad" }
+            ]
+        },
+
+
+        // ── NEUROLOGICAL ─────────────────────────────────────────────────
+
+        {
+            name: "Ischemic Stroke / TIA",
+            prevalence: 0.45,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of atrial fibrillation",                    t: "risk-factor"      },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "Hx of dyslipidemia",                           t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "sudden focal neurological deficit",            t: "pathognomonic-sp" },
+                { f: "facial droop",                                 t: "pathognomonic-sp" },
+                { f: "arm weakness",                                 t: "pathognomonic-sp" },
+                { f: "slurred speech",                               t: "pathognomonic-sp" },
+                { f: "visual loss",                                  t: "pathognomonic-sp" },
+                { f: "diplopia",                                     t: "pathognomonic-sp" },
+                { f: "ataxia",                                       t: "pathognomonic-sp" },
+                { f: "elevated glucose",                             t: "screening-lab"    },
+                { f: "CT: normal or hypodense area",                 t: "nonspecific-rad"  },
+                { f: "MRI: restricted diffusion",                    t: "confirmatory-rad" },
+                { f: "Angiography: vessel occlusion",                t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Hemorrhagic Stroke (ICH)",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of anticoagulant use",                      t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "sudden severe headache",                       t: "pathognomonic-sp" },
+                { f: "rapid neurological deterioration",             t: "pathognomonic-sp" },
+                { f: "focal neurological deficit",                   t: "pathognomonic-sp" },
+                { f: "elevated glucose",                             t: "screening-lab"    },
+                { f: "coagulopathy",                                 t: "screening-lab"    },
+                { f: "CT: hyperdense intraparenchymal hematoma",     t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Subarachnoid Hemorrhage",
+            prevalence: 0.10,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of hypertension",                           t: "risk-factor"      },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "photophobia",                                  t: "nonspecific-sp"   },
+                { f: "thunderclap headache",                         t: "pathognomonic-sp" },
+                { f: "nuchal rigidity",                              t: "pathognomonic-sp" },
+                { f: "sudden LOC",                                   t: "pathognomonic-sp" },
+                { f: "CSF: xanthochromia",                           t: "confirmatory-lab" },
+                { f: "CT: subarachnoid blood",                       t: "confirmatory-rad" },
+                { f: "Angiography: aneurysm",                        t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Bacterial Meningitis",
+            prevalence: 0.15,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "nuchal rigidity",                              t: "pathognomonic-sp" },
+                { f: "non-blanching rash",                           t: "pathognomonic-sp" },
+                { f: "Kernig's sign",                                t: "pathognomonic-sp" },
+                { f: "Brudzinski's sign",                            t: "pathognomonic-sp" },
+                { f: "photophobia",                                  t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "CSF: elevated neutrophils",                    t: "confirmatory-lab" },
+                { f: "CSF: low glucose",                             t: "confirmatory-lab" },
+                { f: "CSF: elevated protein",                        t: "confirmatory-lab" },
+                { f: "positive CSF culture",                         t: "confirmatory-lab" },
+                { f: "MRI: meningeal enhancement",                   t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Migraine",
+            prevalence: 0.70,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "photophobia",                                  t: "nonspecific-sp"   },
+                { f: "phonophobia",                                  t: "nonspecific-sp"   },
+                { f: "unilateral throbbing headache",                t: "pathognomonic-sp" },
+                { f: "visual aura",                                  t: "pathognomonic-sp" },
+                { f: "headache worsened by physical activity",       t: "pathognomonic-sp" }
+            ]
+        },
+
+        {
+            name: "Seizure / Epilepsy",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "tongue bite",                                  t: "pathognomonic-sp" },
+                { f: "post-ictal confusion",                         t: "pathognomonic-sp" },
+                { f: "urinary incontinence",                         t: "pathognomonic-sp" },
+                { f: "tonic-clonic movements",                       t: "pathognomonic-sp" },
+                { f: "EEG: epileptiform discharges",                 t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Guillain-Barré Syndrome",
+            prevalence: 0.08,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "paresthesia",                                  t: "nonspecific-sp"   },
+                { f: "ascending weakness",                           t: "pathognomonic-sp" },
+                { f: "areflexia",                                    t: "pathognomonic-sp" },
+                { f: "facial diplegia",                              t: "pathognomonic-sp" },
+                { f: "autonomic dysfunction",                        t: "pathognomonic-sp" },
+                { f: "CSF: albuminocytologic dissociation",          t: "confirmatory-lab" },
+                { f: "EMG: demyelinating neuropathy",                t: "confirmatory-lab" }
+            ]
+        },
+
+
+        // ── MUSCULOSKELETAL ──────────────────────────────────────────────
+
+        {
+            name: "Gout",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "joint pain",                                   t: "nonspecific-sp"   },
+                { f: "joint swelling",                               t: "nonspecific-sp"   },
+                { f: "acute monoarthritis",                          t: "pathognomonic-sp" },
+                { f: "podagra",                                      t: "pathognomonic-sp" },
+                { f: "tophi",                                        t: "pathognomonic-sp" },
+                { f: "exquisitely tender hot swollen joint",         t: "pathognomonic-sp" },
+                { f: "elevated uric acid",                           t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "joint aspirate: negatively birefringent crystals", t: "confirmatory-lab" },
+                { f: "XR: punched-out erosions",                     t: "confirmatory-rad" },
+                { f: "XR: overhanging edges",                        t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Septic Arthritis",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "Hx of IV drug use",                            t: "risk-factor"      },
+                { f: "Hx of surgery",                                t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "joint pain",                                   t: "nonspecific-sp"   },
+                { f: "joint swelling",                               t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "acute hot swollen tender monoarthritis",       t: "pathognomonic-sp" },
+                { f: "restricted range of motion",                   t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "joint aspirate: WBC >50,000",                  t: "confirmatory-lab" },
+                { f: "joint aspirate: organisms on Gram stain",      t: "confirmatory-lab" },
+                { f: "positive blood culture",                       t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Rheumatoid Arthritis",
+            prevalence: 0.35,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "Hx of smoking",                                t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "joint pain",                                   t: "nonspecific-sp"   },
+                { f: "joint swelling",                               t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "symmetric polyarthritis",                      t: "pathognomonic-sp" },
+                { f: "morning stiffness",                            t: "pathognomonic-sp" },
+                { f: "rheumatoid nodules",                           t: "pathognomonic-sp" },
+                { f: "ulnar deviation",                              t: "pathognomonic-sp" },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "normocytic anemia",                            t: "screening-lab"    },
+                { f: "positive RF",                                  t: "confirmatory-lab" },
+                { f: "positive anti-CCP",                            t: "confirmatory-lab" },
+                { f: "XR: joint space narrowing",                    t: "confirmatory-rad" },
+                { f: "XR: marginal erosions",                        t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Herniated Disc (Radicular Syndrome)",
+            prevalence: 0.55,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "obesity",                                      t: "risk-factor"      },
+                { f: "back pain",                                    t: "nonspecific-sp"   },
+                { f: "sciatica",                                     t: "pathognomonic-sp" },
+                { f: "positive straight leg raise",                  t: "pathognomonic-sp" },
+                { f: "dermatomal sensory loss",                      t: "pathognomonic-sp" },
+                { f: "myotomal weakness",                            t: "pathognomonic-sp" },
+                { f: "diminished reflexes",                          t: "pathognomonic-sp" },
+                { f: "MRI: disc herniation",                         t: "confirmatory-rad" },
+                { f: "MRI: nerve root compression",                  t: "confirmatory-rad" }
+            ]
+        },
+
+
+        // ── ENDOCRINE ────────────────────────────────────────────────────
+
+        {
+            name: "Diabetic Ketoacidosis (DKA)",
+            prevalence: 0.25,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "polyuria",                                     t: "nonspecific-sp"   },
+                { f: "polydipsia",                                   t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "Kussmaul breathing",                           t: "pathognomonic-sp" },
+                { f: "fruity breath",                                t: "pathognomonic-sp" },
+                { f: "severe dehydration",                           t: "pathognomonic-sp" },
+                { f: "elevated glucose",                             t: "screening-lab"    },
+                { f: "ketonemia",                                    t: "screening-lab"    },
+                { f: "ketonuria",                                    t: "screening-lab"    },
+                { f: "metabolic acidosis",                           t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Hyperosmolar Hyperglycemic State (HHS)",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "polyuria",                                     t: "nonspecific-sp"   },
+                { f: "polydipsia",                                   t: "nonspecific-sp"   },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "severe dehydration",                           t: "pathognomonic-sp" },
+                { f: "focal neurological signs",                     t: "pathognomonic-sp" },
+                { f: "elevated glucose",                             t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Hypoglycemia",
+            prevalence: 0.65,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "Hx of alcohol use disorder",                   t: "risk-factor"      },
+                { f: "tremor",                                       t: "nonspecific-sp"   },
+                { f: "diaphoresis",                                  t: "nonspecific-sp"   },
+                { f: "palpitations",                                 t: "nonspecific-sp"   },
+                { f: "hunger",                                       t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "pathognomonic-sp" },
+                { f: "Whipple's triad",                              t: "pathognomonic-sp" },
+                { f: "low glucose",                                  t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Hyperthyroidism",
+            prevalence: 0.35,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "heat intolerance",                             t: "pathognomonic-sp" },
+                { f: "hyperhidrosis",                                t: "pathognomonic-sp" },
+                { f: "weight loss",                                  t: "pathognomonic-sp" },
+                { f: "tremor",                                       t: "pathognomonic-sp" },
+                { f: "diffuse goitre",                               t: "pathognomonic-sp" },
+                { f: "exophthalmos",                                 t: "pathognomonic-sp" },
+                { f: "low TSH",                                      t: "screening-lab"    },
+                { f: "elevated free T4",                             t: "confirmatory-lab" },
+                { f: "positive TRAb",                                t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Hypothyroidism",
+            prevalence: 0.45,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "weight gain",                                  t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "cold intolerance",                             t: "pathognomonic-sp" },
+                { f: "dry skin",                                     t: "pathognomonic-sp" },
+                { f: "hair loss",                                    t: "pathognomonic-sp" },
+                { f: "bradycardia",                                  t: "pathognomonic-sp" },
+                { f: "delayed reflexes",                             t: "pathognomonic-sp" },
+                { f: "non-pitting edema",                            t: "pathognomonic-sp" },
+                { f: "normocytic anemia",                            t: "screening-lab"    },
+                { f: "elevated TSH",                                 t: "screening-lab"    },
+                { f: "low free T4",                                  t: "confirmatory-lab" },
+                { f: "positive anti-TPO",                            t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Adrenal Crisis",
+            prevalence: 0.06,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "refractory hypotension",                       t: "pathognomonic-sp" },
+                { f: "hyperpigmentation",                            t: "pathognomonic-sp" },
+                { f: "hyponatremia",                                 t: "screening-lab"    },
+                { f: "hyperkalemia",                                 t: "screening-lab"    },
+                { f: "low glucose",                                  t: "screening-lab"    },
+                { f: "eosinophilia",                                 t: "screening-lab"    },
+                { f: "low random cortisol",                          t: "confirmatory-lab" },
+                { f: "failed Synacthen test",                        t: "confirmatory-lab" }
+            ]
+        },
+
+
+        // ── INFECTIOUS ───────────────────────────────────────────────────
+
+        {
+            name: "Sepsis",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "altered level of consciousness",               t: "nonspecific-sp"   },
+                { f: "high fever",                                   t: "pathognomonic-sp" },
+                { f: "refractory hypotension",                       t: "pathognomonic-sp" },
+                { f: "mottled skin",                                 t: "pathognomonic-sp" },
+                { f: "prolonged capillary refill",                   t: "pathognomonic-sp" },
+                { f: "qSOFA >= 2",                                   t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "leukopenia",                                   t: "screening-lab"    },
+                { f: "elevated lactate",                             t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated procalcitonin",                       t: "screening-lab"    },
+                { f: "positive blood culture",                       t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Cellulitis",
+            prevalence: 0.65,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of diabetes mellitus",                      t: "risk-factor"      },
+                { f: "obesity",                                      t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "malaise",                                      t: "nonspecific-sp"   },
+                { f: "spreading erythema",                           t: "pathognomonic-sp" },
+                { f: "local warmth and swelling",                    t: "pathognomonic-sp" },
+                { f: "lymphangitis",                                 t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    }
+            ]
+        },
+
+        {
+            name: "Infective Endocarditis",
+            prevalence: 0.15,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "Hx of IV drug use",                            t: "risk-factor"      },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "anorexia",                                     t: "nonspecific-sp"   },
+                { f: "night sweats",                                 t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "new cardiac murmur",                           t: "pathognomonic-sp" },
+                { f: "splinter hemorrhages",                         t: "pathognomonic-sp" },
+                { f: "Osler's nodes",                                t: "pathognomonic-sp" },
+                { f: "Janeway lesions",                              t: "pathognomonic-sp" },
+                { f: "Roth's spots",                                 t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "positive blood culture",                       t: "confirmatory-lab" },
+                { f: "Duke criteria met",                            t: "confirmatory-lab" },
+                { f: "Echo: vegetation",                             t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Malaria",
+            prevalence: 0.50,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "residence in endemic area",                    t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "myalgia",                                      t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "cyclic fever",                                 t: "pathognomonic-sp" },
+                { f: "splenomegaly",                                 t: "pathognomonic-sp" },
+                { f: "jaundice",                                     t: "pathognomonic-sp" },
+                { f: "thrombocytopenia",                             t: "screening-lab"    },
+                { f: "hemolytic anemia",                             t: "screening-lab"    },
+                { f: "positive thick/thin blood film",               t: "confirmatory-lab" },
+                { f: "positive malaria RDT",                         t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Dengue Fever",
+            prevalence: 0.40,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "residence in endemic area",                    t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "retro-orbital pain",                           t: "pathognomonic-sp" },
+                { f: "myalgia",                                      t: "pathognomonic-sp" },
+                { f: "arthralgia",                                   t: "pathognomonic-sp" },
+                { f: "maculopapular rash",                           t: "pathognomonic-sp" },
+                { f: "positive tourniquet test",                     t: "pathognomonic-sp" },
+                { f: "thrombocytopenia",                             t: "screening-lab"    },
+                { f: "leukopenia",                                   t: "screening-lab"    },
+                { f: "positive NS1 antigen",                         t: "confirmatory-lab" },
+                { f: "positive Dengue serology",                     t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Anaphylaxis",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal cramps",                             t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "urticaria",                                    t: "pathognomonic-sp" },
+                { f: "angioedema",                                   t: "pathognomonic-sp" },
+                { f: "stridor",                                      t: "pathognomonic-sp" },
+                { f: "hypotension",                                  t: "pathognomonic-sp" },
+                { f: "hypoxemia",                                    t: "pathognomonic-sp" },
+                { f: "elevated tryptase",                            t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "HIV / AIDS",
+            prevalence: 0.30,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "recent unprotected sexual contact",            t: "risk-factor"      },
+                { f: "Hx of IV drug use",                            t: "risk-factor"      },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "night sweats",                                 t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "diarrhea",                                     t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "recurrent infections",                         t: "pathognomonic-sp" },
+                { f: "oral candidiasis",                             t: "pathognomonic-sp" },
+                { f: "generalized lymphadenopathy",                  t: "pathognomonic-sp" },
+                { f: "lymphopenia",                                  t: "screening-lab"    },
+                { f: "positive HIV ELISA",                           t: "screening-lab"    },
+                { f: "positive HIV PCR",                             t: "confirmatory-lab" },
+                { f: "CD4 count <200",                               t: "confirmatory-lab" }
+            ]
+        },
+
+
+        // ── OB / GYN ─────────────────────────────────────────────────────
+
+        {
+            name: "Ectopic Pregnancy",
+            prevalence: 0.20,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "pregnancy",                                    t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "syncope",                                      t: "nonspecific-sp"   },
+                { f: "unilateral pelvic pain",                       t: "pathognomonic-sp" },
+                { f: "vaginal bleeding",                             t: "pathognomonic-sp" },
+                { f: "cervical motion tenderness",                   t: "pathognomonic-sp" },
+                { f: "hemodynamic instability",                      t: "pathognomonic-sp" },
+                { f: "elevated beta-hCG",                            t: "screening-lab"    },
+                { f: "US: empty uterus",                             t: "confirmatory-rad" },
+                { f: "US: complex adnexal mass",                     t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Pelvic Inflammatory Disease",
+            prevalence: 0.40,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "cervical motion tenderness",                   t: "pathognomonic-sp" },
+                { f: "adnexal tenderness",                           t: "pathognomonic-sp" },
+                { f: "purulent cervical discharge",                  t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "positive gonorrhea/chlamydia swab",            t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Ovarian Torsion",
+            prevalence: 0.15,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "RLQ pain",                                     t: "nonspecific-sp"   },
+                { f: "severe unilateral pelvic pain",                t: "pathognomonic-sp" },
+                { f: "pelvic mass",                                  t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "US: complex adnexal mass",                     t: "confirmatory-rad" },
+                { f: "US: absent ovarian Doppler flow",              t: "confirmatory-rad" }
+            ]
+        },
+
+        {
+            name: "Preeclampsia",
+            prevalence: 0.20,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "pregnancy",                                    t: "risk-factor"      },
+                { f: "headache",                                     t: "nonspecific-sp"   },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "vomiting",                                     t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "RUQ pain",                                     t: "nonspecific-sp"   },
+                { f: "ankle edema",                                  t: "nonspecific-sp"   },
+                { f: "new-onset hypertension",                       t: "pathognomonic-sp" },
+                { f: "visual disturbances",                          t: "pathognomonic-sp" },
+                { f: "urinalysis: proteinuria",                      t: "confirmatory-lab" },
+                { f: "thrombocytopenia",                             t: "screening-lab"    },
+                { f: "elevated ALT",                                 t: "screening-lab"    },
+                { f: "elevated AST",                                 t: "screening-lab"    },
+                { f: "elevated creatinine",                          t: "screening-lab"    },
+                { f: "US: fetal growth restriction",                 t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Threatened / Inevitable Abortion",
+            prevalence: 0.30,
+            features: [
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "pregnancy",                                    t: "risk-factor"      },
+                { f: "nausea",                                       t: "nonspecific-sp"   },
+                { f: "abdominal pain",                               t: "nonspecific-sp"   },
+                { f: "lower abdominal cramps",                       t: "pathognomonic-sp" },
+                { f: "vaginal bleeding",                             t: "pathognomonic-sp" },
+                { f: "elevated beta-hCG",                            t: "screening-lab"    },
+                { f: "US: fetal cardiac activity",                   t: "nonspecific-rad"  },
+                { f: "US: empty uterus",                             t: "confirmatory-rad" }
+            ]
+        },
+
+
+        // ── HEMATOLOGY ───────────────────────────────────────────────────
+
+        {
+            name: "Iron Deficiency Anemia",
+            prevalence: 0.65,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "chronic onset",                                t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "dyspnea",                                      t: "nonspecific-sp"   },
+                { f: "pallor",                                       t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "tachycardia",                                  t: "nonspecific-sp"   },
+                { f: "pica",                                         t: "pathognomonic-sp" },
+                { f: "angular cheilitis",                            t: "pathognomonic-sp" },
+                { f: "glossitis",                                    t: "pathognomonic-sp" },
+                { f: "koilonychia",                                  t: "pathognomonic-sp" },
+                { f: "microcytic anemia",                            t: "screening-lab"    },
+                { f: "low ferritin",                                 t: "confirmatory-lab" },
+                { f: "elevated TIBC",                                t: "confirmatory-lab" },
+                { f: "low serum iron",                               t: "confirmatory-lab" }
+            ]
+        },
+
+        {
+            name: "Sickle Cell Crisis (Vaso-occlusive)",
+            prevalence: 0.25,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "< 1 month",                                    t: "age"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "pallor",                                       t: "nonspecific-sp"   },
+                { f: "jaundice",                                     t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "severe bone pain",                             t: "pathognomonic-sp" },
+                { f: "acute chest syndrome",                         t: "pathognomonic-sp" },
+                { f: "dactylitis",                                   t: "pathognomonic-sp" },
+                { f: "leukocytosis",                                 t: "screening-lab"    },
+                { f: "hemolytic anemia",                             t: "screening-lab"    },
+                { f: "HbSS on electrophoresis",                      t: "confirmatory-lab" },
+                { f: "CXR: new infiltrate",                          t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Lymphoma",
+            prevalence: 0.20,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "night sweats",                                 t: "pathognomonic-sp" },
+                { f: "painless lymphadenopathy",                     t: "pathognomonic-sp" },
+                { f: "splenomegaly",                                 t: "pathognomonic-sp" },
+                { f: "alcohol-induced node pain",                    t: "pathognomonic-sp" },
+                { f: "leukopenia",                                   t: "screening-lab"    },
+                { f: "thrombocytopenia",                             t: "screening-lab"    },
+                { f: "elevated LDH",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "elevated uric acid",                           t: "screening-lab"    },
+                { f: "biopsy: malignant cells",                      t: "confirmatory-lab" },
+                { f: "CT: lymphadenopathy",                          t: "nonspecific-rad"  }
+            ]
+        },
+
+        {
+            name: "Leukemia (Acute)",
+            prevalence: 0.10,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "1 month - 2 years",                            t: "age"              },
+                { f: "2 - 12 years",                                 t: "age"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "> 60 years",                                   t: "age"              },
+                { f: "acute onset",                                  t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "bone pain",                                    t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "pallor",                                       t: "pathognomonic-sp" },
+                { f: "easy bruising",                                t: "pathognomonic-sp" },
+                { f: "splenomegaly",                                 t: "pathognomonic-sp" },
+                { f: "hepatomegaly",                                 t: "pathognomonic-sp" },
+                { f: "recurrent infections",                         t: "pathognomonic-sp" },
+                { f: "pancytopenia",                                 t: "screening-lab"    },
+                { f: "bone marrow biopsy: >20% blasts",              t: "confirmatory-lab" }
+            ]
+        },
+
+
+        // ── DERMATOLOGY / MULTI-SYSTEM ───────────────────────────────────
+
+        {
+            name: "Systemic Lupus Erythematosus (SLE)",
+            prevalence: 0.15,
+            features: [
+                { f: "Male",                                         t: "sex"              },
+                { f: "Female",                                       t: "sex"              },
+                { f: "12 - 18 years",                                t: "age"              },
+                { f: "18 - 40 years",                                t: "age"              },
+                { f: "40 - 60 years",                                t: "age"              },
+                { f: "insidious onset",                              t: "onset"            },
+                { f: "subacute onset",                               t: "onset"            },
+                { f: "episodic onset",                               t: "onset"            },
+                { f: "fatigue",                                      t: "nonspecific-sp"   },
+                { f: "fever",                                        t: "nonspecific-sp"   },
+                { f: "joint pain",                                   t: "nonspecific-sp"   },
+                { f: "joint swelling",                               t: "nonspecific-sp"   },
+                { f: "anemia",                                       t: "nonspecific-sp"   },
+                { f: "weight loss",                                  t: "nonspecific-sp"   },
+                { f: "butterfly rash",                               t: "pathognomonic-sp" },
+                { f: "photosensitive rash",                          t: "pathognomonic-sp" },
+                { f: "symmetric polyarthritis",                      t: "pathognomonic-sp" },
+                { f: "oral ulcers",                                  t: "pathognomonic-sp" },
+                { f: "serositis",                                    t: "pathognomonic-sp" },
+                { f: "pancytopenia",                                 t: "screening-lab"    },
+                { f: "elevated CRP",                                 t: "screening-lab"    },
+                { f: "elevated ESR",                                 t: "screening-lab"    },
+                { f: "positive ANA",                                 t: "screening-lab"    },
+                { f: "positive anti-dsDNA",                          t: "confirmatory-lab" },
+                { f: "positive anti-Sm",                             t: "confirmatory-lab" },
+                { f: "low complement",                               t: "confirmatory-lab" },
+                { f: "urinalysis: proteinuria",                      t: "confirmatory-lab" }
+            ]
         }
-    ]
-};
+
+    ] // end diseases[]
+
+}; // end DDX_DATA
+
+
+// ── DERIVED VOCABULARY ────────────────────────────────────────────────────────
+const DDX_VOCAB = Array.from(
+    new Set(DDX_DATA.diseases.flatMap(d => d.features.map(feat => feat.f)))
+).sort();

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- PWA Meta Tags -->
+    <!-- PWA APP Meta Tags -->
     <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#034848">
@@ -362,66 +362,53 @@
         :root[data-theme="dark"] .btn-labs { background: #451a03; border-color: #78350f; color: #fde68a; }
         :root[data-theme="dark"] .btn-ddx { background: #064e3b; border-color: #047857; color: #a7f3d0; }
 
-        /* DDx Modal Styles */
-        #ddx-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 2000; flex-direction: column;
-        }
-        .ddx-systems-bar { display: flex; overflow-x: auto; padding: 12px; gap: 10px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-shrink: 0; -webkit-overflow-scrolling: touch; }
-        .ddx-sys-btn { padding: 8px 16px; border-radius: 20px; border: 2px solid var(--primary); background: var(--bg); color: var(--text-main); font-weight: 700; white-space: nowrap; cursor: pointer; transition: 0.2s; }
-        .ddx-sys-btn.active { background: var(--primary); color: white; }
-        
-        /* Removed the old inline panel, added bottom sheet content and link styles */
-        .ddx-symptoms-sheet-content { max-height: 50vh; overflow-y: auto; padding-bottom: 20px; -webkit-overflow-scrolling: touch; }
-        .ddx-symp-group-title { font-weight: 800; margin: 10px 0; color: var(--primary); font-size: 0.95rem; text-transform: uppercase; }
-        .ddx-symp-chip { display: inline-block; padding: 6px 12px; margin: 0 6px 8px 0; border-radius: 8px; background: var(--bg); border: 1px solid var(--divider); color: var(--text-main); font-weight: 600; cursor: pointer; transition: 0.1s; }
-        .ddx-symp-chip.selected { background: var(--primary); color: white; border-color: var(--primary-dark); }
-        
-        .ddx-medscape-link { display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0369a1; padding: 8px 14px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; text-decoration: none; border: 1px solid #7dd3fc; margin-top: 12px; transition: background 0.2s; }
-        .ddx-medscape-link:active { background: #bae6fd; }
-        :root[data-theme="dark"] .ddx-medscape-link { background: #082f49; color: #bae6fd; border-color: #0369a1; }
-        :root[data-theme="dark"] .ddx-medscape-link:active { background: #0c4a6e; }
-
-        /* Wrapped Symptoms Bar with Fade & Clear All Button */
-        .ddx-active-chips-wrap { display: none; align-items: center; padding: 0 16px 10px 16px; gap: 8px; flex-shrink: 0; }
-        .ddx-active-chips { 
-            display: flex; overflow-x: auto; gap: 8px; flex-grow: 1; 
-            -webkit-overflow-scrolling: touch; scrollbar-width: none;
-            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
-            mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
-            padding: 0 12px; margin: 0 -8px;
-        }
-        .ddx-active-chips::-webkit-scrollbar { display: none; }
-        .ddx-active-chip { background: var(--primary-dark); color: white; padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: bold; white-space: nowrap; }
-        
-        .ddx-clear-all-btn {
-            width: 32px; height: 32px; border-radius: 50%; border: none;
-            background: #ef4444; color: white; font-size: 0.95rem;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.15); transition: transform 0.2s;
-        }
-        .ddx-clear-all-btn:active { transform: scale(0.9); }
-        .ddx-active-chip span { cursor: pointer; padding: 2px; }
-        
-        .ddx-results { flex-grow: 1; overflow-y: auto; padding: 16px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; background: var(--bg); }
-        .ddx-disease-card { background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--divider); margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-        .ddx-disease-title { font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .ddx-score-badge { background: #fef9c3; color: #a16207; padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; }
-        .ddx-feat-title { font-size: 0.95rem; color: var(--text-main); margin-top: 12px; font-weight: 800; text-transform: uppercase; }
-        .ddx-compact-list { 
-    margin: 4px 0 0 0; 
-    font-size: 0.85rem; 
-    line-height: 1.4; 
-    color: var(--text-muted); 
-    word-break: normal;        /* Prevents splitting words like Hypo-tension */
-    overflow-wrap: break-word; /* Only breaks a word if it's wider than the card */
-    display: block;            /* Ensures it behaves as a full-width block */
-    width: 100%;               /* Forces it to use all available space in the card */
+/* --- DDX SMART SEARCH STYLES --- */
+#ddx-modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: var(--bg); z-index: 2000; flex-direction: column; overflow: hidden;
 }
 
-        .ddx-compact-list span.matched { font-weight: 800; color: var(--primary-dark); }
-        .ddx-compact-list span.normal { color: var(--text-muted); }
-        .ddx-compact-separator { color: var(--divider); margin: 0 6px; font-weight: bold; }
+.ddx-top-header { flex-shrink: 0; background: var(--surface); border-bottom: 1px solid var(--divider); z-index: 10; display: flex; flex-direction: column; }
+.ddx-toggle-wrapper { display: flex; justify-content: center; padding: 10px; border-bottom: 1px solid var(--divider); }
+.ddx-mode-toggle { display: inline-flex; background: var(--divider); border-radius: 8px; padding: 3px; }
+.ddx-mode-btn { padding: 6px 16px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; border: none; background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+.ddx-mode-btn.active { background: var(--surface); color: var(--primary-dark); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.ddx-search-wrap { padding: 10px 16px; }
+
+.ddx-scroll-area { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; background: var(--bg); position: relative; }
+.ddx-active-chips-wrap { display: none; padding: 0 16px; gap: 6px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; background: var(--surface); border-bottom: 1px solid var(--divider); flex-shrink: 0; height: 44px; align-items: center; }
+.ddx-active-chips-wrap::-webkit-scrollbar { display: none; }
+.ddx-active-chip { background: var(--primary-dark); color: white; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: bold; white-space: nowrap; flex-shrink: 0; align-self: center; }
+.ddx-active-chip span { cursor: pointer; padding: 2px; }
+
+.ddx-results { padding: 16px; padding-bottom: 80px; flex-grow: 1; }
+.ddx-disease-card { background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--divider); margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+.ddx-disease-title { font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.ddx-score-badge { 
+    background: #dcfce7; 
+    color: #166534; 
+    padding: 4px 8px; 
+    border-radius: 8px; 
+    font-size: 0.7rem; /* Made smaller */
+    font-weight: 800; 
+    border: 1px solid #4ade80; 
+    white-space: nowrap; /* Forces it to get wider instead of taller */
+    flex-shrink: 0; /* Prevents it from being squeezed by a long title */
+}
+.ddx-feat-title { font-size: 0.8rem; margin-top: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+.ddx-compact-list { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+
+.ddx-chip-distinctive { background: #fef9c3; color: #854d0e; padding: 3px 6px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fde047; }
+.ddx-chip-shared { background: var(--bg); color: var(--text-muted); padding: 3px 6px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; border: 1px solid var(--divider); }
+
+.ddx-shared-details { margin-top: 12px; }
+.ddx-shared-details summary { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; outline: none; list-style: none; display: flex; align-items: center; gap: 6px; padding: 6px 0; user-select: none; }
+.ddx-shared-details summary::-webkit-details-marker { display: none; }
+.ddx-shared-details summary::before { content: '▶'; font-size: 0.6rem; transition: transform 0.2s; }
+.ddx-shared-details[open] summary::before { transform: rotate(90deg); }
+
+:root[data-theme="dark"] .ddx-score-badge { background: #064e3b; color: #6ee7b7; border-color: #10b981; }
+:root[data-theme="dark"] .ddx-chip-distinctive { background: #422006; color: #fde047; border-color: #a16207; }
 
         /* Swipeable Tasks Styling */
         .task-list-container { max-height: 40vh; overflow-x: hidden; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
@@ -756,6 +743,40 @@ html.modal-open, body.modal-open {
     animation: milestoneShake 0.6s ease-in-out;
 }
 
+/* --- ADD THIS MISSING CSS FOR THE CONFLICT SHAKE --- */
+@keyframes shake-conflict {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+.ddx-symp-chip.conflict {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #ef4444 !important;
+    animation: shake-conflict 0.4s ease-in-out;
+}
+
+:root[data-theme="dark"] .ddx-symp-chip.conflict {
+    background: #450a0a !important;
+    color: #fca5a5 !important;
+    border-color: #ef4444 !important;
+}
+
+.ddx-medscape-link {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #7dd3fc;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    text-decoration: none;
+}
+.ddx-medscape-link:active { background: #bae6fd; }
+:root[data-theme="dark"] .ddx-medscape-link { background: #082f49; border-color: #0369a1; color: #bae6fd; }
+
         #toast {
     visibility: hidden;
     min-width: 250px;
@@ -765,7 +786,7 @@ html.modal-open, body.modal-open {
     border-radius: 50px;
     padding: 12px 24px;
     position: fixed;
-    z-index: 2000;
+    z-index: 9999; /* FIX: Changed from 2000 to 9999 to show above all modals */
     left: 50%;
     bottom: 30px;
     transform: translateX(-50%);
@@ -776,6 +797,8 @@ html.modal-open, body.modal-open {
     pointer-events: none;
     user-select: none;
 }
+
+
 
 #toast.show {
     visibility: visible;
@@ -792,7 +815,7 @@ html.modal-open, body.modal-open {
     </style>
 </head>
 <body>
-    
+    <datalist id="ddx-vocab-list"></datalist>
     <header>
     <div>
         <h1 style="margin:0; font-size:1.25rem;">MiriMate</h1>
@@ -1161,45 +1184,71 @@ html.modal-open, body.modal-open {
     </div>
 
 <!-- DDx Full-Screen Modal -->
-    <div id="ddx-modal">
-        <div class="lab-header">
-            <button class="lab-header-close" onclick="closeDDx()">✕</button>
-            <span style="font-weight:700; font-size:1.1rem;">🧠 DDx Search<small> (underdevelopment)</small></span>
-            <div style="width:38px;"></div>
-        </div>
-        
-        <div class="ddx-systems-bar" id="ddx-systems-bar"></div>
-        <div class="ddx-symptoms-panel" id="ddx-symptoms-panel"></div>
-        
-        <div class="lab-search-wrap" style="border-bottom: none; padding-bottom: 8px;">
-            <div class="search-wrapper" style="width: 100%;">
-                <input type="text" class="lab-search" id="ddx-search-input" placeholder="🔍 Search disease name..." oninput="toggleClearBtn(this); updateDdxResults()" style="margin-bottom:0; width:100%; padding-right: 35px;">
-                <button class="clear-search-btn" onclick="clearSearch('ddx-search-input')">✕</button>
+<div id="ddx-modal">
+    <div class="lab-header">
+        <button class="lab-header-close" onclick="closeDDx()">✕</button>
+        <span style="font-weight:700; font-size:1.1rem;">🧠 DDx Search</span>
+        <button class="lab-header-close" onclick="clearAllDdxSymptoms()" title="Reset All" style="font-size: 1.1rem;">↺</button>
+    </div>
+    
+<!-- Top Fixed Area: Contains Dropdowns, Toggle & Search -->
+    <div class="ddx-top-header">
+        <div class="ddx-toggle-wrapper" style="display: flex; justify-content: space-between; padding: 10px 16px 5px 16px; gap: 8px; align-items: center; border-bottom: none;">
+            
+            <!-- Context Dropdowns -->
+            <div style="display: flex; gap: 6px; flex-grow: 1;">
+                <select id="ddx-age-select" onchange="handleDdxDropdownChange('age', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
+                    <option value="">Age</option>
+                    <option value="< 1 month">< 1 month</option>
+                    <option value="1 month - 2 years">1m - 2y</option>
+                    <option value="2 - 12 years">2 - 12y</option>
+                    <option value="12 - 18 years">12 - 18y</option>
+                    <option value="18 - 40 years">18 - 40y</option>
+                    <option value="40 - 60 years">40 - 60y</option>
+                    <option value="> 60 years">> 60y</option>
+                </select>
+                <select id="ddx-sex-select" onchange="handleDdxDropdownChange('sex', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
+                    <option value="">Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+                <select id="ddx-onset-select" onchange="handleDdxDropdownChange('onset', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
+                    <option value="">Onset</option>
+                    <option value="acute onset">Acute</option>
+                    <option value="subacute onset">Subacute</option>
+                    <option value="insidious onset">Insidious</option>
+                    <option value="chronic onset">Chronic</option>
+                    <option value="episodic onset">Episodic</option>
+                </select>
+            </div>
+            
+            <!-- Smaller Mode Toggle -->
+            <div class="ddx-mode-toggle" style="margin: 0; flex-shrink: 0;">
+                <button id="ddx-mode-feature" class="ddx-mode-btn active" onclick="setDdxMode('feature')" style="padding: 6px 10px; font-size: 0.75rem;">➕ C/P</button>
+                <button id="ddx-mode-disease" class="ddx-mode-btn" onclick="setDdxMode('disease')" style="padding: 6px 10px; font-size: 0.75rem;">🔍 Dx</button>
             </div>
         </div>
         
-        <div class="ddx-active-chips-wrap" id="ddx-active-chips-wrap">
-            <div class="ddx-active-chips" id="ddx-active-chips"></div>
-            <button class="ddx-clear-all-btn" onclick="clearAllDdxSymptoms()" title="Clear All">✕</button>
+        <div class="ddx-search-wrap" style="padding-top: 5px;">
+            <div class="search-wrapper" style="width: 100%;">
+                <input type="text" class="lab-search" id="ddx-search-input" placeholder="🔍 Search for symptoms, signs, labs or radiology..." oninput="handleDdxInput(event)" onchange="handleDdxInput(event)" onkeydown="handleDdxKeydown(event)" style="margin-bottom:0; width:100%; padding-right: 35px;">
+                <button class="clear-search-btn" onclick="clearSearch('ddx-search-input'); handleDdxInput(event);">✕</button>
+            </div>
         </div>
-        <div class="ddx-results" id="ddx-results-content"></div>
-        
-        <!-- NEW FLOATING QUIZ BUTTON -->
-        <button onclick="openQuiz()" style="position: absolute; bottom: 20px; right: 20px; background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 30px; font-weight: 800; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 10;">💡 Quiz Me</button>
     </div>
 
-<!-- DDx Symptoms Floating Center Modal -->
-    <div class="overlay" id="ddx-sheet-overlay" onclick="closeDdxSymptomsModal()" style="z-index: 2001;"></div>
-    <div class="center-modal" id="ddx-symptoms-modal" style="z-index: 2002; width: 95%; max-width: 500px; padding: 20px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; gap: 10px;">
-            <h2 id="ddx-symptoms-title" style="color: var(--primary); margin: 0; font-size: 1.25rem;">Symptoms</h2>
-            <div class="search-wrapper" style="width: 140px; flex-grow: 1;">
-                <input type="text" id="ddx-symptoms-search" placeholder="🔍 Filter..." oninput="toggleClearBtn(this); filterDdxSymptoms(this.value)" style="margin: 0; padding: 8px 35px 8px 14px; border-radius: 20px; font-size: 0.95rem; border: 1px solid var(--divider); background: var(--bg); color: var(--text-main); width: 100%; outline: none;">
-                <button class="clear-search-btn" onclick="clearSearch('ddx-symptoms-search')">✕</button>
-            </div>
-        </div>
-        <div class="ddx-symptoms-sheet-content" id="ddx-symptoms-container" style="max-height: 55vh; overflow-y: auto; padding-right: 5px; padding-bottom: 10px;"></div>
+    <!-- Scrollable Main Content -->
+    <div class="ddx-scroll-area">
+        <div class="ddx-active-chips-wrap" id="ddx-active-chips-wrap"></div>
+        <div class="ddx-results" id="ddx-results-content"></div>
+        
+        <!-- Floating Quiz Button inside scroll area -->
+        <button onclick="openQuiz()" style="position: fixed; bottom: 30px; right: 20px; background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 30px; font-weight: 800; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 10;">💡 Quiz Me</button>
     </div>
+    
+    <!-- Absolute Bottom Inline Autocomplete (Glued to Keyboard via JS) -->
+    <div class="ddx-autocomplete-wrap" id="ddx-autocomplete-container"></div>
+</div>
 
     <!-- Quiz Modal -->
     <div id="quiz-modal">
@@ -1243,6 +1292,20 @@ html.modal-open, body.modal-open {
         let editingPatientId = null;
         let activeVitalInfo = { patientId: null, vitalKey: null };
         let mainThreadTimers = {}; 
+
+// Maps each feature tag to its diagnostic weight
+const TAG_WEIGHTS = {
+    "age":               1,
+    "sex":               1,
+    "onset":             2,
+    "risk-factor":       2,
+    "nonspecific-sp":    3,
+    "pathognomonic-sp":  6,
+    "screening-lab":     5,
+    "confirmatory-lab":  9,
+    "nonspecific-rad":   7,
+    "confirmatory-rad": 10,
+};
 
         // =============================================
         // INTERNAL ALERTS (NO SERVICE WORKERS)
@@ -3181,408 +3244,379 @@ function resetEntireApp() {
         }
 
 // =============================================
-        // DDX SEARCH FEATURE (Under Development)
-        // =============================================
+// DDX SEARCH FEATURE (Native Autocomplete Approach)
+// =============================================
 
-        
-        
-let ddxActiveSystem = null;
 let ddxSelectedSymptoms = [];
+let ddxMode = 'feature'; // 'feature' or 'disease'
+let DDX_VOCAB_LIST = []; // Cached vocabulary
+
+// Safe case-insensitive match helper
+const isMatch = (str1, str2) => {
+    if (!str1 || !str2) return false;
+    const s1 = String(str1).toLowerCase().trim();
+    const s2 = String(str2).toLowerCase().trim();
+    if (s1 === s2) return true;
+    if ((s1 === 'male' && s2.includes('female')) || (s2 === 'male' && s1.includes('female'))) return false;
+    return s1.includes(s2) || s2.includes(s1);
+};
 
 function openDDx() {
-            closeModals();
-            lockScroll(); 
-            const searchInput = document.getElementById('ddx-search-input');
-            if (searchInput) searchInput.value = '';
-            ddxActiveSystem = null;
-            try {
-                renderDdxSystems();
-                updateDdxResults();
-            } catch(e) { console.error(e); }
-            const modal = document.getElementById('ddx-modal');
-            if (modal) modal.style.display = 'flex';
-        }
-
-        function closeDDx() {
-            closeModals();
-        }
-
-function toggleDdxSystem(sysId) {
-    ddxActiveSystem = sysId;
-    renderDdxSystems();
-
-    document.getElementById('ddx-symptoms-search').value = '';
-    const sysName = DDX_DATA.systems.find(s => s.id === sysId).name;
-    document.getElementById('ddx-symptoms-title').innerText = sysName;
-    renderDdxSymptomsPanel(sysId);
-
-    const overlay = document.getElementById('ddx-sheet-overlay');
-    overlay.style.display = 'block';
-    setTimeout(() => overlay.style.opacity = '1', 10);
-
-    const modal = document.getElementById('ddx-symptoms-modal');
-    modal.style.display = 'block'; // Make it visible FIRST
-    
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modal.style.transform = 'translate(-50%, -50%) scale(1)';
-        
-        // Force scroll reset AFTER the browser has rendered the layout
-        document.getElementById('ddx-symptoms-container').scrollTop = 0;
-    }, 10);
-}
-
-
-
-function filterDdxSymptoms(val) {
-    if (ddxActiveSystem) {
-        renderDdxSymptomsPanel(ddxActiveSystem, val);
-    }
-}
-
-function renderDdxSymptomsPanel(sysId, filterText = '') {
-    const container = document.getElementById('ddx-symptoms-container');
-    const data = DDX_DATA.symptoms[sysId];
-    if (!data) return;
-
-    const q = filterText.toLowerCase().trim();
-
-    const renderGroup = (title, items) => {
-        if (!items || items.length === 0) return '';
-
-        const filteredItems = items.filter(item => item.toLowerCase().includes(q));
-        if (filteredItems.length === 0) return '';
-
-        let groupHtml = `<div class="ddx-symp-group-title" style="margin-top:15px;">${title}</div>`;
-        filteredItems.forEach(item => {
-            const isSel = ddxSelectedSymptoms.includes(item);
-            groupHtml += `<div class="ddx-symp-chip ${isSel ? 'selected' : ''}" onclick="toggleDdxSymptom(\`${item}\`)">${item}</div>`;
-        });
-        return groupHtml;
-    };
-
-    let html = '';
-    // NEW: Added Demographics and Vitals
-    html += renderGroup("Age", data.age);
-    html += renderGroup("Gender", data.gender);
-    html += renderGroup("Onset", data.onset);
-    html += renderGroup("Vitals", data.vitals);
-    html += renderGroup("Risk Factors", data.riskFactors);
-    
-    html += renderGroup("Patient Symptoms", data.symptoms);
-    html += renderGroup("Clinical Signs", data.signs);
-    html += renderGroup("Labs", data.labs);
-    html += renderGroup("Radiology", data.radiology);
-
-    if (!html) {
-        html = `<div style="text-align: center; padding: 20px; color: var(--text-muted);">No matching features found.</div>`;
-    } else {
-        html = html.replace('style="margin-top:15px;"', '');
-    }
-
-    container.innerHTML = html;
-}
-
-function updateDdxResults() {
+    closeModals();
+    lockScroll(); 
+    setDdxMode('feature');
     renderDdxActiveChips();
-    const container = document.getElementById('ddx-results-content');
-    const query = document.getElementById('ddx-search-input').value.toLowerCase().trim();
+    updateDdxResults();
+    const modal = document.getElementById('ddx-modal');
+    if (modal) modal.style.display = 'flex';
+}
 
-    if (ddxSelectedSymptoms.length === 0 && query === "") {
-        container.innerHTML = `<div class="lab-no-results">Choose some symptoms or write something to see results 🔍</div>`;
+function closeDDx() { closeModals(); }
+
+function setDdxMode(mode) {
+    ddxMode = mode;
+    document.getElementById('ddx-mode-feature').classList.toggle('active', mode === 'feature');
+    document.getElementById('ddx-mode-disease').classList.toggle('active', mode === 'disease');
+    
+    const input = document.getElementById('ddx-search-input');
+    // --- UPDATED PLACEHOLDER ---
+    input.placeholder = mode === 'feature' ? "🔍 Symptoms, signs, labs or radiology..." : "🔍 Disease name...";
+    input.value = '';
+    
+    // Toggle native datalist
+    if (mode === 'feature') {
+        input.setAttribute('list', 'ddx-vocab-list');
+        populateDdxDatalist();
+    } else {
+        input.removeAttribute('list');
+    }
+    
+    toggleClearBtn(input);
+    updateDdxResults();
+}
+
+function populateDdxDatalist() {
+    const dl = document.getElementById('ddx-vocab-list');
+    if (!dl) return;
+    
+    // Generate vocab list if empty
+    if (DDX_VOCAB_LIST.length === 0) {
+        if (typeof DDX_VOCAB !== 'undefined') {
+            DDX_VOCAB_LIST = [...DDX_VOCAB];
+        } else {
+            DDX_VOCAB_LIST = Array.from(new Set(DDX_DATA.diseases.flatMap(d => d.features.map(f => f.f) || [])));
+        }
+        
+        // SORTING UPDATE: Shortest strings first, then alphabetically
+        DDX_VOCAB_LIST.sort((a, b) => {
+            if (a.length === b.length) return a.localeCompare(b);
+            return a.length - b.length;
+        });
+    }
+
+    // Calculate excluded items so they aren't suggested
+    let excludedSet = new Set();
+    if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
+        ddxSelectedSymptoms.forEach(sel => {
+            for (const ruleKey in DDX_DATA.rules.excludes) {
+                if (isMatch(ruleKey, sel)) {
+                    let targets = [].concat(DDX_DATA.rules.excludes[ruleKey]);
+                    targets.forEach(t => excludedSet.add(t));
+                }
+                let targets = [].concat(DDX_DATA.rules.excludes[ruleKey]);
+                if (targets.some(t => isMatch(t, sel))) excludedSet.add(ruleKey);
+            }
+        });
+    }
+
+// Build the native <option> list
+    let html = '';
+    const excludedCategories = [...DDX_DATA.ageGroups, ...DDX_DATA.onsetTypes, 'Male', 'Female']; // Exclude dropdown items
+
+    DDX_VOCAB_LIST.forEach(f => {
+        if (!excludedCategories.includes(f) && !ddxSelectedSymptoms.includes(f) && !Array.from(excludedSet).some(ex => isMatch(ex, f))) {
+            html += `<option value="${f}">`;
+        }
+    });
+    dl.innerHTML = html;
+}
+
+function handleDdxInput(e) {
+    const input = document.getElementById('ddx-search-input');
+    if (!input) return;
+    const val = input.value.trim();
+    toggleClearBtn(input);
+
+    if (ddxMode === 'feature') {
+        const match = DDX_VOCAB_LIST.find(f => f.toLowerCase() === val.toLowerCase());
+        
+        // Check if the input was triggered explicitly by clicking a datalist suggestion
+        // 'insertReplacementText' is fired natively by mobile/desktop browsers when selecting an autocomplete option
+        const isDatalistSelect = e && e.type === 'input' && e.inputType === 'insertReplacementText';
+        // 'change' is fired if the user clicks a suggestion and it blurs, or hits Enter
+        const isChangeSelect = e && e.type === 'change';
+
+        if (match && (isDatalistSelect || isChangeSelect)) {
+            addDdxFeature(match);
+            input.value = '';
+            toggleClearBtn(input);
+        }
+    } else {
+        updateDdxResults();
+    }
+}
+
+// Allows the user to manually hit "Enter" on their keyboard to add the item
+function handleDdxKeydown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const input = document.getElementById('ddx-search-input');
+        const val = input.value.trim();
+        
+        if (ddxMode === 'feature') {
+            const match = DDX_VOCAB_LIST.find(f => f.toLowerCase() === val.toLowerCase());
+            if (match) {
+                addDdxFeature(match);
+                input.value = '';
+                toggleClearBtn(input);
+            }
+        } else {
+            // Dismiss keyboard if they press enter during a disease search
+            input.blur();
+        }
+    }
+}
+
+function addDdxFeature(feature) {
+    if (!ddxSelectedSymptoms.includes(feature)) {
+        if (DDX_DATA.rules && DDX_DATA.rules.implies) {
+            for (const ruleKey in DDX_DATA.rules.implies) {
+                if (isMatch(ruleKey, feature)) {
+                    let implied = [].concat(DDX_DATA.rules.implies[ruleKey]);
+                    implied.forEach(imp => {
+                        if (!ddxSelectedSymptoms.includes(imp)) ddxSelectedSymptoms.push(imp);
+                    });
+                }
+            }
+        }
+        ddxSelectedSymptoms.push(feature);
+        appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
+        saveData();
+        renderDdxActiveChips();
+        updateDdxResults();
+        populateDdxDatalist(); // Refreshes the dropdown to remove the item we just added
+    }
+}
+
+function removeDdxFeature(feature) {
+    ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
+    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
+    saveData();
+    renderDdxActiveChips();
+    updateDdxResults();
+    populateDdxDatalist();
+}
+
+function clearAllDdxSymptoms() {
+    ddxSelectedSymptoms = [];
+    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
+    saveData();
+    renderDdxActiveChips();
+    updateDdxResults();
+    populateDdxDatalist();
+}
+
+// --- NEW: Handle Dropdown Selections ---
+function handleDdxDropdownChange(category, value) {
+    // 1. Identify what array of options belongs to this category
+    let toRemove = [];
+    if (category === 'sex') toRemove = ['Male', 'Female'];
+    else if (category === 'age') toRemove = DDX_DATA.ageGroups;
+    else if (category === 'onset') toRemove = DDX_DATA.onsetTypes;
+
+    // 2. Remove any existing chip from that specific category
+    ddxSelectedSymptoms = ddxSelectedSymptoms.filter(symp => !toRemove.includes(symp));
+
+    // 3. Add the new one if they didn't select the empty default
+    if (value) {
+        ddxSelectedSymptoms.push(value);
+    }
+
+    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
+    saveData();
+    renderDdxActiveChips();
+    updateDdxResults();
+    populateDdxDatalist();
+}
+
+// --- NEW: Sync dropdown menus with currently active chips ---
+function syncDdxDropdowns() {
+    const sexEl = document.getElementById('ddx-sex-select');
+    const ageEl = document.getElementById('ddx-age-select');
+    const onsetEl = document.getElementById('ddx-onset-select');
+    
+    if (sexEl) sexEl.value = ddxSelectedSymptoms.find(s => ['Male', 'Female'].includes(s)) || "";
+    if (ageEl) ageEl.value = ddxSelectedSymptoms.find(s => DDX_DATA.ageGroups.includes(s)) || "";
+    if (onsetEl) onsetEl.value = ddxSelectedSymptoms.find(s => DDX_DATA.onsetTypes.includes(s)) || "";
+}
+
+// --- UPDATED: Render Active Chips (Now syncs dropdowns) ---
+function renderDdxActiveChips() {
+    syncDdxDropdowns(); // <-- Added this call to keep dropdown UI matching the chips
+    
+    const wrap = document.getElementById('ddx-active-chips-wrap');
+    if (ddxSelectedSymptoms.length === 0) {
+        wrap.style.display = 'none';
+        wrap.innerHTML = '';
+        return;
+    }
+    wrap.style.display = 'flex';
+    wrap.innerHTML = ddxSelectedSymptoms.map(symp => 
+        `<div class="ddx-active-chip">${symp} <span onclick="removeDdxFeature(\`${symp}\`)">✕</span></div>`
+    ).join('');
+}
+
+// --- SHARED DIAGNOSTIC SCORING ENGINE ---
+function calculateDiseaseScores(inputFeatures) {
+    return DDX_DATA.diseases.map(d => {
+        let matchedFeats = d.features.filter(feat => inputFeatures.includes(feat.f));
+        const prevalenceFactor = Math.pow(d.prevalence ?? 0.5, 0.2);
+        let score = Math.round(matchedFeats.reduce((sum, feat) => sum + (TAG_WEIGHTS[feat.t] || 1), 0) * prevalenceFactor);
+        
+        const diseaseAges = d.features.filter(f => f.t === 'age').map(f => f.f);
+        const diseaseSexes = d.features.filter(f => f.t === 'sex').map(f => f.f);
+
+        const selectedAges = inputFeatures.filter(s => DDX_DATA.ageGroups.includes(s));
+        const selectedSexes = inputFeatures.filter(s => ['Male','Female'].includes(s));
+        
+        // Define purely clinical features (excluding Age, Sex, AND Onset)
+        const selectedClinical = inputFeatures.filter(s => 
+            !DDX_DATA.ageGroups.includes(s) && 
+            !['Male','Female'].includes(s) && 
+            !DDX_DATA.onsetTypes.includes(s)
+        );
+
+        const ageMismatch = selectedAges.length > 0 && diseaseAges.length > 0 &&
+            !selectedAges.some(a => diseaseAges.includes(a));
+        const sexMismatch = selectedSexes.length > 0 && diseaseSexes.length > 0 &&
+            !selectedSexes.some(s => diseaseSexes.includes(s));
+
+        // Deduct points for explicit demographic contradictions
+        if (ageMismatch) score -= 1000;
+        if (sexMismatch) score -= 1000;
+
+        // Prevent Demographics/Onset-ONLY matches from hijacking the top spots
+        let clinicalMatches = matchedFeats.filter(f => f.t !== 'age' && f.t !== 'sex' && f.t !== 'onset').length;
+        if (selectedClinical.length > 0 && clinicalMatches === 0) {
+            score -= 500;
+        }
+
+        // Apply explicit exclusion rules (e.g., "Male" excludes "Ovarian Cancer")
+        if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
+            inputFeatures.forEach(symp => {
+                let excludedList = [].concat(DDX_DATA.rules.excludes[symp] || []);
+                if (excludedList.some(ex => isMatch(ex, d.name))) score -= 100;
+            });
+        }
+
+        let matches = matchedFeats.map(feat => feat.f);
+        return { ...d, score, matches };
+    });
+}
+
+// --- SMART DIFFERENTIATION ENGINE ---
+function updateDdxResults() {
+    const container = document.getElementById('ddx-results-content');
+    const query = ddxMode === 'disease' ? document.getElementById('ddx-search-input').value.toLowerCase().trim() : '';
+
+    // Identify how many purely clinical features are selected (ignoring demographics/onset)
+    const selectedClinical = ddxSelectedSymptoms.filter(s => 
+        !DDX_DATA.ageGroups.includes(s) && 
+        !['Male','Female'].includes(s) && 
+        !DDX_DATA.onsetTypes.includes(s)
+    );
+
+    if (ddxMode === 'feature') {
+        if (selectedClinical.length === 0) {
+            // Block results until an actual symptom/lab/sign is added
+            container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted); line-height: 1.5;">➕ Select at least one clinical feature (symptom, sign, lab, or rad) to see diagnostic suggestions.</div>`;
+            return;
+        }
+    } else if (ddxMode === 'disease' && !query && ddxSelectedSymptoms.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">🔍 Search for a disease name...</div>`;
         return;
     }
 
-    // 1. Determine active systems (Now supports both strings and arrays of strings)
-    const activeSystems = new Set();
-    if (DDX_DATA.diseases) {
-        DDX_DATA.diseases.forEach(d => {
-            if (d.system && d.keyFeatures && d.keyFeatures.some(kf => ddxSelectedSymptoms.includes(kf))) {
-                // Convert to array if it's a single string, then add to Set
-                const sysArray = Array.isArray(d.system) ? d.system : [d.system];
-                sysArray.forEach(sys => activeSystems.add(sys));
-            }
-        });
-    }
+    let scoredDiseases = calculateDiseaseScores(ddxSelectedSymptoms);
 
-    // Filter, Score, Sort, and Slice
-    const results = DDX_DATA.diseases
-        .filter(disease => !query || disease.name.toLowerCase().includes(query))
-        .map(disease => {
-            const screenLabs = (disease.labs && disease.labs.screening) ? disease.labs.screening : [];
-            const confLabs = (disease.labs && disease.labs.confirmatory) ? disease.labs.confirmatory : [];
-            const screenRads = (disease.radiology && disease.radiology.screening) ? disease.radiology.screening : [];
-            const confRads = (disease.radiology && disease.radiology.confirmatory) ? disease.radiology.confirmatory : [];
-            
-            const demoMatches = (disease.demographics || []).filter(f => ddxSelectedSymptoms.includes(f));
-            const keyMatches = (disease.keyFeatures || []).filter(f => ddxSelectedSymptoms.includes(f));
-            const possibleMatches = (disease.possibleFeatures || []).filter(f => ddxSelectedSymptoms.includes(f));
-            
-            const screenLabMatches = screenLabs.filter(f => ddxSelectedSymptoms.includes(f));
-            const confLabMatches = confLabs.filter(f => ddxSelectedSymptoms.includes(f));
-            const screenRadMatches = screenRads.filter(f => ddxSelectedSymptoms.includes(f));
-            const confRadMatches = confRads.filter(f => ddxSelectedSymptoms.includes(f));
-            
-            const labMatches = screenLabMatches.concat(confLabMatches);
-            const radMatches = screenRadMatches.concat(confRadMatches);
-            const flatLabs = screenLabs.concat(confLabs);
-            const flatRads = screenRads.concat(confRads);
-            
-            const totalMatches = demoMatches.length + keyMatches.length + possibleMatches.length + labMatches.length + radMatches.length;
-            
-            // Base scoring
-            let score = (keyMatches.length * 5.0) + 
-                        (possibleMatches.length * 2.0) + 
-                        (screenLabMatches.length * 1.5) + 
-                        (confLabMatches.length * 10.0) + 
-                        (screenRadMatches.length * 1.5) + 
-                        (confRadMatches.length * 10.0);
-            
-            // Weighted Demographic Scoring
-            demoMatches.forEach(match => {
-                if (match === disease.genderBias || match === disease.onsetBias || match === disease.ageBias) {
-                    score += 1.0; 
-                } else {
-                    score += 0.5;
-                }
-            });
-
-            // UPDATED: System Bonus Multiplier (1.25x)
-            if (disease.system) {
-                // Ensure we are working with an array
-                const diseaseSystems = Array.isArray(disease.system) ? disease.system : [disease.system];
-                // .some() returns true the moment it finds ONE match, ensuring the multiplier applies exactly once
-                const hasSystemBonus = diseaseSystems.some(sys => activeSystems.has(sys));
-                
-                if (hasSystemBonus) {
-                    score *= 1.25;
-                }
-            }
-
-            // Exclusion Rules
-            if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
-                ddxSelectedSymptoms.forEach(symp => {
-                    if (DDX_DATA.rules.excludes[symp] && DDX_DATA.rules.excludes[symp].includes(disease.name)) {
-                        score -= 100;
-                    }
-                });
-            }
-            
-            return { ...disease, labs: flatLabs, radiology: flatRads, demoMatches, keyMatches, possibleMatches, labMatches, radMatches, totalMatches, score };
-        })
-        .filter(d => (query && d.name.toLowerCase().includes(query)) || d.totalMatches > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10);
+    let results = scoredDiseases.filter(d => {
+        let matchesQuery = query ? d.name.toLowerCase().includes(query) : true;
+        if (ddxMode === 'disease') {
+            if (ddxSelectedSymptoms.length === 0) return matchesQuery;
+            return matchesQuery && d.score > 0;
+        } else {
+            return d.score > 0 && d.score > -900;
+        }
+    }).sort((a, b) => b.score - a.score).slice(0, 10);
 
     if (results.length === 0) {
-        container.innerHTML = `<div class="lab-no-results">No matches found for your criteria.</div>`;
+        container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">No matches found.</div>`;
         return;
     }
 
-    const formatCompactList = (features, matchedArr) => {
-        if (!features || features.length === 0) return `<div class="ddx-compact-list"><span class="normal">None specified</span></div>`;
-        const items = features.map(f => {
-            const isMatched = matchedArr.includes(f);
-            return isMatched ? `<span class="matched">${f}</span>` : `<span class="normal">${f}</span>`;
+    // Build frequency map of unselected features across results
+    let featureFreq = {};
+    results.forEach(d => {
+        d.features.forEach(feat => {
+            if (!ddxSelectedSymptoms.includes(feat.f)) {
+                featureFreq[feat.f] = (featureFreq[feat.f] || 0) + 1;
+            }
         });
-        return `<div class="ddx-compact-list">${items.join('<span class="ddx-compact-separator">-</span>')}</div>`;
-    };
+    });
 
-    const formatDemographics = (d, demoArray, matchedArr) => {
-        if (!demoArray || demoArray.length === 0) return '';
-        
-        const highlightText = (text, isMatched) => isMatched ? `<span class="matched">${text}</span>` : `<span class="normal">${text}</span>`;
-        const highlightMatch = (val) => matchedArr.includes(val) ? `<span class="matched">${val}</span>` : `<span class="normal">${val}</span>`;
-        
-        const ageData = DDX_DATA.symptoms.demo.age;
-        const genderData = DDX_DATA.symptoms.demo.gender;
-        const onsetData = DDX_DATA.symptoms.demo.onset;
-        const vitalsData = DDX_DATA.symptoms.demo.vitals;
-        const riskData = DDX_DATA.symptoms.demo.riskFactors;
-        
-        let ages = demoArray.filter(x => ageData.includes(x));
-        let genders = demoArray.filter(x => genderData.includes(x));
-        let onsets = demoArray.filter(x => onsetData.includes(x));
-        let vitals = demoArray.filter(x => vitalsData.includes(x));
-        let risks = demoArray.filter(x => riskData.includes(x));
-        
-        let ageStr = '';
-        let isAgeMatched = ages.some(a => matchedArr.includes(a));
-        if (d.ageBias) {
-            ageStr = `Mostly ${d.ageBias.split(' (')[0]}`;
-        } else {
-            if (ages.length === 5) ageStr = "Any age";
-            else if (ages.includes("Young Adult (18-35y)") && ages.includes("Middle-aged (36-55y)") && ages.includes("Elderly (>55y)") && ages.length === 3) ageStr = "Adults (>18y)";
-            else if (ages.length > 0) ageStr = ages.map(a => a.split(' (')[0]).join(', '); 
-            else ageStr = "Any";
-        }
-
-        let genderStr = '';
-        let isGenderMatched = genders.some(g => matchedArr.includes(g));
-        if (d.genderBias) {
-            genderStr = `More in ${d.genderBias}`;
-        } else if (genders.length === 2) {
-            genderStr = "Both";
-        } else if (genders.length === 1) {
-            genderStr = genders[0];
-        } else {
-            genderStr = "Any";
-        }
-        
-        let onsetStr = '';
-        let isOnsetMatched = onsets.some(o => matchedArr.includes(o));
-        if (d.onsetBias) {
-            onsetStr = `Mostly ${d.onsetBias}`;
-        } else if (onsets.length >= 3) {
-            onsetStr = "Any";
-        } else if (onsets.length > 0) {
-            onsetStr = onsets.join(' or ');
-        } else {
-            onsetStr = "Any";
-        }
-        
-        let parts = [];
-        parts.push(`<span style="color:var(--text-main); font-weight:700;">Age:</span> ${highlightText(ageStr, isAgeMatched)}`);
-        parts.push(`<span style="color:var(--text-main); font-weight:700;">Gender:</span> ${highlightText(genderStr, isGenderMatched)}`);
-        parts.push(`<span style="color:var(--text-main); font-weight:700;">Onset:</span> ${highlightText(onsetStr, isOnsetMatched)}`);
-        
-        if (vitals.length > 0) {
-            parts.push(`<span style="color:var(--text-main); font-weight:700;">Vitals:</span> ${vitals.map(v => highlightMatch(v)).join(', ')}`);
-        }
-        if (risks.length > 0) {
-            parts.push(`<span style="color:var(--text-main); font-weight:700;">Risk Factors:</span> ${risks.map(r => highlightMatch(r)).join(', ')}`);
-        }
-        
-        return `<div class="ddx-compact-list" style="margin-bottom: 8px;">${parts.join(' <span class="ddx-compact-separator" style="color: var(--text-muted); opacity: 0.5;">-</span> ')}</div>`;
-    };
+    // Classify features as key (unique to this disease) or overlapping,
+    // sort each group by tag weight descending, limit to top 10
+    results.forEach(d => {
+        let keyFeats = [];
+        let sharedFeats = [];
+        d.features.forEach(feat => {
+            if (!ddxSelectedSymptoms.includes(feat.f)) {
+                if (featureFreq[feat.f] === 1) keyFeats.push(feat);
+                else sharedFeats.push(feat);
+            }
+        });
+        const byWeightDesc = (a, b) => (TAG_WEIGHTS[b.t] || 1) - (TAG_WEIGHTS[a.t] || 1);
+        d.distinctive = keyFeats.sort(byWeightDesc).slice(0, 10).map(feat => feat.f);
+        d.shared      = sharedFeats.sort(byWeightDesc).slice(0, 10).map(feat => feat.f);
+    });
 
     let html = '';
     results.forEach(d => {
-        const matchBadge = d.totalMatches > 0 ? `<div class="ddx-score-badge">🎯 ${d.totalMatches} Matches</div>` : '';
-        html += `<div class="ddx-disease-card">
-            <div class="ddx-disease-title">${d.name} ${matchBadge}</div>
-            
-            ${d.demographics && d.demographics.length > 0 ? `<div class="ddx-feat-title">🧑‍⚕️ Demographics & Risks</div>` + formatDemographics(d, d.demographics, d.demoMatches) : ''}
-            
-            <div class="ddx-feat-title">🔑 Key Features</div>
-            ${formatCompactList(d.keyFeatures, d.keyMatches)}
-            <div class="ddx-feat-title">📋 Possible Features</div>
-            ${formatCompactList(d.possibleFeatures, d.possibleMatches)}
-            ${d.labs && d.labs.length > 0 ? `<div class="ddx-feat-title">🧪 Labs</div>` + formatCompactList(d.labs, d.labMatches) : ''}
-            ${d.radiology && d.radiology.length > 0 ? `<div class="ddx-feat-title">🩻 Radiology</div>` + formatCompactList(d.radiology, d.radMatches) : ''}
+        let distHtml   = d.distinctive.map(f => `<span class="ddx-chip-distinctive">${f}</span>`).join('');
+let matchedHtml = d.matches.map(f => `<span class="ddx-chip-shared">${f}</span>`).join('');
+
+let sharedBlock = '';
+if (d.matches.length > 0) {
+    sharedBlock = `
+    <details class="ddx-shared-details">
+        <summary>Matched Features (${d.matches.length})</summary>
+        <div class="ddx-compact-list" style="margin-top: 6px;">${matchedHtml}</div>
+    </details>`;
+}
+
+        html += `
+        <div class="ddx-disease-card">
+            <div class="ddx-disease-title">
+                ${d.name} <div class="ddx-score-badge">🎯 ${d.score} pts</div>
+            </div>
+            ${distHtml ? `<div class="ddx-feat-title" style="color:var(--primary-dark);">🔑 Key Features</div><div class="ddx-compact-list">${distHtml}</div>` : ''}
+            ${sharedBlock}
             ${d.medscapeLink ? `<div style="display: flex; justify-content: flex-end; margin-top: 12px;"><a href="${d.medscapeLink}" target="_blank" class="ddx-medscape-link" style="font-size: 0.75rem; padding: 5px 10px; margin-top: 0;">🔗 Medscape</a></div>` : ''}
         </div>`;
     });
 
     container.innerHTML = html;
 }
-
-
-
-function toggleDdxSymptom(feature) {
-    if (ddxSelectedSymptoms.includes(feature)) {
-        ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
-    } else {
-        // 1. Apply Data-Driven Exclusions (Bidirectional check)
-        const rules = DDX_DATA.rules || {};
-        
-        if (rules.excludes && rules.excludes[feature]) {
-            const toExclude = rules.excludes[feature];
-            ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => !toExclude.includes(f));
-        }
-        
-        // Check reverse exclusions
-        if (rules.excludes) {
-            Object.keys(rules.excludes).forEach(key => {
-                if (rules.excludes[key].includes(feature)) {
-                    ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== key);
-                }
-            });
-        }
-
-        // 2. Apply Data-Driven Implications (e.g., Pregnancy implies Female)
-        if (rules.implies && rules.implies[feature]) {
-            rules.implies[feature].forEach(impliedFeature => {
-                if (!ddxSelectedSymptoms.includes(impliedFeature)) {
-                    ddxSelectedSymptoms.push(impliedFeature);
-                }
-            });
-        }
-        
-        ddxSelectedSymptoms.push(feature);
-    }
-
-    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-    saveData();
-
-    const currentSearchValue = document.getElementById('ddx-symptoms-search').value;
-    if (ddxActiveSystem) {
-        renderDdxSymptomsPanel(ddxActiveSystem, currentSearchValue);
-    }
-    updateDdxResults();
-}
-
-function closeDdxSymptomsModal() {
-    const modal = document.getElementById('ddx-symptoms-modal');
-    modal.style.opacity = '0';
-    modal.style.transform = 'translate(-50%, -50%) scale(0.9)';
-    setTimeout(() => modal.style.display = 'none', 300);
-
-    const overlay = document.getElementById('ddx-sheet-overlay');
-    overlay.style.opacity = '0';
-    setTimeout(() => overlay.style.display = 'none', 300);
-
-    ddxActiveSystem = null;
-    renderDdxSystems();
-}
-
-        
-
-        
-        function renderDdxSystems() {
-            const bar = document.getElementById('ddx-systems-bar');
-            bar.innerHTML = '';
-            DDX_DATA.systems.forEach(sys => {
-                const btn = document.createElement('button');
-                btn.className = `ddx-sys-btn ${ddxActiveSystem === sys.id ? 'active' : ''}`;
-                btn.innerHTML = `${sys.icon} ${sys.name}`;
-                btn.onclick = () => toggleDdxSystem(sys.id);
-                bar.appendChild(btn);
-            });
-        }
-
-     
-
-    
-
-        function renderDdxActiveChips() {
-            const wrap = document.getElementById('ddx-active-chips-wrap');
-            const container = document.getElementById('ddx-active-chips');
-            if (ddxSelectedSymptoms.length === 0) {
-                wrap.style.display = 'none';
-                return;
-            }
-            wrap.style.display = 'flex';
-            let html = '';
-            ddxSelectedSymptoms.forEach(symp => {
-                // Notice the backticks (\`) around ${symp} inside the onclick
-                html += `<div class="ddx-active-chip">${symp} <span onclick="toggleDdxSymptom(\`${symp}\`)">✕</span></div>`;
-            });
-            container.innerHTML = html;
-        }
-
-        // New function to clear all symptoms at once
-        function clearAllDdxSymptoms() {
-            ddxSelectedSymptoms = [];
-            appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-            saveData();
-            
-            const currentSearchValue = document.getElementById('ddx-symptoms-search') ? document.getElementById('ddx-symptoms-search').value : '';
-            if (ddxActiveSystem) {
-                renderDdxSymptomsPanel(ddxActiveSystem, currentSearchValue);
-            }
-            updateDdxResults();
-        }
 
         // =============================================
         // DELETE ALL TASKS LOGIC
@@ -3614,6 +3648,24 @@ function closeDdxSymptomsModal() {
     
     // Add the class back
     toast.classList.add("show");
+}
+
+// =============================================
+// MOBILE KEYBOARD AVOIDANCE FIX
+// Guarantees the autocomplete bar sits ON TOP of the mobile keyboard
+// =============================================
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+        const ddxModal = document.getElementById('ddx-modal');
+        const autoBar = document.getElementById('ddx-autocomplete-container');
+        
+        if (ddxModal && ddxModal.style.display === 'flex') {
+            // Calculate how many pixels the keyboard took up
+            const offset = window.innerHeight - window.visualViewport.height;
+            // Push the absolute bottom bar up by that exact amount
+            autoBar.style.bottom = Math.max(0, offset) + 'px';
+        }
+    });
 }
 
 // =============================================
@@ -3952,14 +4004,7 @@ let isQuizAnswered = true;    // Tracks if a question is active or pending
             return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
         }
 
-        function getQuizAgeNum(ageCat) {
-            if (ageCat.includes("<1m")) return "1-month-old";
-            if (ageCat.includes("1m-18y")) return Math.floor(Math.random() * 17 + 1) + "yo";
-            if (ageCat.includes("18-35y")) return Math.floor(Math.random() * 17 + 18) + "yo";
-            if (ageCat.includes("36-55y")) return Math.floor(Math.random() * 19 + 36) + "yo";
-            if (ageCat.includes(">55y")) return Math.floor(Math.random() * 30 + 56) + "yo";
-            return "45yo"; 
-        }
+        
 
         function showQuizHint() {
             if (availableHints.length > 0) {
@@ -3972,7 +4017,22 @@ let isQuizAnswered = true;    // Tracks if a question is active or pending
             }
         }
 
-      function generateQuizQuestion() {
+      function getQuizAgeNum(ageFeatureStr) {
+            if (!ageFeatureStr) return "45yo";
+            const s = ageFeatureStr.toLowerCase();
+            
+            if (s.includes("< 1 month")) return Math.floor(Math.random() * 28 + 1) + "-day-old";
+            if (s.includes("1 month - 2 years")) return Math.floor(Math.random() * 23 + 1) + "-month-old";
+            if (s.includes("2 - 12 years")) return Math.floor(Math.random() * 11 + 2) + "yo";
+            if (s.includes("12 - 18 years")) return Math.floor(Math.random() * 7 + 12) + "yo";
+            if (s.includes("18 - 40 years")) return Math.floor(Math.random() * 23 + 18) + "yo";
+            if (s.includes("40 - 60 years")) return Math.floor(Math.random() * 21 + 40) + "yo";
+            if (s.includes("> 60 years")) return Math.floor(Math.random() * 25 + 61) + "yo";
+            
+            return ageFeatureStr;
+        }
+
+        function generateQuizQuestion() {
             const container = document.getElementById('quiz-content');
             container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Generating case...</div>';
             
@@ -3981,190 +4041,193 @@ let isQuizAnswered = true;    // Tracks if a question is active or pending
             const diseases = DDX_DATA.diseases;
             const targetDisease = diseases[Math.floor(Math.random() * diseases.length)];
             
-            // 1. Determine Actual Difficulty
+            // 1. Determine Actual Difficulty based on Incremental Rules
             let actualDiff = quizDifficultySetting;
             if (actualDiff === 'incremental') {
-                if (quizStreak <= 2) actualDiff = 'easy';
-                else if (quizStreak <= 5) actualDiff = 'intermediate';
+                if (quizStreak < 33) actualDiff = 'easy';
+                else if (quizStreak < 66) actualDiff = 'intermediate';
                 else actualDiff = 'hard';
             }
 
-            // 2. Demographics & Risk Factors
-            const demographics = targetDisease.demographics || [];
+            // 2. Extract feature strings by their underlying DDx tags
+            const getFeats = (tags) => targetDisease.features.filter(f => tags.includes(f.t)).map(f => f.f);
             
-            const ageCats = demographics.filter(d => DDX_DATA.symptoms.demo.age.includes(d));
-            const ageCat = ageCats.length ? ageCats[Math.floor(Math.random() * ageCats.length)] : DDX_DATA.symptoms.demo.age[2];
-            let ageStr = getQuizAgeNum(ageCat);
-            
-            let genderPool = demographics.filter(d => DDX_DATA.symptoms.demo.gender.includes(d));
-            let gender = "Patient";
-            if (genderPool.length > 0) {
-                if (targetDisease.genderBias && genderPool.includes(targetDisease.genderBias) && genderPool.length > 1) {
-                    gender = Math.random() < 0.8 ? targetDisease.genderBias : genderPool.find(g => g !== targetDisease.genderBias);
-                } else {
-                    gender = genderPool[Math.floor(Math.random() * genderPool.length)];
-                }
-            }
+            const agePool = getFeats(['age']);
+            const sexPool = getFeats(['sex']);
+            const onsetPool = getFeats(['onset']);
+            const riskPool = getFeats(['risk-factor']);
+            const keyPool = getFeats(['pathognomonic-sp']);
+            const nonSpecPool = getFeats(['nonspecific-sp']);
+            const screenLabPool = getFeats(['screening-lab']);
+            const confLabPool = getFeats(['confirmatory-lab']);
+            const screenRadPool = getFeats(['nonspecific-rad']);
+            const confRadPool = getFeats(['confirmatory-rad']);
 
-            let availableRisks = demographics.filter(d => DDX_DATA.symptoms.demo.riskFactors.includes(d));
+            // 3. Process Core Demographics
+            const ageCat = agePool.length ? agePool[Math.floor(Math.random() * agePool.length)] : null;
+            const gender = sexPool.length ? sexPool[Math.floor(Math.random() * sexPool.length)] : null;
+            const onset = onsetPool.length ? onsetPool[Math.floor(Math.random() * onsetPool.length)] : null;
+
+            // Apply Rules to filter contradictory Risk Factors
             const rules = DDX_DATA.rules || {};
-            availableRisks = availableRisks.filter(risk => {
+            let availableRisks = riskPool.filter(risk => {
                 if (rules.excludes) {
-                    if (rules.excludes[gender] && rules.excludes[gender].includes(risk)) return false;
-                    if (rules.excludes[risk] && rules.excludes[risk].includes(gender)) return false;
-                    if (rules.excludes[ageCat] && rules.excludes[ageCat].includes(risk)) return false;
-                    if (rules.excludes[risk] && rules.excludes[risk].includes(ageCat)) return false;
+                    if (gender && rules.excludes[gender] && rules.excludes[gender].includes(risk)) return false;
+                    if (gender && rules.excludes[risk] && rules.excludes[risk].includes(gender)) return false;
+                    if (ageCat && rules.excludes[ageCat] && rules.excludes[ageCat].includes(risk)) return false;
+                    if (ageCat && rules.excludes[risk] && rules.excludes[risk].includes(ageCat)) return false;
                 }
                 return true;
             });
-            const selectedRisks = getRandomQuizItems(availableRisks, 1, 2);
+            const selectedRisks = getRandomQuizItems(availableRisks, 1, 1);
 
-            let riskText = "";
-            if (selectedRisks.length > 0) {
-                let fhx = selectedRisks.filter(r => r.toLowerCase().includes("family history"));
-                let medHx = selectedRisks.filter(r => !r.toLowerCase().includes("family history"));
-                let riskParts = [];
-                if (medHx.length) riskParts.push(`a history of ${medHx.join(" and ").toLowerCase()}`);
-                if (fhx.length) riskParts.push(`a ${fhx.join(" and ").toLowerCase()}`);
-                riskText = `, with ${riskParts.join(" and ")}`;
+// 4. Extract Features Based on Difficulty Logic
+            let selectedKey = [], selectedNonSpec = [], selectedLabs = [], selectedRads = [];
+            
+            // Combine lab/rad pools so we can pick "1 lab OR 1 rad"
+            const nonSpecInvPool = [...screenLabPool, ...screenRadPool];
+            const specInvPool = [...confLabPool, ...confRadPool];
+            let tempInv = []; // Temporary holding array for selected investigations
+            
+            if (actualDiff === 'easy') {
+                selectedKey = getRandomQuizItems(keyPool, 1, 3);
+                selectedNonSpec = getRandomQuizItems(nonSpecPool, 1, 2);
+                tempInv.push(...getRandomQuizItems(nonSpecInvPool, 1, 1));
+                tempInv.push(...getRandomQuizItems(specInvPool, 1, 1));
+            } else if (actualDiff === 'intermediate') {
+                selectedKey = getRandomQuizItems(keyPool, 1, 2);
+                selectedNonSpec = getRandomQuizItems(nonSpecPool, 2, 3);
+                tempInv.push(...getRandomQuizItems(nonSpecInvPool, 1, 1));
+            } else {
+                // Hard
+                selectedKey = getRandomQuizItems(keyPool, 1, 1);
+                selectedNonSpec = getRandomQuizItems(nonSpecPool, 3, 4);
+                tempInv.push(...getRandomQuizItems(screenLabPool, 1, 1)); // Exclusively non-spec LAB
             }
 
-            // 3. Onset & Presentation
-            let onsets = demographics.filter(d => DDX_DATA.symptoms.demo.onset.includes(d));
-            let onset = "acute";
-            if (onsets.length > 0) {
-                if (targetDisease.onsetBias && onsets.includes(targetDisease.onsetBias) && onsets.length > 1) {
-                    onset = Math.random() < 0.8 ? targetDisease.onsetBias : onsets.find(o => o !== targetDisease.onsetBias);
-                } else {
-                    onset = onsets[Math.floor(Math.random() * onsets.length)];
-                }
-            }
+            // Distribute the chosen investigations back into Labs and Rads for the sentence builder
+            tempInv.forEach(inv => {
+                if (screenLabPool.includes(inv) || confLabPool.includes(inv)) selectedLabs.push(inv);
+                else selectedRads.push(inv);
+            });
 
-            const vitals = demographics.filter(d => DDX_DATA.symptoms.demo.vitals.includes(d));
-            const selectedVitals = getRandomQuizItems(vitals, 1, 2);
-            
-            const targetKeyFeats = targetDisease.keyFeatures || [];
-            let selectedKeyFeats = getRandomQuizItems(targetKeyFeats, 1, 2);
-            
-            const targetPossFeats = targetDisease.possibleFeatures || [];
-            let possFeats = getRandomQuizItems(targetPossFeats, 1, 3);
+            // Gather all actual utilized properties for the scoring engine
+            let allSelectedFeatures = [
+                ageCat, gender, onset, ...selectedRisks, 
+                ...selectedKey, ...selectedNonSpec, ...selectedLabs, ...selectedRads
+            ].filter(Boolean); // Filters out any null/undefined/empty strings
 
-            // 4. Initial Labs/Rads
-            let confirmatoryChance = (actualDiff === 'easy') ? 1.0 : (actualDiff === 'intermediate' ? 0.5 : 0.0);
-            let includeConfirmatory = Math.random() < confirmatoryChance;
-
-            let labPool = (targetDisease.labs && targetDisease.labs.screening) ? targetDisease.labs.screening : [];
-            let radPool = (targetDisease.radiology && targetDisease.radiology.screening) ? targetDisease.radiology.screening : [];
-            
-            if (includeConfirmatory) {
-                if (targetDisease.labs && targetDisease.labs.confirmatory) labPool = labPool.concat(getRandomQuizItems(targetDisease.labs.confirmatory, 1, 1));
-                if (targetDisease.radiology && targetDisease.radiology.confirmatory) radPool = radPool.concat(getRandomQuizItems(targetDisease.radiology.confirmatory, 1, 1));
-            }
-            
-            let selectedLabs = getRandomQuizItems(labPool, 1, 2);
-            let selectedRads = getRandomQuizItems(radPool, 1, 2);
-
-// 5. EXACT DDx Scoring Engine for Validation
+            // 5. Score Vignette using the universal engine
             const scoreVignette = (features) => {
-                // Determine active systems for Quiz Distractor Validation
-                const activeSystems = new Set();
-                diseases.forEach(d => {
-                    if (d.system && d.keyFeatures && d.keyFeatures.some(kf => features.includes(kf))) {
-                        activeSystems.add(d.system);
-                    }
-                });
-
-                return diseases.map(d => {
-                    let score = 0;
-                    if (d.keyFeatures) score += d.keyFeatures.filter(f => features.includes(f)).length * 5.0;
-                    if (d.possibleFeatures) score += d.possibleFeatures.filter(f => features.includes(f)).length * 2.0;
-                    if (d.labs && d.labs.screening) score += d.labs.screening.filter(f => features.includes(f)).length * 1.5;
-                    if (d.labs && d.labs.confirmatory) score += d.labs.confirmatory.filter(f => features.includes(f)).length * 10.0;
-                    if (d.radiology && d.radiology.screening) score += d.radiology.screening.filter(f => features.includes(f)).length * 1.5;
-                    if (d.radiology && d.radiology.confirmatory) score += d.radiology.confirmatory.filter(f => features.includes(f)).length * 10.0;
-                    
-                    let demoMatches = (d.demographics || []).filter(f => features.includes(f));
-                    demoMatches.forEach(match => {
-                        if (match === d.genderBias || match === d.onsetBias || match === d.ageBias) score += 1.0;
-                        else score += 0.5;
-                    });
-                    
-                    if (d.system && activeSystems.has(d.system)) {
-                        score *= 1.5;
-                    }
-
-if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
-                        features.forEach(symp => {
-                            if (DDX_DATA.rules.excludes[symp] && DDX_DATA.rules.excludes[symp].includes(d.name)) {
-                                score -= 100;
-                            }
-                        });
-                    }
-                    return { ...d, score };
-                }).sort((a, b) => b.score - a.score);
+                return calculateDiseaseScores(features).sort((a, b) => b.score - a.score);
             };
 
-            // 6. Validating and "Pumping" Target Disease until it's Rank #1
-            let allSelectedFeatures = [ageCat, gender, onset, ...selectedRisks, ...selectedVitals, ...selectedKeyFeats, ...possFeats, ...selectedLabs, ...selectedRads];
-            currentQuizFeatures = [...allSelectedFeatures]; // Save exact features globally for DDx Review
-            isQuizAnswered = false; // Mark question as actively pending
-            let scoredDiseases = scoreVignette(allSelectedFeatures);
+            currentQuizFeatures = [...allSelectedFeatures];
+            isQuizAnswered = false; 
 
+            let scoredDiseases = scoreVignette(allSelectedFeatures);
+            let targetScoreObj = scoredDiseases.find(d => d.name === targetDisease.name);
+            
+            // Validate: if target isn't #1, inject key characteristics to fix it
             let loopProtect = 0;
             while (scoredDiseases[0].name !== targetDisease.name && loopProtect < 5) {
-                let added = false;
+                let missingKey = keyPool.filter(f => !allSelectedFeatures.includes(f));
+                let missingSpecLab = confLabPool.filter(f => !allSelectedFeatures.includes(f));
                 
-                // Try adding a missing Confirmatory test first
-                if (targetDisease.labs && targetDisease.labs.confirmatory) {
-                    let missing = targetDisease.labs.confirmatory.filter(f => !allSelectedFeatures.includes(f));
-                    if (missing.length > 0) { selectedLabs.push(missing[0]); allSelectedFeatures.push(missing[0]); added = true; }
+                if (missingSpecLab.length > 0) {
+                    allSelectedFeatures.push(missingSpecLab[0]);
+                    selectedLabs.push(missingSpecLab[0]);
+                } else if (missingKey.length > 0) {
+                    allSelectedFeatures.push(missingKey[0]);
+                    selectedKey.push(missingKey[0]);
+                } else {
+                    break;
                 }
-                if (!added && targetDisease.radiology && targetDisease.radiology.confirmatory) {
-                    let missing = targetDisease.radiology.confirmatory.filter(f => !allSelectedFeatures.includes(f));
-                    if (missing.length > 0) { selectedRads.push(missing[0]); allSelectedFeatures.push(missing[0]); added = true; }
-                }
-                // Try adding a missing Key Feature
-                if (!added && targetDisease.keyFeatures) {
-                    let missing = targetDisease.keyFeatures.filter(f => !allSelectedFeatures.includes(f));
-                    if (missing.length > 0) { selectedKeyFeats.push(missing[0]); allSelectedFeatures.push(missing[0]); added = true; }
-                }
-
-                if (!added) break; // Cannot add anything else
                 scoredDiseases = scoreVignette(allSelectedFeatures);
+                targetScoreObj = scoredDiseases.find(d => d.name === targetDisease.name);
                 loopProtect++;
             }
 
-            // 7. Pick Distractors safely (Target is now index 0)
-            let distractorsOnly = scoredDiseases.filter(d => d.name !== targetDisease.name);
+            let targetScore = targetScoreObj ? targetScoreObj.score : 0;
+            let distractorsOnly = scoredDiseases.filter(d => d.name !== targetDisease.name && d.score >= 0);
+
+            // 6. Select Distractors via Point Differentials
             let distractorPool = [];
-            if (actualDiff === 'hard') {
-                distractorPool = distractorsOnly.slice(0, 3);
-            } else if (actualDiff === 'intermediate') {
-                distractorPool = distractorsOnly.slice(3, 7);
-            } else { 
-                distractorPool = distractorsOnly.slice(7, 12);
+            let gapOffset = 0; 
+            
+            while (distractorPool.length < 3 && gapOffset <= targetScore) {
+                if (actualDiff === 'easy') {
+                    // Starts at 3+ points below target
+                    distractorPool = distractorsOnly.filter(d => d.score <= (targetScore - 3) + gapOffset);
+                } else if (actualDiff === 'intermediate') {
+                    // Starts exactly 1-3 points below target
+                    distractorPool = distractorsOnly.filter(d => d.score >= (targetScore - 3 - gapOffset) && d.score <= (targetScore - 1 + gapOffset));
+                } else {
+                    // Starts at exact same score (0 difference)
+                    distractorPool = distractorsOnly.filter(d => d.score >= (targetScore - gapOffset) && d.score <= (targetScore + gapOffset));
+                }
+                
+                if (distractorPool.length >= 3) break;
+                gapOffset++; // Decrease the point range strictness incrementally by 1
             }
 
-            if (distractorPool.length < 3) distractorPool = distractorsOnly.slice(-3);
-            let chosenDistractors = distractorPool.sort(() => 0.5 - Math.random()).slice(0, 3);
+            // Fallback protection if pool remains too small
+            if (distractorPool.length < 3) distractorPool = distractorsOnly.slice(0, 3);
+            let chosenDistractors = getRandomQuizItems(distractorPool, 3, 3);
 
-            // 8. Populate Hints
+            // 7. Extract Hints
             availableHints = [];
-            targetKeyFeats.forEach(f => { if(!selectedKeyFeats.includes(f)) availableHints.push(f); });
-            if (targetDisease.labs && targetDisease.labs.confirmatory) {
-                targetDisease.labs.confirmatory.forEach(f => { if(!selectedLabs.includes(f)) availableHints.push(f + " (Lab)"); });
+            let missingKeys = keyPool.filter(f => !selectedKey.includes(f));
+            let missingSpecLabs = confLabPool.filter(f => !selectedLabs.includes(f));
+            let missingSpecRads = confRadPool.filter(f => !selectedRads.includes(f));
+            
+            if (actualDiff === 'easy') {
+                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
+                if (missingSpecLabs.length > 0) availableHints.push(missingSpecLabs[0] + " (Lab test)");
+                if (missingSpecRads.length > 0) availableHints.push(missingSpecRads[0] + " (Imaging)");
+            } else if (actualDiff === 'intermediate') {
+                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
+                if (missingSpecLabs.length > 0) availableHints.push(missingSpecLabs[0] + " (Lab test)");
+            } else {
+                // Hard: Only key features allowed as hints
+                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
             }
-            if (targetDisease.radiology && targetDisease.radiology.confirmatory) {
-                targetDisease.radiology.confirmatory.forEach(f => { if(!selectedRads.includes(f)) availableHints.push(f + " (Radiology)"); });
-            }
+            
+            // Randomize the hints and the hint button will pop them out 1 by 1
             availableHints = availableHints.sort(() => 0.5 - Math.random());
 
-            // 9. Build Final Text
-            let caseText = `A ${ageStr} ${gender.toLowerCase()}${riskText}, presents complaining of a ${onset.toLowerCase()} onset of ${selectedKeyFeats.join(" and ").toLowerCase()}. `;
-            if (possFeats.length) caseText += `The patient also reports ${possFeats.join(", ").toLowerCase()}. `;
-            if (selectedVitals.length) caseText += `Vitals reveal ${selectedVitals.join(" and ").toLowerCase()}. `;
-            if (selectedLabs.length) caseText += `Lab analysis showed ${selectedLabs.join(" and ").toLowerCase()}. `;
-            if (selectedRads.length) caseText += `Radiology showed ${selectedRads.join(" and ").toLowerCase()}. `;
+// 8. Build Sentences
+            // Generates a specific age like "7yo" or "14-month-old" instead of "2 - 12 years"
+            let ageStr = ageCat ? getQuizAgeNum(ageCat) : "45yo"; 
+            let genderStr = gender ? gender.toLowerCase() : "";
+            
+            let subject = `A ${ageStr}`;
+            if (genderStr) subject += ` ${genderStr}`;
+            subject += ` patient`;
+            
+            // Smart formatter: "A, B, and C" instead of "A and B and C"
+            const formatList = (arr) => {
+                if (!arr || arr.length === 0) return "";
+                if (arr.length === 1) return arr[0];
+                if (arr.length === 2) return arr.join(" and ");
+                return arr.slice(0, -1).join(", ") + ", and " + arr[arr.length - 1];
+            };
+
+            if (selectedRisks.length > 0) {
+                subject += ` with ${formatList(selectedRisks)}`;
+            }
+            
+            let onsetStr = onset ? `${onset} ` : "";
+            let presentFeats = [...selectedKey, ...selectedNonSpec];
+            
+            let caseText = `${subject}, complains of ${onsetStr}${formatList(presentFeats)}. `;
+            
+            // Combine Labs and Radiology into a single array for a unified sentence
+            let investigations = [...selectedLabs, ...selectedRads];
+            if (investigations.length > 0) {
+                caseText += `Investigations revealed ${formatList(investigations)}. `;
+            }
+            
             caseText += `<div id="quiz-hint-box" style="margin-bottom: 15px;"></div>`;
             caseText += `<b style="color: var(--primary-dark); font-size: 1.05rem;">What is the most probable diagnosis?</b>`;
 
@@ -4175,7 +4238,7 @@ if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
 
             currentQuizCorrectIndex = options.findIndex(o => o.isCorrect);
 
-            // 10. Render UI
+            // 9. Output Layout
             let badgeText = actualDiff === 'intermediate' ? 'Intermediate' : actualDiff;
             let headerHtml = `
                 <div class="quiz-q-header">
@@ -4195,6 +4258,7 @@ if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
 
             container.innerHTML = html;
         }
+
 
         function handleQuizAnswer(selectedIndex, isCorrect) {
     isQuizAnswered = true; // Mark question as answered
