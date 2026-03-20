@@ -1162,16 +1162,35 @@ html.modal-open, body.modal-open {
             </div>
         </div>
 
-        <!-- Fixed Footer -->
-        <div style="padding: 16px 20px; border-top: 1px solid var(--divider); background: var(--surface); text-align: center;">
-            <div style="font-size: 0.95rem; font-weight: 800; color: var(--primary); margin-bottom: 12px;">
-                Socials aren't available yet, stay tuned! 🚀
+<!-- Fixed Footer -->
+        <div style="padding: 16px 20px; border-top: 1px solid var(--divider); background: var(--surface);">
+            <div style="display: flex; gap: 12px; width: 100%;">
+                <button class="btn-secondary" onclick="window.open('https://forms.gle/ez93AuzHrN26Etk26', '_blank')" style="flex: 1; font-size: 0.95rem; padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px;">💬 Feedback</button>
+                <button class="btn-main" onclick="openSupportModal()" style="flex: 1; font-size: 0.95rem; padding: 12px; margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px;">☕ Support Us</button>
             </div>
-            
         </div>
     </div>
 </div>
 
+<!-- Support Us Modal -->
+    <div class="center-modal" id="support-modal" style="width: 90%; max-width: 350px; text-align: center; flex-direction: column; align-items: center;">
+        <h2 style="color: var(--primary); margin-bottom: 10px; width: 100%;">☕ Support MiriMate</h2>
+        
+        <p style="font-size: 0.95rem; color: var(--text-main); margin-bottom: 15px; line-height: 1.5; font-weight: 500;">
+            Thank you for using MiriMate! Your support helps keep the app ad-free and continuously improving. ❤️
+        </p>
+        
+        <!-- White background to ensure QR code is scannable even in Dark Mode -->
+        <div style="background: white; padding: 12px; border-radius: 16px; display: flex; justify-content: center; align-items: center; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <img src="insta.png" alt="InstaPay QR Code" style="width: 200px; height: 200px; display: block; border-radius: 8px;">
+        </div>
+        
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">
+            📸 Scan the QR code above using your banking app or InstaPay to send your support.
+        </p>
+        
+        <button class="btn-secondary" onclick="closeModals()" style="width: 100%; margin: 0;">Close</button>
+    </div>
 
 <!-- First Time Tutorial Overlay -->
     <div id="tutorial-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; pointer-events:auto; overflow:hidden;">
@@ -2575,6 +2594,23 @@ function checkNewsBadge() {
             setTimeout(() => { 
                 modal.style.opacity = '1'; 
                 modal.style.transform = 'translate(-50%, -50%) scale(1)'; 
+            }, 10);
+        }
+
+function openSupportModal() {
+            // Instantly hide the About Modal WITHOUT triggering the global fade-out timers
+            const aboutModal = document.getElementById('about-modal');
+            if (aboutModal) {
+                aboutModal.style.opacity = '0';
+                aboutModal.style.display = 'none';
+            }
+            
+            // The dark overlay is already active, so just show the new Support Modal
+            const supportModal = document.getElementById('support-modal'); 
+            supportModal.style.display = 'flex'; // Uses flex for perfect centering
+            setTimeout(() => { 
+                supportModal.style.opacity = '1'; 
+                supportModal.style.transform = 'translate(-50%, -50%) scale(1)'; 
             }, 10);
         }
 
