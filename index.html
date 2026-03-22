@@ -667,10 +667,12 @@ html.modal-open, body.modal-open {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); z-index: 2000; flex-direction: column;
         }
-        .quiz-content { padding: 12px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
-        .quiz-question { font-size: 0.95rem; line-height: 1.5; color: var(--text-main); font-weight: 600; background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--divider); flex-grow: 1; overflow-y: auto; margin-bottom: 0; }
-        
-        .quiz-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
+.quiz-content { padding: 0; overflow: hidden; display: flex; flex-direction: column; flex-grow: 1; }
+        .quiz-scroll-area { flex-grow: 1; overflow-y: auto; padding: 14px 14px 0 14px; -webkit-overflow-scrolling: touch; }
+        .quiz-vignette-card { background: var(--surface); border: 1px solid var(--divider); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .quiz-question { font-size: 1.05rem; line-height: 1.65; color: var(--text-main); font-weight: 500; }
+        .quiz-fixed-bottom { flex-shrink: 0; padding: 10px 14px 14px 14px; background: var(--bg); border-top: 1px solid var(--divider); display: flex; flex-direction: column; gap: 10px; }
+        .quiz-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .quiz-option { background: var(--surface); border: 2px solid var(--divider); padding: 12px 10px; border-radius: 12px; font-size: 0.95rem; font-weight: 700; color: var(--text-main); cursor: pointer; text-align: center; line-height: 1.3; min-height: 70px; display: flex; align-items: center; justify-content: center; transition: 0.2s; position: relative; z-index: 1;}
         .quiz-option:active:not(:disabled) { transform: scale(0.95); }
         .quiz-option:disabled { cursor: default; }
@@ -3473,7 +3475,7 @@ async function fetchGroqAI(prompt, systemInstruction = "You are an expert medica
 }
 
 // =============================================
-// AI DDx GENERATOR (COLLAPSIBLE & STRUCTURED)
+// AI DDx GENERATOR (SORTED & COMPREHENSIVE)
 // =============================================
 async function generateAIDDx() {
     const input = document.getElementById('ddx-input').value.trim();
@@ -3484,13 +3486,14 @@ async function generateAIDDx() {
 
     const prompt = `
     Based on this clinical presentation: "${input}"
-    Act as a Senior Attending Physician guiding a medical intern. Provide a differential diagnosis of the top 3 to 4 most likely conditions, PLUS at least 1 "rule-out" life-threatening condition.
+    Act as a Master Diagnostician and Senior Attending Physician. Provide a COMPREHENSIVE differential diagnosis covering the 5 to 6 most likely conditions, PLUS at least 1 critical "can't-miss" life-threatening condition (if not already included).
     
     CRITICAL INSTRUCTIONS:
-    1. Keep all text ULTRA-CONCISE. Avoid long paragraphs.
-    2. Provide "clinical_reasoning": 1-2 short sentences explaining exactly WHY you suspect this.
-    3. "distinctive_features": Array of 2-4 brief bullet points highlighting classic signs/symptoms.
-    4. "next_steps_to_differentiate": Array of 1-3 specific tests, labs, imaging, or exam maneuvers to confirm/rule out this diagnosis.
+    1. ORDER MATTERS: You MUST sort the "diagnoses" array STRICTLY from MOST probable (highest likelihood) to LEAST probable. The most likely diagnosis MUST be first.
+    2. Keep all text ULTRA-CONCISE. Avoid long paragraphs.
+    3. Provide "clinical_reasoning": 1-2 short sentences explaining exactly WHY you suspect this over other conditions.
+    4. "distinctive_features": Array of 2-4 brief bullet points highlighting classic signs/symptoms.
+    5. "next_steps_to_differentiate": Array of 1-3 specific tests, labs, imaging, or exam maneuvers to confirm/rule out this diagnosis.
     
     You MUST output valid JSON strictly in this format:
     {
@@ -3532,7 +3535,7 @@ async function generateAIDDx() {
             featuresHtml = `
             <details style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.5); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
                 <summary style="font-size: 0.8rem; font-weight: 800; color: #b45309; text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🔑 Key Features
+                    🔑 Keywords
                 </summary>
                 <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
                     ${list}
@@ -3547,7 +3550,7 @@ async function generateAIDDx() {
             nextStepsHtml = `
             <details style="background: var(--bg); border: 1px solid var(--divider); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
                 <summary style="font-size: 0.8rem; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🔬 Workup & Next Steps
+                    🔬 Workup
                 </summary>
                 <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
                     ${list}
@@ -3562,7 +3565,7 @@ async function generateAIDDx() {
             redFlagsHtml = `
             <details style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.5); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
                 <summary style="font-size: 0.8rem; font-weight: 800; color: #dc2626; text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🚨 Emergency Red Flags
+                    🚨 Red Flags
                 </summary>
                 <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
                     ${list}
@@ -3609,7 +3612,6 @@ async function generateAIDDx() {
 
     container.innerHTML = html;
 }
-
 // =============================================
 // AI QUIZ GENERATOR
 // =============================================
@@ -3641,8 +3643,9 @@ const QUIZ_DISEASE_POOL = [
     "Myasthenia Gravis", "Acute Kidney Injury (Pre-renal)"
 ];
 
-let currentQuizExplanation = "";
-let quizDifficultySetting = 'incremental';
+let currentQuizExplanation = ""; 
+let currentQuizHint = "";
+let quizDifficultySetting = localStorage.getItem('mirimate_quiz_difficulty') || 'incremental';
 let quizStreak = 0;
 let currentQuizCorrectIndex = -1;
 let availableHints = [];
@@ -3675,7 +3678,8 @@ function triggerEncouragement(streak) {
 
 function changeQuizDifficulty(val) {
     quizDifficultySetting = val;
-    quizStreak = 0; 
+    localStorage.setItem('mirimate_quiz_difficulty', val);
+    quizStreak = 0;
     appData.quizStreak = 0;
     saveData();
     generateQuizQuestion();
@@ -3751,7 +3755,6 @@ async function generateQuizQuestion() {
         diffInstructions = "Make it very difficult (Board-exam level). Exclude obvious buzzwords. The presentation should rely on subtle lab values, nuanced physical exam findings, or tricky risk factors. Distractors must be highly plausible alternative diagnoses that require careful differentiation.";
     }
 
-    // UPDATED PROMPT: Better hints and requesting an explanation
     const prompt = `
     Create a multiple-choice clinical vignette where the CORRECT diagnosis is exactly: "${targetDisease}".
     Difficulty: ${actualDiff.toUpperCase()}. ${diffInstructions}
@@ -3770,6 +3773,8 @@ async function generateQuizQuestion() {
 
     const result = await fetchGroqAI(prompt, "You are an expert medical educator creating board-style questions.");
 
+    // ... existing generator code above ...
+
     if (!result || !result.correct_disease_name || !result.options || typeof result.correct_index === 'undefined') {
         container.innerHTML = `
             <div style="text-align:center; padding: 40px;">
@@ -3779,36 +3784,54 @@ async function generateQuizQuestion() {
         return;
     }
 
+    // Save state (Updated to keep hint as a permanent string)
     currentQuizCorrectIndex = result.correct_index;
-    availableHints = [result.hint];
-    currentQuizExplanation = result.explanation; // Save the explanation
+    currentQuizHint = result.hint; 
+    currentQuizExplanation = result.explanation;
     isQuizAnswered = false;
 
-    let badgeText = actualDiff === 'intermediate' ? 'Intermediate' : actualDiff;
-    let headerHtml = `
-        <div class="quiz-q-header">
-            <div class="quiz-diff-badge ${actualDiff}">${badgeText}</div>
-            <button class="quiz-hint-btn" id="quiz-action-btn" onclick="showQuizHint()">💡 Hint</button>
-        </div>
-    `;
+let badgeText = actualDiff === 'intermediate' ? 'Intermediate' : actualDiff;
 
-    let html = `
-        <div class="quiz-question">${headerHtml}${result.vignette}
-        <div id="quiz-hint-box" style="margin-top: 15px;"></div>
-        <br><b style="color: var(--primary-dark); font-size: 1.05rem;">What is the most probable diagnosis?</b>
-        </div>
-        <div class="quiz-options-grid">
-    `;
-
+    let optionsHtml = '';
     result.options.forEach((opt, index) => {
-        html += `<button class="quiz-option" id="quiz-opt-${index}" onclick="handleQuizAnswer(${index}, ${index === result.correct_index})">${opt}</button>`;
+        optionsHtml += `<button class="quiz-option" id="quiz-opt-${index}" onclick="handleQuizAnswer(${index}, ${index === result.correct_index})">${opt}</button>`;
     });
-    
-    html += `</div><div class="quiz-footer" style="min-height: 50px;">
-                <button class="btn-main" id="quiz-next-btn" style="display: none; width: 100%; margin: 0; font-size: 1.15rem;" onclick="generateQuizQuestion()">Next Question ➔</button>
-             </div>`;
+
+    const html = `
+        <div class="quiz-scroll-area">
+            <div class="quiz-vignette-card">
+                <div class="quiz-q-header">
+                    <div class="quiz-diff-badge ${actualDiff}">${badgeText}</div>
+                    <button class="quiz-hint-btn" id="quiz-action-btn" onclick="showQuizHint()">💡 Hint</button>
+                </div>
+                <p class="quiz-question">${result.vignette}</p>
+            </div>
+        </div>
+        <div class="quiz-fixed-bottom">
+            <div class="quiz-options-grid">${optionsHtml}</div>
+            <button class="btn-main" id="quiz-next-btn" style="display:none; width:100%; margin:0; font-size:1.15rem;" onclick="generateQuizQuestion()">Next Question ➔</button>
+        </div>
+    `;
 
     container.innerHTML = html;
+} 
+
+function showQuizHint() {
+    if (currentQuizHint) {
+        showQuizFloatingModal('Clinical Hint', currentQuizHint, 'hint');
+        
+        // Update text but DO NOT disable the button
+        document.getElementById('quiz-action-btn').innerText = "💡 View Hint";
+    }
+}
+
+function showQuizExplanation() {
+    if (currentQuizExplanation) {
+        showQuizFloatingModal('Why is this correct?', currentQuizExplanation, 'explanation');
+        
+        // Update text but DO NOT disable the button
+        document.getElementById('quiz-action-btn').innerText = "📖 View Explanation";
+    }
 }
 
 function handleQuizAnswer(selectedIndex, isCorrect) {
@@ -3849,64 +3872,59 @@ function handleQuizAnswer(selectedIndex, isCorrect) {
     const actionBtn = document.getElementById('quiz-action-btn');
     if (actionBtn) {
         actionBtn.innerText = "📖 Explanation";
-        actionBtn.disabled = false; // Re-enable if it was disabled
-        actionBtn.onclick = showQuizExplanation; // Map to the new function
+        actionBtn.disabled = false; // Forces it to be enabled in case it got stuck
+        actionBtn.onclick = showQuizExplanation; 
     }
     
     document.getElementById('quiz-next-btn').style.display = 'block';
 }
 
-function showQuizHint() {
-    if (availableHints.length > 0) {
-        const hint = availableHints.pop();
-        document.getElementById('quiz-hint-box').innerHTML = `<div style="color:var(--primary-dark); font-weight:700; background: var(--vital-bg); padding: 12px; border-radius: 12px; border: 1px dashed var(--primary); font-size: 0.9rem; line-height: 1.4;">💡 <b>Hint:</b> ${hint}</div>`;
-        document.getElementById('quiz-action-btn').disabled = true;
-        document.getElementById('quiz-action-btn').innerText = "Hint Revealed";
-    }
-}
 
-function showQuizExplanation() {
-    // Reveal the AI's explanation inside the hint box
-    document.getElementById('quiz-hint-box').innerHTML = `
-        <div style="background: var(--surface); color: var(--text-main); padding: 14px; border-radius: 12px; border: 1px solid var(--primary); margin-top: 10px; font-size: 0.95rem; line-height: 1.5; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-            <b style="color: var(--primary-dark); font-size: 1.05rem;">📖 Why?</b><br>
-            ${currentQuizExplanation}
-        </div>`;
+// Creates a pop-up overlay for the Quiz Hints & Explanations
+function showQuizFloatingModal(title, text, type) {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0'; 
+    overlay.style.left = '0';
+    overlay.style.width = '100%'; 
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(0,0,0,0.5)';
+    overlay.style.backdropFilter = 'blur(2px)';
+    overlay.style.zIndex = '3000'; // Make sure it's above everything
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.2s ease-out';
     
-    const actionBtn = document.getElementById('quiz-action-btn');
-    actionBtn.disabled = true;
-    actionBtn.innerText = "Explanation Revealed";
-}
-
-// NOTE: You can safely delete the old `openDDxFromQuiz()` function as it is no longer used!
-
-function showQuizHint() {
-    if (availableHints.length > 0) {
-        const hint = availableHints.pop();
-        document.getElementById('quiz-hint-box').innerHTML = `<div style="color:var(--primary-dark); font-weight:700; background: var(--vital-bg); padding: 12px; border-radius: 12px; border: 1px dashed var(--primary);">💡 Hint: ${hint}</div>`;
-        document.getElementById('quiz-action-btn').disabled = true;
-        document.getElementById('quiz-action-btn').innerText = "Hint Revealed";
-    }
-}
-
-// Triggered by the "See DDx" button after answering
-function openDDxFromQuiz() {
-    document.getElementById('quiz-modal').style.display = 'none';
+    // Theme colors based on Hint vs Explanation
+    const boxColor = type === 'hint' ? 'var(--vital-bg)' : 'var(--surface)';
+    const borderColor = type === 'hint' ? 'var(--primary)' : 'var(--primary-dark)';
+    const titleColor = type === 'hint' ? 'var(--primary-dark)' : 'var(--text-main)';
+    const icon = type === 'hint' ? '💡' : '📖';
     
-    // Open DDx UI
-    const ddxModal = document.getElementById('ddx-modal');
-    ddxModal.style.display = 'flex';
-    document.getElementById('ddx-api-setup').style.display = 'none';
-    document.getElementById('ddx-main-interface').style.display = 'flex';
-
-    // Ensure the input container is visible so it can be edited if needed
-    document.getElementById('ddx-input-container').style.display = 'block';
-    document.getElementById('ddx-edit-bar').style.display = 'none';
-
-    // Paste the vignette and trigger analysis
-    document.getElementById('ddx-input').value = currentVignetteText;
-    generateAIDDx(); 
+    overlay.innerHTML = `
+        <div style="background: ${boxColor}; width: 85%; max-width: 380px; padding: 24px; border-radius: 20px; border: 2px solid ${borderColor}; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(20px) scale(0.95); transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <h3 style="margin-top: 0; color: ${titleColor}; font-size: 1.25rem; display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                ${icon} ${title}
+            </h3>
+            <div style="font-size: 0.95rem; line-height: 1.5; color: var(--text-main); margin-bottom: 24px;">
+                ${text}
+            </div>
+            <button class="btn-main" style="width: 100%; margin: 0; font-size: 1.05rem;" onclick="this.closest('div[style*=\\'position: fixed\\']').style.opacity = '0'; setTimeout(() => this.closest('div[style*=\\'position: fixed\\']').remove(), 200);">Got it</button>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Trigger animations
+    setTimeout(() => {
+        overlay.style.opacity = '1';
+        overlay.children[0].style.transform = 'translateY(0) scale(1)';
+    }, 10);
 }
+
+
 
 function playQuizAudio(isCorrect, isMilestone = false) {
     if (!audioCtx) initAudio(); if (!audioCtx) return;
