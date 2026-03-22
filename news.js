@@ -12,7 +12,7 @@ const NEWS_HTML = `
             <li><strong>Your Key, Your Privacy:</strong> All AI features run through your own <strong>Groq API key</strong> — free to get, and your data never passes through our servers.</li>
         </ul>
         <div style="font-size: 0.9rem; background: var(--bg); padding: 10px; border-radius: 10px; border: 1px dashed var(--primary); text-align: center; color: var(--primary-dark); font-weight: 600;">
-            🔑 Add your free Groq API key in <strong>Settings ⚙️</strong> to activate DDx & Quiz features.
+            🔑 Add your free Groq API key to activate DDx & Quiz features.
         </div>
     </div>
 </div>
