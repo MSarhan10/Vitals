@@ -1116,6 +1116,24 @@ html.modal-open, body.modal-open {
         </div>
     </div>
 
+<!-- API Key Instructions Modal -->
+    <div class="center-modal" id="api-instructions-modal">
+        <h2 style="color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 8px;">🔑 API Key Guide</h2>
+        
+        <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); margin-bottom: 20px; background: var(--bg); padding: 16px; border-radius: 12px; border: 1px solid var(--divider);">
+            <div style="margin-bottom: 12px;"><b>1️⃣</b> Tap the button below to go to the Groq Console.</div>
+            <div style="margin-bottom: 12px;"><b>2️⃣</b> Log in securely with your <b>Google account</b>.</div>
+            <div style="margin-bottom: 12px;"><b>3️⃣</b> Tap <b>"Create API Key"</b>.</div>
+            <div style="margin-bottom: 12px;"><b>4️⃣</b> <b>Copy the key</b> and save it somewhere safe so you don't lose it.</div>
+            <div><b>5️⃣</b> Come back here and paste it into the app!</div>
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn-main" onclick="window.open('https://console.groq.com/keys', '_blank')" style="display: flex; align-items: center; justify-content: center; gap: 8px;">🔗 Get API Key</button>
+            <button class="btn-secondary" onclick="closeApiInstructionsModal()">Got it!</button>
+        </div>
+    </div>
+
 <!-- News & Updates Full-Screen Modal -->
     <div id="news-modal">
         <div class="lab-header">
@@ -1231,71 +1249,57 @@ html.modal-open, body.modal-open {
         <div class="lab-scroll" id="lab-values-content"></div>
     </div>
 
-<!-- DDx Full-Screen Modal -->
+<!-- AI DDx Full-Screen Modal -->
 <div id="ddx-modal">
     <div class="lab-header">
         <button class="lab-header-close" onclick="closeDDx()">✕</button>
-        <span style="font-weight:700; font-size:1.1rem;">🧠 DDx Search</span>
-        <button class="lab-header-close" onclick="clearAllDdxSymptoms()" title="Reset All" style="font-size: 1.1rem;">↺</button>
+        <span style="font-weight:700; font-size:1.1rem;">🧠 AI DDx Search</span>
+        <button class="lab-header-close" onclick="promptResetApiKey()" title="Reset API Key" style="font-size: 1.1rem;">↺</button>
     </div>
     
-<!-- Top Fixed Area: Contains Dropdowns, Toggle & Search -->
-    <div class="ddx-top-header">
-        <div class="ddx-toggle-wrapper" style="display: flex; justify-content: space-between; padding: 10px 16px 5px 16px; gap: 8px; align-items: center; border-bottom: none;">
+<!-- STATE 1: API Key Required -->
+        <div id="ddx-api-setup" style="display: none; padding: 30px 20px; text-align: center; flex-grow: 1; background: var(--bg);">
+            <div style="font-size: 3.5rem; margin-bottom: 15px;">🔑</div>
+            <h3 style="color: var(--primary-dark); margin-bottom: 10px; font-size: 1.4rem;">API Key Required</h3>
+            <p style="color: var(--text-muted); margin-bottom: 25px; line-height: 1.5; font-size: 1.05rem;">
+                You need a free Groq API key to power the AI DDx and Quiz features. This keeps the app completely free and offline-first!
+            </p>
             
-            <!-- Context Dropdowns -->
-            <div style="display: flex; gap: 6px; flex-grow: 1;">
-                <select id="ddx-age-select" onchange="handleDdxDropdownChange('age', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
-                    <option value="">Age</option>
-                    <option value="< 1 month">< 1 month</option>
-                    <option value="1 month - 2 years">1m - 2y</option>
-                    <option value="2 - 12 years">2 - 12y</option>
-                    <option value="12 - 18 years">12 - 18y</option>
-                    <option value="18 - 40 years">18 - 40y</option>
-                    <option value="40 - 60 years">40 - 60y</option>
-                    <option value="> 60 years">> 60y</option>
-                </select>
-                <select id="ddx-sex-select" onchange="handleDdxDropdownChange('sex', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
-                    <option value="">Sex</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                </select>
-                <select id="ddx-onset-select" onchange="handleDdxDropdownChange('onset', this.value)" style="margin:0; padding: 4px 6px; border-radius: 8px; font-size: 0.8rem; height: 32px; flex: 1; border: 1px solid var(--divider); background: var(--surface);">
-                    <option value="">Onset</option>
-                    <option value="acute onset">Acute</option>
-                    <option value="subacute onset">Subacute</option>
-                    <option value="insidious onset">Insidious</option>
-                    <option value="chronic onset">Chronic</option>
-                    <option value="episodic onset">Episodic</option>
-                </select>
-            </div>
+            <!-- THIS BUTTON WAS UPDATED -->
+            <button class="btn-secondary" style="margin-bottom: 15px; width: 100%;" onclick="openApiInstructionsModal()">❓ How to get one</button>
             
-            <!-- Smaller Mode Toggle -->
-            <div class="ddx-mode-toggle" style="margin: 0; flex-shrink: 0;">
-                <button id="ddx-mode-feature" class="ddx-mode-btn active" onclick="setDdxMode('feature')" style="padding: 6px 10px; font-size: 0.75rem;">➕ C/P</button>
-                <button id="ddx-mode-disease" class="ddx-mode-btn" onclick="setDdxMode('disease')" style="padding: 6px 10px; font-size: 0.75rem;">🔍 Dx</button>
-            </div>
-        </div>
-        
-        <div class="ddx-search-wrap" style="padding-top: 5px;">
-            <div class="search-wrapper" style="width: 100%;">
-                <input type="text" class="lab-search" id="ddx-search-input" placeholder="🔍 Search for symptoms, signs, labs or radiology..." oninput="handleDdxInput(event)" onchange="handleDdxInput(event)" onkeydown="handleDdxKeydown(event)" style="margin-bottom:0; width:100%; padding-right: 35px;">
-                <button class="clear-search-btn" onclick="clearSearch('ddx-search-input'); handleDdxInput(event);">✕</button>
-            </div>
-        </div>
-    </div>
+            <button class="btn-main" onclick="showApiKeyInput()" style="width: 100%;">✍️ Enter your API key</button>
+            
+<div id="ddx-api-input-area" style="display: none; margin-top: 20px; background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--divider);">
+                <!-- Changed to type="text" so mobile keyboards allow easy pasting -->
+                <input type="text" id="ddx-api-key-input" placeholder="Paste your gsk_... key here" style="width: 100%; margin-bottom: 15px; font-family: monospace;">
+                <button class="btn-main" onclick="saveApiKey()" style="width: 100%;">Save Key</button>
+            </div></div>
 
-    <!-- Scrollable Main Content -->
-    <div class="ddx-scroll-area">
-        <div class="ddx-active-chips-wrap" id="ddx-active-chips-wrap"></div>
-        <div class="ddx-results" id="ddx-results-content"></div>
+    <!-- STATE 2: Main DDx Interface -->
+    <div id="ddx-main-interface" style="display: none; flex-direction: column; flex-grow: 1; height: 100%;">
         
-        <!-- Floating Quiz Button inside scroll area -->
-        <button onclick="openQuiz()" style="position: fixed; bottom: 30px; right: 20px; background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 30px; font-weight: 800; font-size: 1.05rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; z-index: 10;">💡 Quiz Me</button>
+        <!-- Input Block (Auto-collapses) -->
+        <div id="ddx-input-container" style="padding: 16px; background: var(--surface); border-bottom: 1px solid var(--divider); flex-shrink: 0; transition: all 0.3s;">
+            <textarea id="ddx-input" placeholder="Enter clinical presentation (e.g., 45yo M with acute RLQ pain, fever, nausea...)" style="width: 100%; height: 110px; padding: 12px; border-radius: 12px; border: 2px solid var(--divider); background: var(--bg); color: var(--text-main); font-size: 1rem; resize: none; margin-bottom: 10px; outline: none;"></textarea>
+            <button class="btn-main" onclick="generateAIDDx()" style="width: 100%; padding: 14px; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; gap: 8px;">✨ Generate DDx</button>
+        </div>
+
+        <!-- Collapsed Edit Bar -->
+        <div id="ddx-edit-bar" style="display: none; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--divider); justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <span style="font-size: 0.95rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;" id="ddx-snippet-text"></span>
+            <button onclick="toggleDDxInput()" style="background: var(--bg); border: 1px solid var(--divider); color: var(--primary); font-weight: bold; border-radius: 8px; padding: 6px 14px; font-size: 0.9rem; cursor: pointer;">✏️ Edit</button>
+        </div>
+
+        <div class="ddx-scroll-area" style="padding: 16px; padding-bottom: 80px; flex-grow: 1; overflow-y: auto;" id="ddx-results-content">
+            <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 1.05rem; line-height: 1.5;">
+                Type a clinical scenario above and tap Generate to see the AI's differential diagnosis.
+            </div>
+        </div>
+        
+        <!-- Floating Quiz Button inside DDx -->
+        <button onclick="openQuiz()" style="position: absolute; bottom: 30px; right: 20px; background: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;">💡 Quiz Me</button>
     </div>
-    
-    <!-- Absolute Bottom Inline Autocomplete (Glued to Keyboard via JS) -->
-    <div class="ddx-autocomplete-wrap" id="ddx-autocomplete-container"></div>
 </div>
 
     <!-- Quiz Modal -->
@@ -1341,19 +1345,14 @@ html.modal-open, body.modal-open {
         let activeVitalInfo = { patientId: null, vitalKey: null };
         let mainThreadTimers = {}; 
 
-// Maps each feature tag to its diagnostic weight
-const TAG_WEIGHTS = {
-    "age":               1,
-    "sex":               1,
-    "onset":             2,
-    "risk-factor":       2,
-    "nonspecific-sp":    3,
-    "pathognomonic-sp":  6,
-    "screening-lab":     5,
-    "confirmatory-lab":  9,
-    "nonspecific-rad":   7,
-    "confirmatory-rad": 10,
-};
+const DEFAULT_TOOLBAR = [
+    { id: 'medscape', icon: '🩺', text: 'Medscape AI', action: 'openMedscapeAI()', hidden: false, shorten: false },
+    { id: 'ddx', icon: '🧠', text: 'DDx Search', action: 'openDDx()', hidden: false, shorten: false },
+    { id: 'labs', icon: '🔬', text: 'Lab Values', action: 'openLabValues()', hidden: false, shorten: false },
+    { id: 'tasks', icon: '✅', text: 'Tasks', action: 'openAllTasks()', hidden: false, shorten: false },
+    { id: 'stopwatch', icon: '⏱️', text: 'Stopwatch', action: 'openStopwatch()', hidden: false, shorten: false }
+];
+
 
         // =============================================
         // INTERNAL ALERTS (NO SERVICE WORKERS)
@@ -1520,14 +1519,6 @@ if (!appData.ddxSelectedSymptoms) appData.ddxSelectedSymptoms = [];
             if (typeof appData.settings.includeEmptyPatients === 'undefined') appData.settings.includeEmptyPatients = false;
 if (typeof appData.quizStreak === 'undefined') appData.quizStreak = 0; // NEW: Persist streak
             if (!appData.notifiedTaskIds) appData.notifiedTaskIds = [];
-
-const DEFAULT_TOOLBAR = [
-    { id: 'medscape', icon: '🩺', text: 'Medscape AI', action: 'openMedscapeAI()', hidden: false, shorten: false },
-    { id: 'ddx', icon: '🧠', text: 'DDx Search', action: 'openDDx()', hidden: false, shorten: false },
-    { id: 'labs', icon: '🔬', text: 'Lab Values', action: 'openLabValues()', hidden: false, shorten: false },
-    { id: 'tasks', icon: '✅', text: 'Tasks', action: 'openAllTasks()', hidden: false, shorten: false },
-    { id: 'stopwatch', icon: '⏱️', text: 'Stopwatch', action: 'openStopwatch()', hidden: false, shorten: false }
-];
 
 if (!appData.settings.toolbar) {
     appData.settings.toolbar = JSON.parse(JSON.stringify(DEFAULT_TOOLBAR));
@@ -3309,380 +3300,583 @@ function resetEntireApp() {
         }
 
 // =============================================
-// DDX SEARCH FEATURE (Native Autocomplete Approach)
+// API KEY MANAGEMENT & UI TOGGLES
 // =============================================
-
-let ddxSelectedSymptoms = [];
-let ddxMode = 'feature'; // 'feature' or 'disease'
-let DDX_VOCAB_LIST = []; // Cached vocabulary
-
-// Safe case-insensitive match helper
-const isMatch = (str1, str2) => {
-    if (!str1 || !str2) return false;
-    const s1 = String(str1).toLowerCase().trim();
-    const s2 = String(str2).toLowerCase().trim();
-    if (s1 === s2) return true;
-    if ((s1 === 'male' && s2.includes('female')) || (s2 === 'male' && s1.includes('female'))) return false;
-    return s1.includes(s2) || s2.includes(s1);
-};
-
 function openDDx() {
     closeModals();
-    lockScroll(); 
-    setDdxMode('feature');
-    renderDdxActiveChips();
-    updateDdxResults();
-    const modal = document.getElementById('ddx-modal');
-    if (modal) modal.style.display = 'flex';
+    lockScroll();
+    
+    const ddxModal = document.getElementById('ddx-modal');
+    ddxModal.style.display = 'flex';
+    
+    if (!appData.settings.groqKey) {
+        document.getElementById('ddx-main-interface').style.display = 'none';
+        document.getElementById('ddx-api-setup').style.display = 'block';
+        document.getElementById('ddx-api-input-area').style.display = 'none';
+    } else {
+        document.getElementById('ddx-api-setup').style.display = 'none';
+        document.getElementById('ddx-main-interface').style.display = 'flex';
+    }
 }
 
 function closeDDx() { closeModals(); }
 
-function setDdxMode(mode) {
-    ddxMode = mode;
-    document.getElementById('ddx-mode-feature').classList.toggle('active', mode === 'feature');
-    document.getElementById('ddx-mode-disease').classList.toggle('active', mode === 'disease');
+function openApiInstructionsModal() {
+    // Bring the dark overlay to the front
+    const overlay = document.getElementById('main-overlay');
+    overlay.style.zIndex = '2001';
+    overlay.style.display = 'block';
+    setTimeout(() => overlay.style.opacity = '1', 10);
+
+    // Bring the modal to the very front
+    const modal = document.getElementById('api-instructions-modal');
+    modal.style.zIndex = '2002';
+    modal.style.display = 'block';
+    setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+}
+
+function closeApiInstructionsModal() {
+    // Hide the modal
+    const modal = document.getElementById('api-instructions-modal');
+    modal.style.opacity = '0';
+    modal.style.transform = 'translate(-50%, -50%) scale(0.9)';
+    setTimeout(() => modal.style.display = 'none', 300);
     
-    const input = document.getElementById('ddx-search-input');
-    // --- UPDATED PLACEHOLDER ---
-    input.placeholder = mode === 'feature' ? "🔍 Symptoms, signs, labs or radiology..." : "🔍 Disease name...";
+    // Hide the overlay and reset its z-index
+    const overlay = document.getElementById('main-overlay');
+    overlay.style.opacity = '0';
+    setTimeout(() => { 
+        overlay.style.display = 'none'; 
+        overlay.style.zIndex = '999'; 
+    }, 300);
+}
+
+function showApiKeyInput() {
+    document.getElementById('ddx-api-input-area').style.display = 'block';
+    document.getElementById('ddx-api-key-input').focus();
+}
+
+function saveApiKey() {
+    const key = document.getElementById('ddx-api-key-input').value.trim();
+    if (!key) return showToast("Key cannot be empty");
+    
+    if (!appData.settings) appData.settings = {};
+    appData.settings.groqKey = key;
+    saveData();
+    
+    showToast("API Key Saved! 🔑");
+    openDDx(); 
+}
+
+function promptResetApiKey() {
+    if (!appData.settings.groqKey) {
+        showToast("No API key saved to reset.");
+        return;
+    }
+    
+    if (confirm("Are you sure you want to remove your saved API Key?")) {
+        appData.settings.groqKey = "";
+        saveData();
+        showToast("API Key removed 🗑️");
+        
+        // Reset the DDx UI back to the setup screen
+        document.getElementById('ddx-main-interface').style.display = 'none';
+        document.getElementById('ddx-api-setup').style.display = 'block';
+        document.getElementById('ddx-api-input-area').style.display = 'none';
+        document.getElementById('ddx-api-key-input').value = '';
+    }
+}
+
+function toggleDDxInput() {
+    const container = document.getElementById('ddx-input-container');
+    const editBar = document.getElementById('ddx-edit-bar');
+    
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        editBar.style.display = 'none';
+    } else {
+        container.style.display = 'none';
+        editBar.style.display = 'flex';
+    }
+}
+
+function clearDDx() {
+    const input = document.getElementById('ddx-input');
     input.value = '';
     
-    // Toggle native datalist
-    if (mode === 'feature') {
-        input.setAttribute('list', 'ddx-vocab-list');
-        populateDdxDatalist();
-    } else {
-        input.removeAttribute('list');
-    }
+    // Reset UI to open state
+    document.getElementById('ddx-input-container').style.display = 'block';
+    document.getElementById('ddx-edit-bar').style.display = 'none';
     
-    toggleClearBtn(input);
-    updateDdxResults();
+    document.getElementById('ddx-results-content').innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 1.05rem; line-height: 1.5;">
+            Type a clinical scenario above and tap Generate to see the AI's differential diagnosis.
+        </div>`;
+    input.focus();
 }
 
-function populateDdxDatalist() {
-    const dl = document.getElementById('ddx-vocab-list');
-    if (!dl) return;
-    
-    // Generate vocab list if empty
-    if (DDX_VOCAB_LIST.length === 0) {
-        if (typeof DDX_VOCAB !== 'undefined') {
-            DDX_VOCAB_LIST = [...DDX_VOCAB];
-        } else {
-            DDX_VOCAB_LIST = Array.from(new Set(DDX_DATA.diseases.flatMap(d => d.features.map(f => f.f) || [])));
-        }
-        
-        // SORTING UPDATE: Shortest strings first, then alphabetically
-        DDX_VOCAB_LIST.sort((a, b) => {
-            if (a.length === b.length) return a.localeCompare(b);
-            return a.length - b.length;
+// =============================================
+// AI API CONFIGURATION & ERROR HANDLING
+// =============================================
+async function fetchGroqAI(prompt, systemInstruction = "You are an expert medical AI.") {
+    if (!navigator.onLine) {
+        showToast("📴 Offline. This feature needs an internet connection.");
+        return null;
+    }
+
+    const apiKey = appData.settings.groqKey;
+    if (!apiKey) return null;
+
+    try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile", // Using best model
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: prompt }
+                ],
+                response_format: { type: "json_object" },
+                temperature: 0.2
+            })
         });
-    }
 
-    // Calculate excluded items so they aren't suggested
-    let excludedSet = new Set();
-    if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
-        ddxSelectedSymptoms.forEach(sel => {
-            for (const ruleKey in DDX_DATA.rules.excludes) {
-                if (isMatch(ruleKey, sel)) {
-                    let targets = [].concat(DDX_DATA.rules.excludes[ruleKey]);
-                    targets.forEach(t => excludedSet.add(t));
-                }
-                let targets = [].concat(DDX_DATA.rules.excludes[ruleKey]);
-                if (targets.some(t => isMatch(t, sel))) excludedSet.add(ruleKey);
+        if (!response.ok) {
+            if (response.status === 401) {
+                showToast("❌ Invalid API Key. Please check it.");
+                appData.settings.groqKey = "";
+                saveData();
+                openDDx();
+            } else if (response.status === 429) {
+                showToast("⏳ Free rate limit reached! Please wait a minute and try again.");
+            } else if (response.status === 403 || response.status === 402) {
+                showToast("💳 API Quota exceeded. Check your Groq dashboard.");
+            } else {
+                showToast(`❌ API Error: ${response.status}`);
             }
-        });
-    }
-
-// Build the native <option> list
-    let html = '';
-    const excludedCategories = [...DDX_DATA.ageGroups, ...DDX_DATA.onsetTypes, 'Male', 'Female']; // Exclude dropdown items
-
-    DDX_VOCAB_LIST.forEach(f => {
-        if (!excludedCategories.includes(f) && !ddxSelectedSymptoms.includes(f) && !Array.from(excludedSet).some(ex => isMatch(ex, f))) {
-            html += `<option value="${f}">`;
+            throw new Error("API Error: " + response.status);
         }
-    });
-    dl.innerHTML = html;
-}
-
-function handleDdxInput(e) {
-    const input = document.getElementById('ddx-search-input');
-    if (!input) return;
-    const val = input.value.trim();
-    toggleClearBtn(input);
-
-    if (ddxMode === 'feature') {
-        const match = DDX_VOCAB_LIST.find(f => f.toLowerCase() === val.toLowerCase());
         
-        // Check if the input was triggered explicitly by clicking a datalist suggestion
-        // 'insertReplacementText' is fired natively by mobile/desktop browsers when selecting an autocomplete option
-        const isDatalistSelect = e && e.type === 'input' && e.inputType === 'insertReplacementText';
-        // 'change' is fired if the user clicks a suggestion and it blurs, or hits Enter
-        const isChangeSelect = e && e.type === 'change';
-
-        if (match && (isDatalistSelect || isChangeSelect)) {
-            addDdxFeature(match);
-            input.value = '';
-            toggleClearBtn(input);
-        }
-    } else {
-        updateDdxResults();
-    }
-}
-
-// Allows the user to manually hit "Enter" on their keyboard to add the item
-function handleDdxKeydown(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        const input = document.getElementById('ddx-search-input');
-        const val = input.value.trim();
+        const data = await response.json();
+        let jsonStr = data.choices[0].message.content;
+        jsonStr = jsonStr.replace(/```json/gi, '').replace(/```/g, '').trim();
         
-        if (ddxMode === 'feature') {
-            const match = DDX_VOCAB_LIST.find(f => f.toLowerCase() === val.toLowerCase());
-            if (match) {
-                addDdxFeature(match);
-                input.value = '';
-                toggleClearBtn(input);
-            }
-        } else {
-            // Dismiss keyboard if they press enter during a disease search
-            input.blur();
-        }
+        return JSON.parse(jsonStr);
+    } catch (error) {
+        console.error("AI Fetch Error:", error);
+        return null;
     }
 }
 
-function addDdxFeature(feature) {
-    if (!ddxSelectedSymptoms.includes(feature)) {
-        if (DDX_DATA.rules && DDX_DATA.rules.implies) {
-            for (const ruleKey in DDX_DATA.rules.implies) {
-                if (isMatch(ruleKey, feature)) {
-                    let implied = [].concat(DDX_DATA.rules.implies[ruleKey]);
-                    implied.forEach(imp => {
-                        if (!ddxSelectedSymptoms.includes(imp)) ddxSelectedSymptoms.push(imp);
-                    });
-                }
-            }
-        }
-        ddxSelectedSymptoms.push(feature);
-        appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-        saveData();
-        renderDdxActiveChips();
-        updateDdxResults();
-        populateDdxDatalist(); // Refreshes the dropdown to remove the item we just added
-    }
-}
+// =============================================
+// AI DDx GENERATOR
+// =============================================
+async function generateAIDDx() {
+    const input = document.getElementById('ddx-input').value.trim();
+    if (!input) return showToast("Please enter a clinical scenario.");
 
-function removeDdxFeature(feature) {
-    ddxSelectedSymptoms = ddxSelectedSymptoms.filter(f => f !== feature);
-    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-    saveData();
-    renderDdxActiveChips();
-    updateDdxResults();
-    populateDdxDatalist();
-}
-
-function clearAllDdxSymptoms() {
-    ddxSelectedSymptoms = [];
-    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-    saveData();
-    renderDdxActiveChips();
-    updateDdxResults();
-    populateDdxDatalist();
-}
-
-// --- NEW: Handle Dropdown Selections ---
-function handleDdxDropdownChange(category, value) {
-    // 1. Identify what array of options belongs to this category
-    let toRemove = [];
-    if (category === 'sex') toRemove = ['Male', 'Female'];
-    else if (category === 'age') toRemove = DDX_DATA.ageGroups;
-    else if (category === 'onset') toRemove = DDX_DATA.onsetTypes;
-
-    // 2. Remove any existing chip from that specific category
-    ddxSelectedSymptoms = ddxSelectedSymptoms.filter(symp => !toRemove.includes(symp));
-
-    // 3. Add the new one if they didn't select the empty default
-    if (value) {
-        ddxSelectedSymptoms.push(value);
-    }
-
-    appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-    saveData();
-    renderDdxActiveChips();
-    updateDdxResults();
-    populateDdxDatalist();
-}
-
-// --- NEW: Sync dropdown menus with currently active chips ---
-function syncDdxDropdowns() {
-    const sexEl = document.getElementById('ddx-sex-select');
-    const ageEl = document.getElementById('ddx-age-select');
-    const onsetEl = document.getElementById('ddx-onset-select');
-    
-    if (sexEl) sexEl.value = ddxSelectedSymptoms.find(s => ['Male', 'Female'].includes(s)) || "";
-    if (ageEl) ageEl.value = ddxSelectedSymptoms.find(s => DDX_DATA.ageGroups.includes(s)) || "";
-    if (onsetEl) onsetEl.value = ddxSelectedSymptoms.find(s => DDX_DATA.onsetTypes.includes(s)) || "";
-}
-
-// --- UPDATED: Render Active Chips (Now syncs dropdowns) ---
-function renderDdxActiveChips() {
-    syncDdxDropdowns(); // <-- Added this call to keep dropdown UI matching the chips
-    
-    const wrap = document.getElementById('ddx-active-chips-wrap');
-    if (ddxSelectedSymptoms.length === 0) {
-        wrap.style.display = 'none';
-        wrap.innerHTML = '';
-        return;
-    }
-    wrap.style.display = 'flex';
-    wrap.innerHTML = ddxSelectedSymptoms.map(symp => 
-        `<div class="ddx-active-chip">${symp} <span onclick="removeDdxFeature(\`${symp}\`)">✕</span></div>`
-    ).join('');
-}
-
-// --- SHARED DIAGNOSTIC SCORING ENGINE ---
-function calculateDiseaseScores(inputFeatures) {
-    return DDX_DATA.diseases.map(d => {
-        let matchedFeats = d.features.filter(feat => inputFeatures.includes(feat.f));
-        const prevalenceFactor = Math.pow(d.prevalence ?? 0.5, 0.2);
-        let score = Math.round(matchedFeats.reduce((sum, feat) => sum + (TAG_WEIGHTS[feat.t] || 1), 0) * prevalenceFactor);
-        
-        const diseaseAges = d.features.filter(f => f.t === 'age').map(f => f.f);
-        const diseaseSexes = d.features.filter(f => f.t === 'sex').map(f => f.f);
-
-        const selectedAges = inputFeatures.filter(s => DDX_DATA.ageGroups.includes(s));
-        const selectedSexes = inputFeatures.filter(s => ['Male','Female'].includes(s));
-        
-        // Define purely clinical features (excluding Age, Sex, AND Onset)
-        const selectedClinical = inputFeatures.filter(s => 
-            !DDX_DATA.ageGroups.includes(s) && 
-            !['Male','Female'].includes(s) && 
-            !DDX_DATA.onsetTypes.includes(s)
-        );
-
-        const ageMismatch = selectedAges.length > 0 && diseaseAges.length > 0 &&
-            !selectedAges.some(a => diseaseAges.includes(a));
-        const sexMismatch = selectedSexes.length > 0 && diseaseSexes.length > 0 &&
-            !selectedSexes.some(s => diseaseSexes.includes(s));
-
-        // Deduct points for explicit demographic contradictions
-        if (ageMismatch) score -= 1000;
-        if (sexMismatch) score -= 1000;
-
-        // Prevent Demographics/Onset-ONLY matches from hijacking the top spots
-        let clinicalMatches = matchedFeats.filter(f => f.t !== 'age' && f.t !== 'sex' && f.t !== 'onset').length;
-        if (selectedClinical.length > 0 && clinicalMatches === 0) {
-            score -= 500;
-        }
-
-        // Apply explicit exclusion rules (e.g., "Male" excludes "Ovarian Cancer")
-        if (DDX_DATA.rules && DDX_DATA.rules.excludes) {
-            inputFeatures.forEach(symp => {
-                let excludedList = [].concat(DDX_DATA.rules.excludes[symp] || []);
-                if (excludedList.some(ex => isMatch(ex, d.name))) score -= 100;
-            });
-        }
-
-        let matches = matchedFeats.map(feat => feat.f);
-        return { ...d, score, matches };
-    });
-}
-
-// --- SMART DIFFERENTIATION ENGINE ---
-function updateDdxResults() {
     const container = document.getElementById('ddx-results-content');
-    const query = ddxMode === 'disease' ? document.getElementById('ddx-search-input').value.toLowerCase().trim() : '';
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--primary); font-weight: bold; font-size: 1.2rem; animation: pulse 1.5s infinite;">🧠 Analyzing case...</div>`;
 
-    // Identify how many purely clinical features are selected (ignoring demographics/onset)
-    const selectedClinical = ddxSelectedSymptoms.filter(s => 
-        !DDX_DATA.ageGroups.includes(s) && 
-        !['Male','Female'].includes(s) && 
-        !DDX_DATA.onsetTypes.includes(s)
-    );
-
-    if (ddxMode === 'feature') {
-        if (selectedClinical.length === 0) {
-            // Block results until an actual symptom/lab/sign is added
-            container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted); line-height: 1.5;">➕ Select at least one clinical feature (symptom, sign, lab, or rad) to see diagnostic suggestions.</div>`;
-            return;
+    const prompt = `
+    Based on this clinical presentation: "${input}"
+    Provide a differential diagnosis of the top 3 to 5 most likely conditions. Do NOT include extremely rare diseases unless explicitly hinted at by the presentation.
+    You MUST output valid JSON strictly in this format:
+    {
+      "diagnoses": [
+        {
+          "disease_name": "Name of Disease",
+          "confidence": "High/Medium/Low",
+          "distinctive_features": ["Feature 1", "Feature 2"], 
+          "matched_features": ["Match 1", "Match 2"]
         }
-    } else if (ddxMode === 'disease' && !query && ddxSelectedSymptoms.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">🔍 Search for a disease name...</div>`;
+      ]
+    }
+    'distinctive_features' must list clinical signs, symptoms, or labs that help differentiate this disease from the others but were NOT mentioned in the prompt. 
+    'matched_features' must list things from the prompt that align with this disease.
+    `;
+
+    const result = await fetchGroqAI(prompt);
+    
+    if (!result || !result.diagnoses) {
+        container.innerHTML = `<div style="text-align:center; padding: 40px; color: #ef4444; font-weight:bold;">Failed to generate DDx. Please try again.</div>`;
         return;
     }
 
-    let scoredDiseases = calculateDiseaseScores(ddxSelectedSymptoms);
-
-    let results = scoredDiseases.filter(d => {
-        let matchesQuery = query ? d.name.toLowerCase().includes(query) : true;
-        if (ddxMode === 'disease') {
-            if (ddxSelectedSymptoms.length === 0) return matchesQuery;
-            return matchesQuery && d.score > 0;
-        } else {
-            return d.score > 0 && d.score > -900;
-        }
-    }).sort((a, b) => b.score - a.score).slice(0, 10);
-
-    if (results.length === 0) {
-        container.innerHTML = `<div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">No matches found.</div>`;
-        return;
-    }
-
-    // Build frequency map of unselected features across results
-    let featureFreq = {};
-    results.forEach(d => {
-        d.features.forEach(feat => {
-            if (!ddxSelectedSymptoms.includes(feat.f)) {
-                featureFreq[feat.f] = (featureFreq[feat.f] || 0) + 1;
-            }
-        });
-    });
-
-    // Classify features as key (unique to this disease) or overlapping,
-    // sort each group by tag weight descending, limit to top 10
-    results.forEach(d => {
-        let keyFeats = [];
-        let sharedFeats = [];
-        d.features.forEach(feat => {
-            if (!ddxSelectedSymptoms.includes(feat.f)) {
-                if (featureFreq[feat.f] === 1) keyFeats.push(feat);
-                else sharedFeats.push(feat);
-            }
-        });
-        const byWeightDesc = (a, b) => (TAG_WEIGHTS[b.t] || 1) - (TAG_WEIGHTS[a.t] || 1);
-        d.distinctive = keyFeats.sort(byWeightDesc).slice(0, 10).map(feat => feat.f);
-        d.shared      = sharedFeats.sort(byWeightDesc).slice(0, 10).map(feat => feat.f);
-    });
+    // SUCCESS: Auto-Collapse the input and set snippet text
+    document.getElementById('ddx-input-container').style.display = 'none';
+    document.getElementById('ddx-edit-bar').style.display = 'flex';
+    document.getElementById('ddx-snippet-text').innerText = `"${input.substring(0, 45)}${input.length > 45 ? '...' : ''}"`;
 
     let html = '';
-    results.forEach(d => {
-        let distHtml   = d.distinctive.map(f => `<span class="ddx-chip-distinctive">${f}</span>`).join('');
-let matchedHtml = d.matches.map(f => `<span class="ddx-chip-shared">${f}</span>`).join('');
+    result.diagnoses.forEach(d => {
+        let distHtml = d.distinctive_features.map(f => `<span class="ddx-chip-distinctive" style="background: #fef9c3; color: #854d0e; padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; border: 1px solid #fde047;">${f}</span>`).join('');
+        let matchedHtml = d.matched_features.map(f => `<span class="ddx-chip-shared" style="background: var(--bg); color: var(--text-muted); padding: 4px 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--divider);">${f}</span>`).join('');
 
-let sharedBlock = '';
-if (d.matches.length > 0) {
-    sharedBlock = `
-    <details class="ddx-shared-details">
-        <summary>Matched Features (${d.matches.length})</summary>
-        <div class="ddx-compact-list" style="margin-top: 6px;">${matchedHtml}</div>
-    </details>`;
-}
+        let sharedBlock = '';
+        if (d.matched_features.length > 0) {
+            sharedBlock = `
+            <details class="ddx-shared-details" style="margin-top: 12px;">
+                <summary style="font-size: 0.85rem; font-weight: 700; color: var(--primary); cursor: pointer; outline: none; list-style: none;">Show Matched Features (${d.matched_features.length})</summary>
+                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px;">${matchedHtml}</div>
+            </details>`;
+        }
+
+        let confColor = "#fef9c3"; let confText = "#854d0e"; let confBorder = "#fde047"; 
+        if (d.confidence.toLowerCase().includes("high")) { confColor = "#dcfce7"; confText = "#166534"; confBorder = "#4ade80"; } 
+        else if (d.confidence.toLowerCase().includes("low")) { confColor = "#fee2e2"; confText = "#991b1b"; confBorder = "#fca5a5"; }
 
         html += `
-        <div class="ddx-disease-card">
-            <div class="ddx-disease-title">
-                ${d.name} <div class="ddx-score-badge">🎯 ${d.score} pts</div>
+        <div class="ddx-disease-card" style="background: var(--surface); padding: 18px; border-radius: 16px; border: 1px solid var(--divider); margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+            <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                <span style="line-height: 1.3;">${d.disease_name}</span>
+                <div style="background: ${confColor}; color: ${confText}; padding: 4px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; border: 1px solid ${confBorder}; white-space: nowrap; flex-shrink: 0; margin-top: 2px;">🎯 ${d.confidence}</div>
             </div>
-            ${distHtml ? `<div class="ddx-feat-title" style="color:var(--primary-dark);">🔑 Key Features</div><div class="ddx-compact-list">${distHtml}</div>` : ''}
+            ${distHtml ? `<div style="font-size: 0.8rem; margin-top: 10px; margin-bottom: 6px; font-weight: 800; text-transform: uppercase; color: var(--primary-dark); letter-spacing: 0.5px;">🔑 Differentiating Features</div><div style="display: flex; flex-wrap: wrap; gap: 6px;">${distHtml}</div>` : ''}
             ${sharedBlock}
-            ${d.medscapeLink ? `<div style="display: flex; justify-content: flex-end; margin-top: 12px;"><a href="${d.medscapeLink}" target="_blank" class="ddx-medscape-link" style="font-size: 0.75rem; padding: 5px 10px; margin-top: 0;">🔗 Medscape</a></div>` : ''}
         </div>`;
     });
 
     container.innerHTML = html;
 }
 
+// =============================================
+// AI QUIZ GENERATOR
+// =============================================
+
+// 100 Essential Diseases for Interns/Residents
+const QUIZ_DISEASE_POOL = [
+    "Acute Appendicitis", "Pulmonary Embolism", "Myocardial Infarction (STEMI)", "Myocardial Infarction (NSTEMI)", 
+    "Diabetic Ketoacidosis (DKA)", "Hyperosmolar Hyperglycemic State (HHS)", "Pneumonia (Community Acquired)", 
+    "Acute Cholecystitis", "Acute Cholangitis", "Acute Pancreatitis", "Acute Diverticulitis", "Sepsis", 
+    "Bacterial Meningitis", "Ischemic Stroke", "Hemorrhagic Stroke (ICH)", "Subarachnoid Hemorrhage", 
+    "Asthma Exacerbation", "COPD Exacerbation", "Congestive Heart Failure Exacerbation", "Ectopic Pregnancy", 
+    "Pelvic Inflammatory Disease (PID)", "Ovarian Torsion", "Testicular Torsion", "Nephrolithiasis (Renal Colic)", 
+    "Acute Pyelonephritis", "Urinary Tract Infection (Cystitis)", "Peptic Ulcer Disease", "Gastroesophageal Reflux Disease (GERD)", 
+    "Upper GI Bleed", "Lower GI Bleed", "Hepatic Encephalopathy", "Spontaneous Bacterial Peritonitis", 
+    "Deep Vein Thrombosis (DVT)", "Cellulitis", "Necrotizing Fasciitis", "Osteomyelitis", "Septic Arthritis", 
+    "Gout", "Rheumatoid Arthritis", "Systemic Lupus Erythematosus (SLE)", "Hypothyroidism", "Thyroid Storm (Hyperthyroidism)", 
+    "Adrenal Crisis", "Cushing's Syndrome", "SIADH", "Diabetes Insipidus", "Hypercalcemia", "Hypocalcemia", 
+    "Hyperkalemia", "Hypokalemia", "Hyponatremia", "Hypernatremia", "Iron Deficiency Anemia", "Sickle Cell Crisis", 
+    "Acute Leukemia (ALL/AML)", "Lymphoma", "Multiple Myeloma", "Idiopathic Thrombocytopenic Purpura (ITP)", 
+    "Thrombotic Thrombocytopenic Purpura (TTP)", "Disseminated Intravascular Coagulation (DIC)", "Pulmonary Tuberculosis", 
+    "Infective Endocarditis", "HIV/AIDS (Pneumocystis Pneumonia)", "Malaria", "Dengue Fever", "Syphilis", 
+    "Gonorrhea", "Chlamydia", "Major Depressive Disorder", "Generalized Anxiety Disorder", "Schizophrenia", 
+    "Bipolar Disorder", "Delirium Tremens (Alcohol Withdrawal)", "Opioid Overdose", "Acetaminophen Toxicity", 
+    "Salicylate Toxicity", "Carbon Monoxide Poisoning", "Organophosphate Poisoning", "Digoxin Toxicity", 
+    "Acute Angle-Closure Glaucoma", "Retinal Detachment", "Acute Otitis Media", "Strep Pharyngitis", 
+    "Infectious Mononucleosis", "Croup", "Epiglottitis", "Acute Bronchiolitis", "Pertussis", "Measles", 
+    "Varicella (Chickenpox)", "Pneumothorax", "Aortic Dissection", "Cardiac Tamponade", "Pericarditis", 
+    "Mesenteric Ischemia", "Small Bowel Obstruction", "Guillain-Barré Syndrome", "Multiple Sclerosis", 
+    "Myasthenia Gravis", "Acute Kidney Injury (Pre-renal)"
+];
+
+let quizDifficultySetting = 'incremental';
+let quizStreak = 0;
+let currentQuizCorrectIndex = -1;
+let availableHints = [];
+let isQuizAnswered = true;
+let currentVignetteText = ""; // Saves the current text for the DDx button
+
+// The standard encouragements
+const QUIZ_ENCOURAGEMENTS = [
+    "😗 Not Impressed", "🌟 Good!", "🌡️ Normal Range!", "😎 Awesome!", "🎯 Spot On!", 
+    "🔥 On Fire!", "🚑 Rapid Response!", "💉 Smooth Operator!", "🤓 GCS 15!", 
+    "🧠 Gray Matter!", "📚 High Yield!", "✨ Pathognomonic!", "🥷 Ninja Nerd!", 
+    "🏥 The Good Doctor", "🩺 Dr. House!", "🚀 UpToDate!", "👑 Attending Vibes!", 
+    "🏆 Board Certified!", "🎖️ Chief Resident!", "🧑‍⚕️ Medical Icon!"
+];
+
+function triggerEncouragement(streak) {
+    let milestoneIndex = Math.floor(streak / 5) - 1;
+    if (milestoneIndex >= QUIZ_ENCOURAGEMENTS.length) {
+        const last5Start = QUIZ_ENCOURAGEMENTS.length - 5;
+        const overflow = milestoneIndex - QUIZ_ENCOURAGEMENTS.length;
+        milestoneIndex = last5Start + (overflow % 5);
+    }
+    
+    const el = document.createElement('div');
+    el.className = 'quiz-encouragement';
+    el.innerText = QUIZ_ENCOURAGEMENTS[milestoneIndex];
+    document.body.appendChild(el);
+    setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 2500);
+}
+
+function changeQuizDifficulty(val) {
+    quizDifficultySetting = val;
+    quizStreak = 0; 
+    appData.quizStreak = 0;
+    saveData();
+    generateQuizQuestion();
+}
+
+function openQuiz() {
+    if (!appData.settings.groqKey) {
+        openDDx();
+        showToast("⚠️ Please enter your API Key first to use the Quiz.");
+        return;
+    }
+    
+    closeModals();
+    lockScroll();
+    
+    if (appData.quizStreak !== undefined) quizStreak = appData.quizStreak;
+    document.getElementById('quiz-difficulty-select').value = quizDifficultySetting;
+    document.getElementById('quiz-modal').style.display = 'flex';
+    
+    const container = document.getElementById('quiz-content');
+    if (container.innerHTML.trim() === '' || isQuizAnswered) {
+        generateQuizQuestion();
+    } else {
+        document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
+    }
+}
+
+function closeQuiz() {
+    appData.quizStreak = quizStreak;
+    saveData();
+    document.getElementById('quiz-modal').style.display = 'none';
+    openDDx();
+}
+
+// Fisher-Yates array shuffle
+function shuffleArray(array) {
+    let curId = array.length;
+    while (0 !== curId) {
+        let randId = Math.floor(Math.random() * curId);
+        curId -= 1;
+        let tmp = array[curId];
+        array[curId] = array[randId];
+        array[randId] = tmp;
+    }
+    return array;
+}
+
+async function generateQuizQuestion() {
+    const container = document.getElementById('quiz-content');
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--primary); font-weight: bold; font-size: 1.2rem; animation: pulse 1.5s infinite;">🧠 Generating case...</div>`;
+    
+    document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
+
+    // 1. Handle Disease Pool Logic
+    if (!appData.quizRemainingDiseases || appData.quizRemainingDiseases.length === 0) {
+        // If empty, fill it with the shuffled 100 diseases
+        appData.quizRemainingDiseases = shuffleArray([...QUIZ_DISEASE_POOL]);
+    }
+    // Pop the next disease off the list
+    const targetDisease = appData.quizRemainingDiseases.pop();
+    saveData(); // Save the newly shortened array to local storage
+
+    // 2. Set Difficulty
+    let actualDiff = quizDifficultySetting;
+    if (actualDiff === 'incremental') {
+        if (quizStreak < 33) actualDiff = 'easy';
+        else if (quizStreak < 66) actualDiff = 'intermediate';
+        else actualDiff = 'hard';
+    }
+
+    let diffInstructions = "";
+    if (actualDiff === 'easy') {
+        diffInstructions = "Make it straightforward. Use classic buzzwords and pathognomonic signs. The distractors should be obviously incorrect to a medical student.";
+    } else if (actualDiff === 'intermediate') {
+        diffInstructions = "Make it moderate. Present a realistic clinical scenario. Distractors should be somewhat related or present with similar symptoms, requiring some deduction.";
+    } else {
+        diffInstructions = "Make it very difficult (Board-exam level). Exclude obvious buzzwords. The presentation should rely on subtle lab values, nuanced physical exam findings, or tricky risk factors. Distractors must be highly plausible alternative diagnoses that require careful differentiation.";
+    }
+
+// 3. Create the Prompt
+    const prompt = `
+    Create a multiple-choice clinical vignette where the CORRECT diagnosis is exactly: "${targetDisease}".
+    Difficulty: ${actualDiff.toUpperCase()}. ${diffInstructions}
+    
+    You MUST output valid JSON strictly in this format:
+    {
+      "correct_disease_name": "${targetDisease}",
+      "vignette": "A 45-year-old male presents with...",
+      "options": ["Distractor 1", "${targetDisease}", "Distractor 2", "Distractor 3"],
+      "correct_index": 1,
+      "hint": "Focus on [Key Feature 1], [Key Feature 2], and [Key Feature 3]."
+    }
+    For the 'hint', do NOT reveal the diagnosis, underlying mechanism, or pathophysiology. Simply point the user to the 2 or 3 most critical clues (symptoms, labs, or risk factors) embedded in the vignette. You MUST use exactly this format: 'Focus on X, Y, and Z.'
+    Make sure 'options' has exactly 4 items (shuffled randomly), and 'correct_index' points to the correct answer (0-3).
+    `;
+
+    const result = await fetchGroqAI(prompt, "You are an expert medical educator creating board-style questions.");
+
+    if (!result || !result.correct_disease_name || !result.options || typeof result.correct_index === 'undefined') {
+        container.innerHTML = `
+            <div style="text-align:center; padding: 40px;">
+                <div style="color: #ef4444; font-weight:bold; font-size: 1.1rem; margin-bottom: 15px;">Failed to generate Quiz.</div>
+                <button class="btn-main" onclick="generateQuizQuestion()">🔄 Try Again</button>
+            </div>`;
+        return;
+    }
+
+    // Save global state for DDx copying and validation
+    currentQuizCorrectIndex = result.correct_index;
+    availableHints = [result.hint];
+    currentVignetteText = result.vignette;
+    isQuizAnswered = false;
+
+    let badgeText = actualDiff === 'intermediate' ? 'Intermediate' : actualDiff;
+    let headerHtml = `
+        <div class="quiz-q-header">
+            <div class="quiz-diff-badge ${actualDiff}">${badgeText}</div>
+            <button class="quiz-hint-btn" id="quiz-action-btn" onclick="showQuizHint()">💡 Hint</button>
+        </div>
+    `;
+
+    let html = `
+        <div class="quiz-question">${headerHtml}${result.vignette}
+        <div id="quiz-hint-box" style="margin-top: 15px;"></div>
+        <br><b style="color: var(--primary-dark); font-size: 1.05rem;">What is the most probable diagnosis?</b>
+        </div>
+        <div class="quiz-options-grid">
+    `;
+
+    result.options.forEach((opt, index) => {
+        html += `<button class="quiz-option" id="quiz-opt-${index}" onclick="handleQuizAnswer(${index}, ${index === result.correct_index})">${opt}</button>`;
+    });
+    
+    html += `</div><div class="quiz-footer" style="min-height: 50px;">
+                <button class="btn-main" id="quiz-next-btn" style="display: none; width: 100%; margin: 0; font-size: 1.15rem;" onclick="generateQuizQuestion()">Next Question ➔</button>
+             </div>`;
+
+    container.innerHTML = html;
+}
+
+function handleQuizAnswer(selectedIndex, isCorrect) {
+    if (isQuizAnswered) return;
+    isQuizAnswered = true; 
+    
+    const btns = document.querySelectorAll('.quiz-option');
+    btns.forEach(b => b.disabled = true);
+    
+    const streakDisplay = document.getElementById('quiz-round-display');
+
+    if (isCorrect) {
+        quizStreak++;
+        let isMilestone = (quizStreak > 0 && quizStreak % 5 === 0);
+        
+        playQuizAudio(true, isMilestone);
+        document.getElementById(`quiz-opt-${selectedIndex}`).classList.add('correct');
+        shootConfetti(); 
+        
+        streakDisplay.innerText = `Streak 🔥 ${quizStreak}`;
+        if (isMilestone) {
+            streakDisplay.classList.add('streak-celebrate');
+            triggerEncouragement(quizStreak); 
+            setTimeout(() => streakDisplay.classList.remove('streak-celebrate'), 600);
+        }
+    } else {
+        quizStreak = 0; 
+        playQuizAudio(false);
+        streakDisplay.innerText = `Streak 🔥 0`;
+        document.getElementById(`quiz-opt-${selectedIndex}`).classList.add('wrong');
+        document.getElementById(`quiz-opt-${currentQuizCorrectIndex}`).classList.add('correct');
+    }
+    
+    appData.quizStreak = quizStreak;
+    saveData();
+    
+    // Change the Hint Button to a "See DDx" Button
+    const actionBtn = document.getElementById('quiz-action-btn');
+    if (actionBtn) {
+        actionBtn.innerText = "🧠 See DDx";
+        actionBtn.disabled = false; // Re-enable if it was disabled from being a hint
+        actionBtn.onclick = openDDxFromQuiz;
+    }
+    
+    document.getElementById('quiz-next-btn').style.display = 'block';
+}
+
+function showQuizHint() {
+    if (availableHints.length > 0) {
+        const hint = availableHints.pop();
+        document.getElementById('quiz-hint-box').innerHTML = `<div style="color:var(--primary-dark); font-weight:700; background: var(--vital-bg); padding: 12px; border-radius: 12px; border: 1px dashed var(--primary);">💡 Hint: ${hint}</div>`;
+        document.getElementById('quiz-action-btn').disabled = true;
+        document.getElementById('quiz-action-btn').innerText = "Hint Revealed";
+    }
+}
+
+// Triggered by the "See DDx" button after answering
+function openDDxFromQuiz() {
+    document.getElementById('quiz-modal').style.display = 'none';
+    
+    // Open DDx UI
+    const ddxModal = document.getElementById('ddx-modal');
+    ddxModal.style.display = 'flex';
+    document.getElementById('ddx-api-setup').style.display = 'none';
+    document.getElementById('ddx-main-interface').style.display = 'flex';
+
+    // Ensure the input container is visible so it can be edited if needed
+    document.getElementById('ddx-input-container').style.display = 'block';
+    document.getElementById('ddx-edit-bar').style.display = 'none';
+
+    // Paste the vignette and trigger analysis
+    document.getElementById('ddx-input').value = currentVignetteText;
+    generateAIDDx(); 
+}
+
+function playQuizAudio(isCorrect, isMilestone = false) {
+    if (!audioCtx) initAudio(); if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        
+        if (isCorrect) {
+            if (isMilestone) {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);       
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
+                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3); 
+                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
+                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+        }
+    } catch(e) {}
+}
+
+function shootConfetti() {
+    const colors = ['#22c55e', '#3b82f6', '#eab308', '#ef4444', '#a855f7', '#ec4899'];
+    const shapes = ['50%', '2px']; 
+    for (let i = 0; i < 60; i++) {
+        let conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.width = (Math.random() * 8 + 6) + 'px';
+        conf.style.height = (Math.random() * 12 + 6) + 'px';
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)];
+        conf.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
+        conf.style.animationDelay = (Math.random() * 0.5) + 's';
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 4000);
+    }
+}
         // =============================================
         // DELETE ALL TASKS LOGIC
         // =============================================
@@ -3716,24 +3910,6 @@ if (d.matches.length > 0) {
 }
 
 // =============================================
-// MOBILE KEYBOARD AVOIDANCE FIX
-// Guarantees the autocomplete bar sits ON TOP of the mobile keyboard
-// =============================================
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        const ddxModal = document.getElementById('ddx-modal');
-        const autoBar = document.getElementById('ddx-autocomplete-container');
-        
-        if (ddxModal && ddxModal.style.display === 'flex') {
-            // Calculate how many pixels the keyboard took up
-            const offset = window.innerHeight - window.visualViewport.height;
-            // Push the absolute bottom bar up by that exact amount
-            autoBar.style.bottom = Math.max(0, offset) + 'px';
-        }
-    });
-}
-
-// =============================================
 // TOOLBAR CUSTOMIZATION
 // =============================================
 let tempToolbarState = [];
@@ -3744,7 +3920,7 @@ function openCustomizeToolbar() {
     tempToolbarState = JSON.parse(JSON.stringify(appData.settings.toolbar));
     
     // Safety check in case new tools were added to default but aren't in user's saved array
-    const defaultIds = ['medscape', 'ddx', 'labs', 'quiz', 'tasks', 'stopwatch'];
+    const defaultIds = ['medscape', 'ddx', 'labs', 'tasks', 'stopwatch']; // 'quiz' removed
     const currentIds = tempToolbarState.map(t => t.id);
     defaultIds.forEach(id => {
         if (!currentIds.includes(id)) {
@@ -3949,487 +4125,6 @@ function skipTutorial() {
     localStorage.setItem('mirimate_tutorial_shown', 'true');
 }
 
-// =============================================
-        // QUIZ ME FEATURE (Scaling Difficulty & Hints)
-        // =============================================
-let currentQuizCorrectIndex = -1;
-let quizStreak = 0; 
-let quizDifficultySetting = 'incremental';
-let availableHints = [];
-let currentQuizFeatures = []; // Stores the exact data used for the current question
-let isQuizAnswered = true;    // Tracks if a question is active or pending
-
-// --- QUIZ ENCOURAGEMENTS ARRAY (Medical Pop Culture Edition) ---
-const QUIZ_ENCOURAGEMENTS = [
-"😗 Not Impressed", 
-    "🌟 Good!",    
-         "🌡️ Normal Range!",       
-    "😎 Awesome!",                
-    "🎯 Spot On!",             
-"🔥 On Fire!",              
-"🚑 Rapid Response!",         
- "💉 Smooth Operator!",        
-"🤓 GCS 15!",                 
-"🧠 Gray Matter!",            
-"📚 High Yield!",              
-"✨ Pathognomonic!",         
-"🥷 Ninja Nerd!",          
-"🏥 The Good Doctor ",               
-    "🩺 Dr. House! ",        
-    "🚀 UpToDate!",               
-    "👑 Attending Vibes!",        
-    "🏆 Board Certified!",       
-    "🎖️ Chief Resident!", 
-    "🧑‍⚕️ Medical Icon!"   
-];
-
-function triggerEncouragement(streak) {
-    // Determine which milestone we are on (1st milestone = index 0)
-    let milestoneIndex = Math.floor(streak / 5) - 1;
-    
-    // If we exceed the array length, cycle through the last 5 items continuously
-    if (milestoneIndex >= QUIZ_ENCOURAGEMENTS.length) {
-        const last5Start = QUIZ_ENCOURAGEMENTS.length - 5;
-        const overflow = milestoneIndex - QUIZ_ENCOURAGEMENTS.length;
-        milestoneIndex = last5Start + (overflow % 5);
-    }
-    
-    // Create the flashing text element
-    const el = document.createElement('div');
-    el.className = 'quiz-encouragement';
-    el.innerText = QUIZ_ENCOURAGEMENTS[milestoneIndex];
-    document.body.appendChild(el);
-    
-    // Remove it from the DOM after the 1.5s animation finishes
-    setTimeout(() => {
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-    }, 1500);
-}
-
-        function openQuiz() {
-            closeModals();
-            lockScroll();
-            
-            // Resume previous streak if it exists
-            if (appData.quizStreak !== undefined) quizStreak = appData.quizStreak;
-            
-            document.getElementById('quiz-difficulty-select').value = quizDifficultySetting;
-            document.getElementById('quiz-modal').style.display = 'flex';
-            
-            // Only generate a new question if the last one was answered or if the container is empty
-            const container = document.getElementById('quiz-content');
-            if (container.innerHTML.trim() === '' || isQuizAnswered) {
-                generateQuizQuestion();
-            } else {
-                // Just update the display to reflect resumed streak
-                document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
-            }
-        }
-
-        function changeQuizDifficulty(val) {
-            quizDifficultySetting = val;
-            quizStreak = 0; 
-            appData.quizStreak = 0;
-            saveData();
-            generateQuizQuestion();
-        }
-
-        function closeQuiz() { 
-            // Save state and open DDx instead of closing to main menu
-            appData.quizStreak = quizStreak;
-            saveData();
-            openDDx(); 
-        }
-
-        function openDDxFromQuiz() {
-            // Transfer the exact features from the vignette to the DDx Search
-            ddxSelectedSymptoms = [...currentQuizFeatures];
-            appData.ddxSelectedSymptoms = ddxSelectedSymptoms;
-            saveData();
-            openDDx(); // Opens DDx displaying all the generated features
-        }
-
-        
-        function playQuizAudio(isCorrect, isMilestone = false) {
-    if (!audioCtx) initAudio(); if (!audioCtx) return;
-    try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        
-        if (isCorrect) {
-            if (isMilestone) {
-                // Special Milestone Sound (Triumphant Arpeggio)
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);       // C5
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
-                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
-                osc.frequency.setValueAtTime(1046.50, audioCtx.currentTime + 0.3); // C6
-                gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
-            } else {
-                // Standard Correct Sound
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
-                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); 
-                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); 
-                gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
-            }
-        } else {
-            // Standard Wrong Sound
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-        }
-    } catch(e) {}
-}
-
-        function shootConfetti() {
-            const colors = ['#22c55e', '#3b82f6', '#eab308', '#ef4444', '#a855f7', '#ec4899'];
-            const shapes = ['50%', '2px']; // mix of circles and squares
-            for (let i = 0; i < 60; i++) {
-                let conf = document.createElement('div');
-                conf.className = 'confetti';
-                conf.style.left = Math.random() * 100 + 'vw';
-                conf.style.width = (Math.random() * 8 + 6) + 'px';
-                conf.style.height = (Math.random() * 12 + 6) + 'px';
-                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                conf.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)];
-                conf.style.animationDuration = (Math.random() * 2 + 1.5) + 's';
-                conf.style.animationDelay = (Math.random() * 0.5) + 's';
-                document.body.appendChild(conf);
-                setTimeout(() => conf.remove(), 4000);
-            }
-        }
-
-        function getRandomQuizItems(arr, min, max) {
-            if (!arr || arr.length === 0) return [];
-            let count = Math.floor(Math.random() * (max - min + 1)) + min;
-            count = Math.min(count, arr.length);
-            return [...arr].sort(() => 0.5 - Math.random()).slice(0, count);
-        }
-
-        
-
-        function showQuizHint() {
-            if (availableHints.length > 0) {
-                const hint = availableHints.pop();
-                document.getElementById('quiz-hint-box').innerHTML += `<div style="margin-top:8px; color:var(--primary-dark); font-weight:700;">💡 Hint: ${hint}</div>`;
-            }
-            if (availableHints.length === 0) {
-                document.getElementById('quiz-hint-btn').disabled = true;
-                document.getElementById('quiz-hint-btn').innerText = "No more hints";
-            }
-        }
-
-      function getQuizAgeNum(ageFeatureStr) {
-            if (!ageFeatureStr) return "45yo";
-            const s = ageFeatureStr.toLowerCase();
-            
-            if (s.includes("< 1 month")) return Math.floor(Math.random() * 28 + 1) + "-day-old";
-            if (s.includes("1 month - 2 years")) return Math.floor(Math.random() * 23 + 1) + "-month-old";
-            if (s.includes("2 - 12 years")) return Math.floor(Math.random() * 11 + 2) + "yo";
-            if (s.includes("12 - 18 years")) return Math.floor(Math.random() * 7 + 12) + "yo";
-            if (s.includes("18 - 40 years")) return Math.floor(Math.random() * 23 + 18) + "yo";
-            if (s.includes("40 - 60 years")) return Math.floor(Math.random() * 21 + 40) + "yo";
-            if (s.includes("> 60 years")) return Math.floor(Math.random() * 25 + 61) + "yo";
-            
-            return ageFeatureStr;
-        }
-
-        function generateQuizQuestion() {
-            const container = document.getElementById('quiz-content');
-            container.innerHTML = '<div style="text-align:center; padding: 40px; color: var(--text-muted);">Generating case...</div>';
-            
-            document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
-
-            const diseases = DDX_DATA.diseases;
-            const targetDisease = diseases[Math.floor(Math.random() * diseases.length)];
-            
-            // 1. Determine Actual Difficulty based on Incremental Rules
-            let actualDiff = quizDifficultySetting;
-            if (actualDiff === 'incremental') {
-                if (quizStreak < 33) actualDiff = 'easy';
-                else if (quizStreak < 66) actualDiff = 'intermediate';
-                else actualDiff = 'hard';
-            }
-
-            // 2. Extract feature strings by their underlying DDx tags
-            const getFeats = (tags) => targetDisease.features.filter(f => tags.includes(f.t)).map(f => f.f);
-            
-            const agePool = getFeats(['age']);
-            const sexPool = getFeats(['sex']);
-            const onsetPool = getFeats(['onset']);
-            const riskPool = getFeats(['risk-factor']);
-            const keyPool = getFeats(['pathognomonic-sp']);
-            const nonSpecPool = getFeats(['nonspecific-sp']);
-            const screenLabPool = getFeats(['screening-lab']);
-            const confLabPool = getFeats(['confirmatory-lab']);
-            const screenRadPool = getFeats(['nonspecific-rad']);
-            const confRadPool = getFeats(['confirmatory-rad']);
-
-            // 3. Process Core Demographics
-            const ageCat = agePool.length ? agePool[Math.floor(Math.random() * agePool.length)] : null;
-            const gender = sexPool.length ? sexPool[Math.floor(Math.random() * sexPool.length)] : null;
-            const onset = onsetPool.length ? onsetPool[Math.floor(Math.random() * onsetPool.length)] : null;
-
-            // Apply Rules to filter contradictory Risk Factors
-            const rules = DDX_DATA.rules || {};
-            let availableRisks = riskPool.filter(risk => {
-                if (rules.excludes) {
-                    if (gender && rules.excludes[gender] && rules.excludes[gender].includes(risk)) return false;
-                    if (gender && rules.excludes[risk] && rules.excludes[risk].includes(gender)) return false;
-                    if (ageCat && rules.excludes[ageCat] && rules.excludes[ageCat].includes(risk)) return false;
-                    if (ageCat && rules.excludes[risk] && rules.excludes[risk].includes(ageCat)) return false;
-                }
-                return true;
-            });
-            const selectedRisks = getRandomQuizItems(availableRisks, 1, 1);
-
-// 4. Extract Features Based on Difficulty Logic
-            let selectedKey = [], selectedNonSpec = [], selectedLabs = [], selectedRads = [];
-            
-            // Combine lab/rad pools so we can pick "1 lab OR 1 rad"
-            const nonSpecInvPool = [...screenLabPool, ...screenRadPool];
-            const specInvPool = [...confLabPool, ...confRadPool];
-            let tempInv = []; // Temporary holding array for selected investigations
-            
-            if (actualDiff === 'easy') {
-                selectedKey = getRandomQuizItems(keyPool, 1, 3);
-                selectedNonSpec = getRandomQuizItems(nonSpecPool, 1, 2);
-                tempInv.push(...getRandomQuizItems(nonSpecInvPool, 1, 1));
-                tempInv.push(...getRandomQuizItems(specInvPool, 1, 1));
-            } else if (actualDiff === 'intermediate') {
-                selectedKey = getRandomQuizItems(keyPool, 1, 2);
-                selectedNonSpec = getRandomQuizItems(nonSpecPool, 2, 3);
-                tempInv.push(...getRandomQuizItems(nonSpecInvPool, 1, 1));
-            } else {
-                // Hard
-                selectedKey = getRandomQuizItems(keyPool, 1, 1);
-                selectedNonSpec = getRandomQuizItems(nonSpecPool, 3, 4);
-                tempInv.push(...getRandomQuizItems(screenLabPool, 1, 1)); // Exclusively non-spec LAB
-            }
-
-            // Distribute the chosen investigations back into Labs and Rads for the sentence builder
-            tempInv.forEach(inv => {
-                if (screenLabPool.includes(inv) || confLabPool.includes(inv)) selectedLabs.push(inv);
-                else selectedRads.push(inv);
-            });
-
-            // Gather all actual utilized properties for the scoring engine
-            let allSelectedFeatures = [
-                ageCat, gender, onset, ...selectedRisks, 
-                ...selectedKey, ...selectedNonSpec, ...selectedLabs, ...selectedRads
-            ].filter(Boolean); // Filters out any null/undefined/empty strings
-
-            // 5. Score Vignette using the universal engine
-            const scoreVignette = (features) => {
-                return calculateDiseaseScores(features).sort((a, b) => b.score - a.score);
-            };
-
-            currentQuizFeatures = [...allSelectedFeatures];
-            isQuizAnswered = false; 
-
-            let scoredDiseases = scoreVignette(allSelectedFeatures);
-            let targetScoreObj = scoredDiseases.find(d => d.name === targetDisease.name);
-            
-            // Validate: if target isn't #1, inject key characteristics to fix it
-            let loopProtect = 0;
-            while (scoredDiseases[0].name !== targetDisease.name && loopProtect < 5) {
-                let missingKey = keyPool.filter(f => !allSelectedFeatures.includes(f));
-                let missingSpecLab = confLabPool.filter(f => !allSelectedFeatures.includes(f));
-                
-                if (missingSpecLab.length > 0) {
-                    allSelectedFeatures.push(missingSpecLab[0]);
-                    selectedLabs.push(missingSpecLab[0]);
-                } else if (missingKey.length > 0) {
-                    allSelectedFeatures.push(missingKey[0]);
-                    selectedKey.push(missingKey[0]);
-                } else {
-                    break;
-                }
-                scoredDiseases = scoreVignette(allSelectedFeatures);
-                targetScoreObj = scoredDiseases.find(d => d.name === targetDisease.name);
-                loopProtect++;
-            }
-
-            let targetScore = targetScoreObj ? targetScoreObj.score : 0;
-            let distractorsOnly = scoredDiseases.filter(d => d.name !== targetDisease.name && d.score >= 0);
-
-            // 6. Select Distractors via Point Differentials
-            let distractorPool = [];
-            let gapOffset = 0; 
-            
-            while (distractorPool.length < 3 && gapOffset <= targetScore) {
-                if (actualDiff === 'easy') {
-                    // Starts at 3+ points below target
-                    distractorPool = distractorsOnly.filter(d => d.score <= (targetScore - 3) + gapOffset);
-                } else if (actualDiff === 'intermediate') {
-                    // Starts exactly 1-3 points below target
-                    distractorPool = distractorsOnly.filter(d => d.score >= (targetScore - 3 - gapOffset) && d.score <= (targetScore - 1 + gapOffset));
-                } else {
-                    // Starts at exact same score (0 difference)
-                    distractorPool = distractorsOnly.filter(d => d.score >= (targetScore - gapOffset) && d.score <= (targetScore + gapOffset));
-                }
-                
-                if (distractorPool.length >= 3) break;
-                gapOffset++; // Decrease the point range strictness incrementally by 1
-            }
-
-            // Fallback protection if pool remains too small
-            if (distractorPool.length < 3) distractorPool = distractorsOnly.slice(0, 3);
-            let chosenDistractors = getRandomQuizItems(distractorPool, 3, 3);
-
-            // 7. Extract Hints
-            availableHints = [];
-            let missingKeys = keyPool.filter(f => !selectedKey.includes(f));
-            let missingSpecLabs = confLabPool.filter(f => !selectedLabs.includes(f));
-            let missingSpecRads = confRadPool.filter(f => !selectedRads.includes(f));
-            
-            if (actualDiff === 'easy') {
-                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
-                if (missingSpecLabs.length > 0) availableHints.push(missingSpecLabs[0] + " (Lab test)");
-                if (missingSpecRads.length > 0) availableHints.push(missingSpecRads[0] + " (Imaging)");
-            } else if (actualDiff === 'intermediate') {
-                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
-                if (missingSpecLabs.length > 0) availableHints.push(missingSpecLabs[0] + " (Lab test)");
-            } else {
-                // Hard: Only key features allowed as hints
-                if (missingKeys.length > 0) availableHints.push(missingKeys[0]);
-            }
-            
-            // Randomize the hints and the hint button will pop them out 1 by 1
-            availableHints = availableHints.sort(() => 0.5 - Math.random());
-
-// 8. Build Sentences
-            let ageStr = ageCat ? getQuizAgeNum(ageCat) : "45yo"; 
-            let genderStr = gender ? gender.toLowerCase() : "";
-            
-            let subject = `A ${ageStr}`;
-            if (genderStr) subject += ` ${genderStr}`;
-            subject += ` patient`;
-            
-            // Smart formatter: "A, B, and C" instead of "A and B and C"
-            const formatList = (arr) => {
-                if (!arr || arr.length === 0) return "";
-                if (arr.length === 1) return arr[0];
-                if (arr.length === 2) return arr.join(" and ");
-                return arr.slice(0, -1).join(", ") + ", and " + arr[arr.length - 1];
-            };
-
-            // NEW: Deduplication filter - removes "cough" if "productive cough" is also present
-            const deduplicateFeatures = (arr) => {
-                return arr.filter((item, idx) => {
-                    return !arr.some((other, otherIdx) => 
-                        idx !== otherIdx && 
-                        other.toLowerCase().includes(item.toLowerCase())
-                    );
-                });
-            };
-
-            if (selectedRisks.length > 0) {
-                subject += ` with ${formatList(deduplicateFeatures(selectedRisks))}`;
-            }
-            
-            let onsetStr = onset ? `${onset.toLowerCase()} ` : "";
-            let presentFeats = [...selectedKey, ...selectedNonSpec];
-            
-            // Apply deduplication to the symptoms
-            presentFeats = deduplicateFeatures(presentFeats);
-            
-            let caseText = `${subject}, complains of ${onsetStr}${formatList(presentFeats)}. `;
-            
-            // Combine Labs and Radiology into a single array for a unified sentence
-            let investigations = [...selectedLabs, ...selectedRads];
-            
-            // Apply deduplication to the investigations
-            investigations = deduplicateFeatures(investigations);
-            
-            if (investigations.length > 0) {
-                caseText += `Investigations revealed ${formatList(investigations)}. `;
-            }
-            
-            caseText += `<div id="quiz-hint-box" style="margin-bottom: 15px;"></div>`;
-            caseText += `<b style="color: var(--primary-dark); font-size: 1.05rem;">What is the most probable diagnosis?</b>`;
-
-            let options = [
-                { text: targetDisease.name, isCorrect: true },
-                ...chosenDistractors.map(d => ({ text: d.name, isCorrect: false }))
-            ].sort(() => 0.5 - Math.random());
-
-            currentQuizCorrectIndex = options.findIndex(o => o.isCorrect);
-
-            // 9. Output Layout
-            let badgeText = actualDiff === 'intermediate' ? 'Intermediate' : actualDiff;
-            let headerHtml = `
-                <div class="quiz-q-header">
-                    <div class="quiz-diff-badge ${actualDiff}">${badgeText}</div>
-                    <button class="quiz-hint-btn" id="quiz-hint-btn" onclick="showQuizHint()" ${availableHints.length === 0 ? 'disabled' : ''}>💡 Hint</button>
-                </div>
-            `;
-
-            let html = `<div class="quiz-question">${headerHtml}${caseText}</div><div class="quiz-options-grid">`;
-            options.forEach((opt, index) => {
-                html += `<button class="quiz-option" id="quiz-opt-${index}" onclick="handleQuizAnswer(${index}, ${opt.isCorrect})">${opt.text}</button>`;
-            });
-            
-            html += `</div><div class="quiz-footer">
-                        <button class="btn-main" id="quiz-next-btn" style="visibility: hidden; width: 100%; margin: 0; font-size: 1.15rem;" onclick="generateQuizQuestion()">Next Question ➔</button>
-                     </div>`;
-
-            container.innerHTML = html;
-        }
-
-
-        function handleQuizAnswer(selectedIndex, isCorrect) {
-    isQuizAnswered = true; // Mark question as answered
-    
-    const btns = document.querySelectorAll('.quiz-option');
-    btns.forEach(b => b.disabled = true);
-    
-    const streakDisplay = document.getElementById('quiz-round-display');
-
-if (isCorrect) {
-        quizStreak++;
-        let isMilestone = (quizStreak > 0 && quizStreak % 5 === 0);
-        
-        playQuizAudio(true, isMilestone);
-        document.getElementById(`quiz-opt-${selectedIndex}`).classList.add('correct');
-        shootConfetti(); 
-        
-        streakDisplay.innerText = `Streak 🔥 ${quizStreak}`;
-        if (isMilestone) {
-            streakDisplay.classList.add('streak-celebrate');
-            triggerEncouragement(quizStreak); // <--- ADDED HERE
-            setTimeout(() => streakDisplay.classList.remove('streak-celebrate'), 600);
-        }
-    } else {
-        quizStreak = 0; // Reset streak on wrong answer
-        playQuizAudio(false);
-        streakDisplay.innerText = `Streak 🔥 0`;
-        document.getElementById(`quiz-opt-${selectedIndex}`).classList.add('wrong');
-        document.getElementById(`quiz-opt-${currentQuizCorrectIndex}`).classList.add('correct');
-    }
-    
-    // Save streak progress to persistent storage
-    appData.quizStreak = quizStreak;
-    saveData();
-    
-    // Transform Hint button to "See DDx" instead of disabling it
-    const hintBtn = document.getElementById('quiz-hint-btn');
-    hintBtn.innerHTML = "🧠 See DDx";
-    hintBtn.disabled = false;
-    hintBtn.onclick = openDDxFromQuiz;
-    
-    document.getElementById('quiz-next-btn').style.visibility = 'visible';
-}
 
 // =============================================
 // SERVICE WORKER REGISTRATION & AUTO-UPDATE
