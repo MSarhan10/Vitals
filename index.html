@@ -1123,15 +1123,15 @@ html.modal-open, body.modal-open {
         <h2 style="color: var(--primary); margin-top: 0; display: flex; align-items: center; gap: 8px;">🔑 API Key Guide</h2>
         
         <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: var(--text-main); margin-bottom: 20px; background: var(--bg); padding: 16px; border-radius: 12px; border: 1px solid var(--divider);">
-            <div style="margin-bottom: 12px;"><b>1️⃣</b> Tap the button below to go to the Groq Console.</div>
+            <div style="margin-bottom: 12px;"><b>1️⃣</b> Tap the button below to go to <b>Google AI Studio</b>.</div>
             <div style="margin-bottom: 12px;"><b>2️⃣</b> Log in securely with your <b>Google account</b>.</div>
-            <div style="margin-bottom: 12px;"><b>3️⃣</b> Tap <b>"Create API Key"</b>.</div>
-            <div style="margin-bottom: 12px;"><b>4️⃣</b> <b>Copy the key</b> and save it somewhere safe so you don't lose it.</div>
+            <div style="margin-bottom: 12px;"><b>3️⃣</b> Tap <b>"Get API Key"</b> and create a new one.</div>
+            <div style="margin-bottom: 12px;"><b>4️⃣</b> <b>Copy the key</b> (it starts with AIza...).</div>
             <div><b>5️⃣</b> Come back here and paste it into the app!</div>
         </div>
         
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button class="btn-main" onclick="window.open('https://console.groq.com/keys', '_blank')" style="display: flex; align-items: center; justify-content: center; gap: 8px;">🔗 Get API Key</button>
+            <button class="btn-main" onclick="window.open('https://aistudio.google.com/app/apikey', '_blank')" style="display: flex; align-items: center; justify-content: center; gap: 8px;">🔗 Get API Key</button>
             <button class="btn-secondary" onclick="closeApiInstructionsModal()">Got it!</button>
         </div>
     </div>
@@ -1264,19 +1264,18 @@ html.modal-open, body.modal-open {
             <div style="font-size: 3.5rem; margin-bottom: 15px;">🔑</div>
             <h3 style="color: var(--primary-dark); margin-bottom: 10px; font-size: 1.4rem;">API Key Required</h3>
             <p style="color: var(--text-muted); margin-bottom: 25px; line-height: 1.5; font-size: 1.05rem;">
-                You need a free Groq API key to power the AI DDx and Quiz features. This keeps the app completely free and offline-first!
+                You need a free Google Gemini API key to power the AI DDx and Quiz features.
             </p>
             
-            <!-- THIS BUTTON WAS UPDATED -->
             <button class="btn-secondary" style="margin-bottom: 15px; width: 100%;" onclick="openApiInstructionsModal()">❓ How to get one</button>
             
             <button class="btn-main" onclick="showApiKeyInput()" style="width: 100%;">✍️ Enter your API key</button>
             
-<div id="ddx-api-input-area" style="display: none; margin-top: 20px; background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--divider);">
-                <!-- Changed to type="text" so mobile keyboards allow easy pasting -->
-                <input type="text" id="ddx-api-key-input" placeholder="Paste your gsk_... key here" style="width: 100%; margin-bottom: 15px; font-family: monospace;">
+            <div id="ddx-api-input-area" style="display: none; margin-top: 20px; background: var(--surface); padding: 15px; border-radius: 12px; border: 1px solid var(--divider);">
+                <input type="text" id="ddx-api-key-input" placeholder="Paste your AIza... key here" style="width: 100%; margin-bottom: 15px; font-family: monospace;">
                 <button class="btn-main" onclick="saveApiKey()" style="width: 100%;">Save Key</button>
-            </div></div>
+            </div>
+        </div>
 
     <!-- STATE 2: Main DDx Interface -->
     <div id="ddx-main-interface" style="display: none; flex-direction: column; flex-grow: 1; height: 100%;">
@@ -1300,7 +1299,7 @@ html.modal-open, body.modal-open {
         </div>
         
         <!-- Floating Quiz Button inside DDx -->
-        <button onclick="openQuiz()" style="position: absolute; bottom: 30px; right: 20px; background: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;">💡 Quiz Me</button>
+        <button onclick="openQuiz()" style="position: absolute; bottom: 10px; right: 10px; background: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;">💡 Quiz Me</button>
     </div>
 </div>
 
@@ -3311,7 +3310,8 @@ function openDDx() {
     const ddxModal = document.getElementById('ddx-modal');
     ddxModal.style.display = 'flex';
     
-    if (!appData.settings.groqKey) {
+    // <-- CHANGE groqKey to geminiKey HERE
+    if (!appData.settings.geminiKey) { 
         document.getElementById('ddx-main-interface').style.display = 'none';
         document.getElementById('ddx-api-setup').style.display = 'block';
         document.getElementById('ddx-api-input-area').style.display = 'none';
@@ -3363,7 +3363,7 @@ function saveApiKey() {
     if (!key) return showToast("Key cannot be empty");
     
     if (!appData.settings) appData.settings = {};
-    appData.settings.groqKey = key;
+    appData.settings.geminiKey = key; // <-- CHANGE THIS FROM groqKey
     saveData();
     
     showToast("API Key Saved! 🔑");
@@ -3371,13 +3371,14 @@ function saveApiKey() {
 }
 
 function promptResetApiKey() {
-    if (!appData.settings.groqKey) {
+    // <-- CHANGE groqKey to geminiKey HERE
+    if (!appData.settings.geminiKey) {
         showToast("No API key saved to reset.");
         return;
     }
     
     if (confirm("Are you sure you want to remove your saved API Key?")) {
-        appData.settings.groqKey = "";
+        appData.settings.geminiKey = ""; // <-- CHANGE groqKey to geminiKey HERE
         saveData();
         showToast("API Key removed 🗑️");
         
@@ -3420,207 +3421,500 @@ function clearDDx() {
 // =============================================
 // AI API CONFIGURATION & ERROR HANDLING
 // =============================================
-async function fetchGroqAI(prompt, systemInstruction = "You are an expert medical AI.") {
-    if (!navigator.onLine) {
-        showToast("📴 Offline. This feature needs an internet connection.");
+async function fetchGeminiAI(prompt, systemInstruction = "You are an expert medical AI.", model = "gemini-2.5-flash", silent = false, jsonMode = true) {
+    if (!navigator.onLine) { 
+        if (!silent) showToast("📴 Offline. This feature needs internet."); 
+        return null; 
+    }
+    
+    const apiKey = appData.settings.geminiKey;
+    if (!apiKey) {
+        if (!silent) showToast("🔑 No API key saved. Please enter your Google AI Studio key.");
         return null;
     }
 
-    const apiKey = appData.settings.groqKey;
-    if (!apiKey) return null;
+    // Google's Official OpenAI Compatibility Endpoint
+    const body = {
+        model: model,
+        messages:[
+            { role: "system", content: systemInstruction },
+            { role: "user", content: prompt }
+        ],
+        temperature: 0.35
+    };
+    
+    // Enforce JSON output if requested
+    if (jsonMode) body.response_format = { type: "json_object" };
 
     try {
-        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
             method: "POST",
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "Content-Type": "application/json"
+            headers: { 
+                "Authorization": `Bearer ${apiKey}`, 
+                "Content-Type": "application/json" 
             },
-            body: JSON.stringify({
-                model: "openai/gpt-oss-120b", // Using best model
-                messages: [
-                    { role: "system", content: systemInstruction },
-                    { role: "user", content: prompt }
-                ],
-                response_format: { type: "json_object" },
-                temperature: 0.2
-            })
+            body: JSON.stringify(body)
         });
-
+        
         if (!response.ok) {
             if (response.status === 401) {
-                showToast("❌ Invalid API Key. Please check it.");
-                appData.settings.groqKey = "";
+                if (!silent) showToast("❌ Invalid API Key.");
+                appData.settings.geminiKey = "";
                 saveData();
-                openDDx();
-            } else if (response.status === 429) {
-                showToast("⏳ Free rate limit reached! Please wait a minute and try again.");
-            } else if (response.status === 403 || response.status === 402) {
-                showToast("💳 API Quota exceeded. Check your Groq dashboard.");
-            } else {
-                showToast(`❌ API Error: ${response.status}`);
+            } else if (!silent) {
+                if (response.status === 404) console.error("Model not found:", model);
+                else if (response.status === 429) showToast("⏳ Rate limit reached. Wait a moment.");
+                else showToast(`❌ API Error: ${response.status}`);
             }
             throw new Error("API Error: " + response.status);
         }
         
         const data = await response.json();
-        let jsonStr = data.choices[0].message.content;
-        jsonStr = jsonStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+        let content = data.choices[0].message.content;
         
-        return JSON.parse(jsonStr);
-    } catch (error) {
-        console.error("AI Fetch Error:", error);
-        return null;
+        if (!jsonMode) return content.trim();
+        
+        // Clean markdown backticks if the AI accidentally includes them
+        content = content.replace(/```json/gi, '').replace(/```/g, '').trim();
+        return JSON.parse(content);
+    } catch (error) { 
+        console.error(`[Gemini:${model}] Fetch Error:`, error); 
+        return null; 
     }
 }
 
+async function fetchGeminiWithFallback(prompt, systemInstruction, models, jsonMode = true) {
+    if (!appData.settings.geminiKey) return null; // key check already toasted in fetchGeminiAI
+    for (let i = 0; i < models.length; i++) {
+        const isLast = i === models.length - 1;
+        const result = await fetchGeminiAI(prompt, systemInstruction, models[i], true, jsonMode);
+        if (result) return result;
+        if (isLast) showToast("⏳ All models busy or failed. Please try again in a moment.");
+    }
+    return null;
+}
 // =============================================
-// AI DDx GENERATOR (SORTED & COMPREHENSIVE)
+// AI DDx GENERATOR — TWO-STEP PIPELINE v4
+// Fixes:
+// - Removed overflow:hidden from card wrappers (was clipping <details> on mobile)
+// - Fixed <summary> display:flex on iOS Safari (-webkit-appearance:none added via inline)
+// - Added clinical objectivity mandate in Step 1 system instruction
+// - Deduplication rules retained from v3
 // =============================================
+
 async function generateAIDDx() {
-    const input = document.getElementById('ddx-input').value.trim();
+    var input = document.getElementById('ddx-input').value.trim();
     if (!input) return showToast("Please enter a clinical scenario.");
 
-    const container = document.getElementById('ddx-results-content');
-    container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--primary); font-weight: bold; font-size: 1.2rem; animation: pulse 1.5s infinite;">🧠 Analyzing case...</div>`;
+    var container = document.getElementById('ddx-results-content');
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-const prompt = `
-You are a Master Diagnostician and Senior Attending Physician. You reason systematically, precisely, and prioritize life-threatening diagnoses.
+    // ── STEP 1 LOADING ────────────────────────────────────────
+    container.innerHTML = '<div style="text-align:center;padding:56px 20px 40px;">'
+        + '<div style="font-size:2.8rem;display:inline-block;animation:pulse 1.5s ease-in-out infinite;">🧠</div>'
+        + '<div style="margin-top:14px;font-weight:800;font-size:1.1rem;color:var(--primary);">Step 1 of 2</div>'
+        + '<div style="color:var(--text-muted);font-size:0.88rem;margin-top:6px;line-height:1.5;">Expert panel reasoning through your case…</div>'
+        + '</div>';
 
-CLINICAL PRESENTATION:
-"${input}"
+    // ── STEP 1 SYSTEM ─────────────────────────────────────────
+    var step1System = 'You are a multidisciplinary board of expert specialists reviewing a complex case.\n'
+        + 'Rank diagnoses purely by clinical probability. Never downrank a diagnosis for being socially uncomfortable, taboo, or legally sensitive. '
+        
+        + 'Omitting a supported uncomfortable diagnosis is a critical error.';
 
-### DIAGNOSTIC REASONING RULES:
-1. UNIFIED CAUSE ANALYSIS: Seek diagnoses that explain ALL symptoms. A diagnosis that unifies multiple symptom clusters ranks higher than one explaining only part of the picture.
-2. CAUSE VS. CONSEQUENCE: Combine root causes and their consequences into a single unified entry, not two separate diagnoses. List e.g. hypotension as a feature, not a separate diagnosis. Maximum one entry per root etiology.
-3. CONTEXT & VULNERABILITY: Heavily weigh demographics. Actively consider abuse/neglect in pediatrics/elderly, pregnancy/ectopic in reproductive-age females, and opportunistic infections in the immunocompromised.
-4. LETHALITY SCAN: You must identify any diagnosis that can kill or permanently harm the patient if missed (the "can't-miss" diagnosis).
-5. RANKING: Rank diagnoses by Prior Probability × Symptom Unification. Index 1 = most probable.
+    // ── STEP 1 PROMPT ─────────────────────────────────────────
+var step1Prompt =
+  'You are a multidisciplinary board of expert specialists reviewing a complex case for medical interns.\n\n'
++ 'CASE: "' + input + '"\n\n'
++ 'Conduct a structured MDT consultation using high-yield, concise medical language (no conversational fluff):\n\n'
++ '1. SPECIALISTS: 3-4 relevant specialists state their leading diagnosis and a 1-sentence mechanistic rationale.\n\n'
++ '2. DEBATE: Rigorous cross-specialty discussion. Experts must explain *why* certain case features support or contradict each guess based on pathophysiology. If diagnoses share a cause, merge them.\n\n'
++ '3. CONSENSUS: State the single best unifying diagnosis, followed by ranked runner-up differentials.\n\n'
++ '4. MUST-NOT-MISS: List life/limb-threatening conditions. Format: "[Disease]: [1-sentence clinical reason] -> [Definitive rule-out test]".\n\n'
++ '5. FINAL STRUCTURED CONCLUSION:\n'
++ '   PRIMARY DX: [Merged unified diagnosis]\n'
++ '   WHY UNIFIED: [1-2 sentences explaining how this diagnosis uniquely accounts for the specific combination of findings]\n'
++ '   RUNNER-UPS: [Numbered list of distinct differentials with a 1-sentence distinguishing rationale each]\n'
++ '   EXCLUDED: [List of rejected diagnoses with a 1-sentence reason why they were clinically ruled out]\n\n'
++ 'Use only provided data. No hallucinated findings.';
 
-### OUTPUT INSTRUCTIONS:
-- Output ONLY raw, valid JSON. Do not use markdown code fences (no \`\`\`json).
-- Follow the exact JSON schema provided below.
-- "confidence" must be exactly "High", "Medium", or "Low".
-- "red_flags" must contain items ONLY if "is_life_threatening" is true. Otherwise, leave it as an empty array [].
-
-{
-  "clinical_thought_process": "Briefly think through the VINDICATE framework, demographic risks, and unified cause vs consequence rules for this specific patient before listing diagnoses.",
-  "clinical_summary": "One sentence: chief complaint + 3 most salient findings.",
-  "unified_hypothesis": "One sentence: the single diagnosis that best explains the most findings together.",
-  "can_not_miss_flag": "Name of the life-threatening diagnosis that must be ruled out first.",
-  "diagnoses": [
-    {
-      "rank": 1,
-      "disease_name": "Brief Title",
-      "confidence": "High",
-      "is_life_threatening": false,
-      "clinical_reasoning": "1-2 brief sentences explaining WHY this fits THIS patient using specific findings.",
-      "distinctive_features": ["Classic hallmark 1 pointing to this dx", "Classic hallmark 2"],
-      "next_steps_to_differentiate": ["Specific test to confirm or rule out 1", "Specific test 2"],
-      "red_flags": []
-    }
-  ]
-}
-`;
-
-    const result = await fetchGroqAI(prompt);
+var step1Result = await fetchGeminiWithFallback(step1Prompt, step1System, [
+"gemini-3.1-flash-lite-preview", // Insanely fast, but strict 5 RPM limit
+    "gemini-2.5-flash-lite", // Extremely fast, gives you 15 RPM on the Free Tier
+    "gemini-2.5-flash"     // Great medical reasoning, gives you 10 RPM
     
-    if (!result || !result.diagnoses) {
-        container.innerHTML = `<div style="text-align:center; padding: 40px; color: #ef4444; font-weight:bold;">Failed to generate DDx. Please check your API key or internet connection.</div>`;
+], false);
+
+    if (!step1Result ) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#ef4444;font-weight:800;font-size:1rem;">'
+            + '❌ Clinical analysis failed.<br>'
+            + '<span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);">Check your API key or internet connection and try again.</span>'
+            + '</div>';
         return;
     }
 
-    // Auto-Collapse input
+    // ── STEP 2 LOADING ────────────────────────────────────────
+    container.innerHTML = '<div style="text-align:center;padding:56px 20px 40px;">'
+        + '<div style="font-size:2.8rem;display:inline-block;animation:pulse 1.5s ease-in-out infinite;">📝</div>'
+        + '<div style="margin-top:14px;font-weight:800;font-size:1.1rem;color:var(--primary);">Step 2 of 2</div>'
+        + '<div style="color:var(--text-muted);font-size:0.88rem;margin-top:6px;line-height:1.5;">Writing your case report…</div>'
+        + '</div>';
+
+    // ── STEP 2 PROMPT ─────────────────────────────────────────
+var step2Prompt =
+  'You are a clinical JSON formatter creating an educational DDx report for medical interns. Use high-yield, concise medical language (UpToDate/Amboss style).\n\n'
++ 'INPUT:\n' + step1Result + '\n\n'
++ 'STRUCTURE RULES:\n'
++ '- PRIMARY DX from conclusion is rank 1. Do not split merged names.\n'
++ '- RUNNER-UPS become their own ranked entries.\n'
++ '- EXCLUDED diagnoses must NOT appear in the array.\n\n'
++ 'ENRICHMENT RULES (EDUCATIONAL BUT CONCISE):\n'
++ '- problem_representation: 1-2 sentences summarizing the core clinical picture.\n'
++ '- reasoning_narrative: 2-3 sentences explaining exactly how the primary diagnosis ties the patient\'s specific symptoms together pathophysiologically.\n'
++ '- pathophys_link: 1-2 sentences explaining the biological mechanism of this disease as it relates to this presentation.\n'
++ '- contradicting_evidence: Bullet points. Explain *why* a finding points away from this dx (e.g., "The insidious onset makes an acute vascular event less likely"). Empty array [] if none.\n'
++ '- management: Mainstay standard-of-care treatments.\n'
++ '- key_features: Short clinical tags (e.g., "RLQ pain", "Leukocytosis").\n'
++ '- emoji: One relevant emoji per diagnosis.\n'
++ '- likelihood: Exactly "High Likelihood", "Moderate Likelihood", or "Low Likelihood".\n'
++ '- red_flags: Clinical danger signs intrinsic to the disease. Empty array [] if benign.\n'
++ '- immediate_next_steps: Concrete action steps (labs, imaging, consults, initial meds).\n\n'
++ 'OUTPUT EXACTLY THIS JSON:\n'
++ '{\n'
++ '  "reasoning_narrative": "",\n'
++ '  "problem_representation": "",\n'
++ '  "key_features": ["", ""],\n'
++ '  "diagnoses": [\n'
++ '    {\n'
++ '      "rank": 1,\n'
++ '      "name": "",\n'
++ '      "emoji": "",\n'
++ '      "likelihood": "High Likelihood",\n'
++ '      "pathophys_link": "",\n'
++ '      "supporting_evidence": [""],\n'
++ '      "contradicting_evidence": [""],\n'
++ '      "red_flags": [],\n'
++ '      "workup": [""],\n'
++ '      "management": ""\n'
++ '    }\n'
++ '  ],\n'
++ '  "immediate_next_steps": ["", ""]\n'
++ '}';
+
+var enriched = await fetchGeminiWithFallback(step2Prompt,
+    "You are a clinical formatting AI. Output only valid JSON.",
+    [
+"gemini-2.5-flash-lite", // Extremely fast, gives you 15 RPM on the Free Tier
+    "gemini-2.5-flash",      // Great medical reasoning, gives you 10 RPM
+    "gemini-3.1-flash-lite-preview" // Insanely fast, but strict 5 RPM limit
+]);
+
+    var finalData = (enriched && enriched.diagnoses && Array.isArray(enriched.diagnoses)) ? enriched : step1Result;
+
+    if (!finalData.immediate_next_steps || !Array.isArray(finalData.immediate_next_steps) || finalData.immediate_next_steps.length === 0) {
+        finalData.immediate_next_steps = (step1Result.immediate_next_steps && Array.isArray(step1Result.immediate_next_steps))
+            ? step1Result.immediate_next_steps : [];
+    }
+
+    // ── RENDER ────────────────────────────────────────────────
     document.getElementById('ddx-input-container').style.display = 'none';
     document.getElementById('ddx-edit-bar').style.display = 'flex';
-    document.getElementById('ddx-snippet-text').innerText = `"${input.substring(0, 45)}..."`;
+    document.getElementById('ddx-snippet-text').innerText = '"' + input.substring(0, 50) + '..."';
 
-    let html = '';
-    result.diagnoses.forEach(d => {
-        
-        // 1. Key Features (Golden Box - Collapsible)
-        let featuresHtml = '';
-        if (d.distinctive_features && d.distinctive_features.length > 0) {
-            let list = d.distinctive_features.map(f => `<li style="margin-bottom: 4px;">${f}</li>`).join('');
-            featuresHtml = `
-            <details style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.5); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
-                <summary style="font-size: 0.8rem; font-weight: 800; color: #b45309; text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🔑 Keywords
-                </summary>
-                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
-                    ${list}
-                </ul>
-            </details>`;
+    try {
+        container.innerHTML = renderAIDDxAnalysis(finalData, isDark);
+    } catch (e) {
+        container.innerHTML = '<div style="padding:16px;">'
+            + '<div style="color:#ef4444;font-weight:800;margin-bottom:12px;">❌ Render failed. Raw data from AI:</div>'
+            + '<pre style="background:var(--surface);border:1px solid var(--divider);border-radius:8px;padding:12px;font-size:0.7rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all;color:var(--text-main);">'
+            + JSON.stringify(finalData, null, 2)
+            + '</pre></div>';
+    }
+}
+
+function renderAIDDxAnalysis(data, isDark) {
+
+    var C = {
+        High:     isDark ? { bg:'#064e3b', text:'#6ee7b7', border:'#10b981' }
+                         : { bg:'#dcfce7', text:'#15803d', border:'#4ade80' },
+        Moderate: isDark ? { bg:'#3b2800', text:'#fde68a', border:'#a16207' }
+                         : { bg:'#fef9c3', text:'#854d0e', border:'#fde047' },
+        Low:      isDark ? { bg:'#3b0a0a', text:'#fca5a5', border:'#dc2626' }
+                         : { bg:'#fee2e2', text:'#b91c1c', border:'#fca5a5' },
+    };
+
+    var forBg     = isDark ? 'rgba(16,185,129,0.10)' : 'rgba(34,197,94,0.06)';
+    var forBdr    = isDark ? 'rgba(16,185,129,0.30)' : 'rgba(34,197,94,0.30)';
+    var forTxt    = isDark ? '#6ee7b7'               : '#15803d';
+    var againBg   = isDark ? 'rgba(239,68,68,0.10)'  : 'rgba(239,68,68,0.05)';
+    var againBdr  = isDark ? 'rgba(239,68,68,0.30)'  : 'rgba(239,68,68,0.20)';
+    var workupBg  = isDark ? 'rgba(56,189,248,0.08)' : 'rgba(14,165,233,0.05)';
+    var workupBdr = isDark ? 'rgba(56,189,248,0.25)' : 'rgba(14,165,233,0.20)';
+    var workupTxt = isDark ? '#38bdf8'               : '#0369a1';
+    var pathBg    = isDark ? 'rgba(139,92,246,0.08)' : 'rgba(139,92,246,0.04)';
+    var pathBdr   = isDark ? 'rgba(139,92,246,0.25)' : 'rgba(139,92,246,0.15)';
+    var pathTxt   = isDark ? '#c4b5fd'               : '#6d28d9';
+    var mgtBg     = isDark ? 'rgba(16,185,129,0.08)' : 'rgba(34,197,94,0.06)';
+    var mgtBdr    = isDark ? 'rgba(16,185,129,0.25)' : 'rgba(34,197,94,0.20)';
+    var mgtTxt    = isDark ? '#6ee7b7'               : '#166534';
+    var reasonBg  = isDark ? 'rgba(16,185,129,0.06)' : 'rgba(34,197,94,0.04)';
+    var stepsBg   = isDark ? '#0f172a'               : '#f0f9ff';
+    var stepsBdr  = isDark ? '#334155'               : '#bae6fd';
+    var stepsTxt  = isDark ? '#38bdf8'               : '#0369a1';
+    var stepDot   = isDark ? '#0c4a6e'               : '#0284c7';
+
+    // Red flags palette
+    var rfBg      = isDark ? 'rgba(239,68,68,0.10)'  : '#fff1f2';
+    var rfBdr     = isDark ? 'rgba(239,68,68,0.40)'  : 'rgba(239,68,68,0.30)';
+    var rfTxt     = isDark ? '#fca5a5'               : '#b91c1c';
+    var rfTagBg   = isDark ? 'rgba(239,68,68,0.18)'  : 'rgba(239,68,68,0.08)';
+    var rfTagBdr  = isDark ? 'rgba(239,68,68,0.45)'  : 'rgba(239,68,68,0.25)';
+
+    function makeSummary(bg, bdr, color, label) {
+        return '<summary style="'
+            + '-webkit-appearance:none;list-style:none;'
+            + 'display:flex;align-items:center;gap:8px;'
+            + 'cursor:pointer;outline:none;'
+            + 'font-size:0.70rem;font-weight:800;'
+            + 'text-transform:uppercase;letter-spacing:0.5px;'
+            + 'padding:10px 13px;border-radius:10px;'
+            + 'background:' + bg + ';'
+            + 'border:1px solid ' + bdr + ';'
+            + 'color:' + color + ';'
+            + '">' + label + '</summary>';
+    }
+
+    var html = '';
+
+    // ════════════════════════════════════════
+    // 1. CASE BANNER
+    // ════════════════════════════════════════
+    html += '<div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;'
+          + 'padding:18px;border-radius:18px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,0.18);">'
+          + '<div style="font-size:0.60rem;font-weight:800;letter-spacing:1.5px;opacity:0.75;margin-bottom:6px;text-transform:uppercase;">📋 Case Summary</div>'
+          + '<div style="font-size:0.96rem;font-weight:700;line-height:1.55;">' + (data.problem_representation || '') + '</div>'
+          + '</div>';
+
+    // ════════════════════════════════════════
+    // 2. KEY CLUES CHIPS
+    // ════════════════════════════════════════
+    if (data.key_features && data.key_features.length > 0) {
+        var chips = '';
+        data.key_features.forEach(function(f) {
+            var label = (f && f.length > 30) ? f.substring(0, 28) + '…' : (f || '');
+            chips += '<span style="display:inline-block;background:var(--bg);border:1.5px solid var(--divider);'
+                   + 'padding:5px 11px;border-radius:20px;font-size:0.78rem;font-weight:700;'
+                   + 'color:var(--text-main);white-space:nowrap;">' + label + '</span>';
+        });
+        html += '<div style="background:var(--surface);border:1px solid var(--divider);border-radius:14px;padding:13px 15px;margin-bottom:14px;">'
+              + '<div style="font-size:0.60rem;font-weight:800;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:9px;text-transform:uppercase;">🔑 Key Clues From This Case</div>'
+              + '<div style="display:flex;flex-wrap:wrap;gap:7px;">' + chips + '</div>'
+              + '</div>';
+    }
+
+    // ════════════════════════════════════════
+    // 3. DIFFERENTIAL DIAGNOSES
+    // ════════════════════════════════════════
+    html += '<div style="font-size:0.60rem;font-weight:800;letter-spacing:1.2px;color:var(--text-muted);'
+          + 'margin-bottom:10px;padding-left:2px;text-transform:uppercase;">📊 Differential Diagnoses — Ranked by Likelihood</div>';
+
+    var diagnoses = Array.isArray(data.diagnoses) ? data.diagnoses : [];
+
+    diagnoses.forEach(function(d, i) {
+        var rawLik  = (d.likelihood || 'Moderate');
+        var lKey    = rawLik.replace(/\s*likelihood/i, '').trim();
+        var lColors = C[lKey] || C.Moderate;
+        var emoji   = d.emoji || '🩺';
+        var isTop   = i === 0;
+
+        var hasRedFlags = Array.isArray(d.red_flags) && d.red_flags.length > 0;
+
+        var cardStyle = 'background:var(--surface);'
+            + 'border:' + (isTop ? '2px solid var(--primary)' : '1px solid var(--divider)') + ';'
+            + 'border-radius:16px;'
+            + 'margin-bottom:14px;'
+            + 'box-shadow:' + (isTop ? '0 4px 16px rgba(0,0,0,0.10)' : '0 2px 6px rgba(0,0,0,0.03)') + ';';
+
+        var headerAccent = isTop
+            ? (isDark ? 'rgba(16,185,129,0.10)' : 'rgba(34,197,94,0.06)')
+            : 'transparent';
+
+        // ── supporting evidence ──────────────────────────
+        var forBlock = '';
+        if (d.supporting_evidence && d.supporting_evidence.length > 0) {
+            var fi = '';
+            d.supporting_evidence.forEach(function(e) {
+                fi += '<div style="font-size:0.79rem;font-weight:600;color:var(--text-main);line-height:1.45;margin-bottom:3px;">• ' + e + '</div>';
+            });
+            forBlock = '<div style="background:' + forBg + ';border:1px solid ' + forBdr + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+                     + '<div style="font-size:0.60rem;font-weight:800;color:' + forTxt + ';text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">✅ Supporting</div>'
+                     + fi + '</div>';
         }
 
-        // 2. Next Steps / Workup (Neutral/Primary Box - Collapsible)
-        let nextStepsHtml = '';
-        if (d.next_steps_to_differentiate && d.next_steps_to_differentiate.length > 0) {
-            let list = d.next_steps_to_differentiate.map(s => `<li style="margin-bottom: 4px;">${s}</li>`).join('');
-            nextStepsHtml = `
-            <details style="background: var(--bg); border: 1px solid var(--divider); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
-                <summary style="font-size: 0.8rem; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🔬 Workup
-                </summary>
-                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
-                    ${list}
-                </ul>
-            </details>`;
+        // ── contradicting evidence ───────────────────────
+        var againBlock = '';
+        if (d.contradicting_evidence && d.contradicting_evidence.length > 0) {
+            var ai = '';
+            d.contradicting_evidence.forEach(function(e) {
+                ai += '<div style="font-size:0.79rem;font-weight:600;color:var(--text-main);line-height:1.45;margin-bottom:3px;">• ' + e + '</div>';
+            });
+            againBlock = '<div style="background:' + againBg + ';border:1px solid ' + againBdr + ';border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
+                       + '<div style="font-size:0.60rem;font-weight:800;color:#ef4444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">❌ Against</div>'
+                       + ai + '</div>';
         }
 
-        // 3. Red Flags (Red Box - Collapsible)
-        let redFlagsHtml = '';
-        if (d.is_life_threatening && d.red_flags && d.red_flags.length > 0) {
-            let list = d.red_flags.map(f => `<li style="margin-bottom: 4px;">${f}</li>`).join('');
-            redFlagsHtml = `
-            <details style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.5); padding: 10px 12px; border-radius: 12px; margin-bottom: 8px;">
-                <summary style="font-size: 0.8rem; font-weight: 800; color: #dc2626; text-transform: uppercase; cursor: pointer; outline: none; letter-spacing: 0.5px;">
-                    🚨 Red Flags
-                </summary>
-                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--text-main); font-weight: 600;">
-                    ${list}
-                </ul>
-            </details>`;
+        // ── red flags collapsible ────────────────────────
+        var redFlagsBlock = '';
+        if (hasRedFlags) {
+            var rfTags = '';
+            d.red_flags.forEach(function(flag) {
+                rfTags += '<div style="font-size:0.80rem;font-weight:700;color:' + rfTxt + ';'
+                        + 'line-height:1.45;margin-bottom:5px;padding:4px 10px;'
+                        + 'background:' + rfTagBg + ';border:1px solid ' + rfTagBdr + ';'
+                        + 'border-radius:7px;display:inline-block;margin-right:5px;">'
+                        + '🚩 ' + flag + '</div>';
+            });
+            redFlagsBlock = '<details style="margin-bottom:8px;" data-rf>'
+                          + makeSummary(rfBg, rfBdr, rfTxt, '🚨 Red Flags — Must Not Miss')
+                          + '<div style="background:' + rfBg + ';border:1px solid ' + rfBdr + ';'
+                          + 'border-top:none;border-radius:0 0 10px 10px;padding:11px 13px;">'
+                          + '<div style="display:flex;flex-wrap:wrap;gap:4px;">' + rfTags + '</div>'
+                          + '</div></details>';
         }
 
-        // Badges & Coloring
-        let confColor = "#fef9c3"; let confText = "#854d0e"; 
-        if (d.confidence.toLowerCase().includes("high")) { confColor = "#dcfce7"; confText = "#15803d"; } 
-        else if (d.confidence.toLowerCase().includes("low")) { confColor = "#fee2e2"; confText = "#b91c1c"; }
-        
-        // Dark mode adaptations for confidence badges
-        if (document.documentElement.getAttribute('data-theme') === 'dark') {
-            if (d.confidence.toLowerCase().includes("high")) { confColor = "#064e3b"; confText = "#6ee7b7"; } 
-            else if (d.confidence.toLowerCase().includes("low")) { confColor = "#450a0a"; confText = "#fca5a5"; }
-            else { confColor = "#422006"; confText = "#fde047"; }
+        // ── pathophys ────────────────────────────────────
+        var pathBlock = '';
+        if (d.pathophys_link) {
+            pathBlock = '<details style="margin-bottom:8px;">'
+                      + makeSummary(pathBg, pathBdr, pathTxt, '🔗 Why It Fits — Pathophysiology')
+                      + '<div style="background:' + pathBg + ';border:1px solid ' + pathBdr + ';'
+                      + 'border-top:none;border-radius:0 0 10px 10px;padding:11px 13px;">'
+                      + '<div style="font-size:0.82rem;font-weight:600;color:var(--text-main);line-height:1.6;">' + d.pathophys_link + '</div>'
+                      + '</div></details>';
         }
 
-        let criticalBadge = d.is_life_threatening ? 
-            `<div style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; border: 1px solid rgba(239, 68, 68, 0.4); white-space: nowrap;">RULE OUT</div>` : '';
+        // ── workup ───────────────────────────────────────
+        var workupBlock = '';
+        if (d.workup && d.workup.length > 0) {
+            var wi = '';
+            d.workup.forEach(function(w) {
+                wi += '<div style="font-size:0.80rem;font-weight:600;color:var(--text-main);'
+                    + 'line-height:1.45;margin-bottom:5px;padding-left:12px;'
+                    + 'border-left:2px solid ' + workupTxt + ';">' + w + '</div>';
+            });
+            workupBlock = '<details style="margin-bottom:8px;">'
+                        + makeSummary(workupBg, workupBdr, workupTxt, '🔬 Workup & How to Confirm')
+                        + '<div style="background:' + workupBg + ';border:1px solid ' + workupBdr + ';'
+                        + 'border-top:none;border-radius:0 0 10px 10px;padding:11px 13px;">'
+                        + wi + '</div></details>';
+        }
 
-        // Final Card Assembly
-        html += `
-        <div class="ddx-disease-card" style="background: var(--surface); padding: 16px; border-radius: 16px; border: 1px solid var(--divider); margin-bottom: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
-            
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 8px;">
-                <span style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); line-height: 1.2;">${d.disease_name}</span>
-                <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                    ${criticalBadge}
-                    <div style="background: ${confColor}; color: ${confText}; padding: 4px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; border: 1px solid rgba(0,0,0,0.05); white-space: nowrap;">🎯 ${d.confidence}</div>
-                </div>
-            </div>
-            
-            <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; font-style: italic; border-left: 3px solid var(--primary); padding-left: 10px;">
-                ${d.clinical_reasoning}
-            </div>
-            
-            ${featuresHtml}
-            ${nextStepsHtml}
-            ${redFlagsHtml}
-        </div>`;
+        // ── management ───────────────────────────────────
+        var mgtBlock = '';
+        if (d.management) {
+            mgtBlock = '<details style="margin-bottom:4px;">'
+                     + makeSummary(mgtBg, mgtBdr, mgtTxt, '💊 Mainstay Management')
+                     + '<div style="background:' + mgtBg + ';border:1px solid ' + mgtBdr + ';'
+                     + 'border-top:none;border-radius:0 0 10px 10px;padding:11px 13px;">'
+                     + '<div style="font-size:0.83rem;font-weight:600;color:var(--text-main);line-height:1.55;">' + d.management + '</div>'
+                     + '</div></details>';
+        }
+
+        // ── header badges ────────────────────────────────
+        var likelihoodBadge = '<span style="display:inline-flex;align-items:center;'
+            + 'background:' + lColors.bg + ';color:' + lColors.text + ';'
+            + 'border:1px solid ' + lColors.border + ';padding:3px 10px;border-radius:8px;'
+            + 'font-size:0.64rem;font-weight:800;">🎯 ' + lKey + ' Likelihood</span>';
+
+        var redFlagBadge = '';
+        if (hasRedFlags) {
+            redFlagBadge = '<span '
+                + 'style="display:inline-flex;align-items:center;cursor:pointer;'
+                + 'background:' + rfTagBg + ';color:' + rfTxt + ';'
+                + 'border:1px solid ' + rfTagBdr + ';padding:3px 10px;border-radius:8px;'
+                + 'font-size:0.64rem;font-weight:800;margin-left:6px;"'
+                + 'onclick="(function(el){'
+                +   'var card=el.closest(\'[data-dx-card]\');'
+                +   'if(!card)return;'
+                +   'var outer=card.querySelector(\'details[data-dx-outer]\');'
+                +   'if(outer&&!outer.open){outer.open=true;}'
+                +   'var rf=card.querySelector(\'details[data-rf]\');'
+                +   'if(rf){rf.open=!rf.open;}'
+                +   'event.stopPropagation();'
+                + '})(this)"'
+                + '>🚨 Rule Out</span>';
+        }
+
+        var openAttr = isTop ? ' open' : '';
+
+        html += '<div style="' + cardStyle + '" data-dx-card>'
+              + '<details' + openAttr + ' data-dx-outer>'
+              + '<summary style="'
+              + '-webkit-appearance:none;list-style:none;display:block;'
+              + 'padding:14px 16px;cursor:pointer;outline:none;'
+              + 'border-radius:14px;background:' + headerAccent + ';">'
+              + '<div style="display:flex;align-items:center;gap:12px;">'
+              + '<div style="font-size:1.9rem;line-height:1;flex-shrink:0;">' + emoji + '</div>'
+              + '<div style="flex-grow:1;min-width:0;">'
+              + '<div style="margin-bottom:5px;">'
+              + '<span style="font-size:0.62rem;font-weight:800;color:var(--text-muted);margin-right:6px;">#' + d.rank + '</span>'
+              + '<span style="font-size:1.05rem;font-weight:800;color:var(--text-main);line-height:1.2;">' + d.name + '</span>'
+              + '</div>'
+              + '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;">'
+              + likelihoodBadge
+              + redFlagBadge
+              + '</div>'
+              + '</div>'
+              + '<div style="font-size:0.75rem;color:var(--text-muted);flex-shrink:0;">▼</div>'
+              + '</div>'
+              + '</summary>'
+              + '<div style="padding:12px 14px 14px 14px;border-top:1px solid var(--divider);">'
+              + forBlock
+              + againBlock
+              + redFlagsBlock
+              + pathBlock
+              + workupBlock
+              + mgtBlock
+              + '</div>'
+              + '</details>'
+              + '</div>';
     });
 
-    container.innerHTML = html;
+    // ════════════════════════════════════════
+    // 4. HOW THE CLUES TELL THE STORY
+    // ════════════════════════════════════════
+    if (data.reasoning_narrative) {
+        html += '<div style="background:' + reasonBg + ';border:1px solid var(--divider);'
+              + 'border-left:4px solid var(--primary);border-radius:12px;padding:14px 16px;margin-bottom:14px;">'
+              + '<div style="font-size:0.60rem;font-weight:800;letter-spacing:1.2px;color:var(--primary);margin-bottom:8px;text-transform:uppercase;">🧩 How the Clues Tell the Story</div>'
+              + '<div style="font-size:0.87rem;color:var(--text-main);line-height:1.65;">' + data.reasoning_narrative + '</div>'
+              + '</div>';
+    }
+
+    // ════════════════════════════════════════
+    // 5. IMMEDIATE NEXT STEPS
+    // ════════════════════════════════════════
+    var steps = Array.isArray(data.immediate_next_steps)
+        ? data.immediate_next_steps.filter(function(s) { return s; })
+        : [];
+
+    if (steps.length > 0) {
+        var stepItems = '';
+        steps.forEach(function(s, idx) {
+            stepItems += '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:9px;">'
+                       + '<span style="background:' + stepDot + ';color:white;font-size:0.68rem;font-weight:800;'
+                       + 'min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;'
+                       + 'justify-content:center;flex-shrink:0;margin-top:2px;">' + (idx + 1) + '</span>'
+                       + '<span style="font-size:0.87rem;font-weight:700;color:var(--text-main);line-height:1.5;">' + s + '</span>'
+                       + '</div>';
+        });
+        html += '<div style="background:' + stepsBg + ';border:1px solid ' + stepsBdr + ';border-radius:16px;padding:15px;margin-bottom:28px;">'
+              + '<div style="font-size:0.60rem;font-weight:800;letter-spacing:1.2px;color:' + stepsTxt + ';margin-bottom:11px;text-transform:uppercase;">🏃 Immediate Next Steps</div>'
+              + stepItems
+              + '</div>';
+    }
+
+    return html;
 }
 // =============================================
 // AI QUIZ GENERATOR
@@ -3696,7 +3990,7 @@ function changeQuizDifficulty(val) {
 }
 
 function openQuiz() {
-    if (!appData.settings.groqKey) {
+    if (!appData.settings.geminiKey) {
         openDDx();
         showToast("⚠️ Please enter your API Key first to use the Quiz.");
         return;
@@ -3765,56 +4059,45 @@ async function generateQuizQuestion() {
         diffInstructions = "Make it very difficult (Board-exam level). Exclude obvious buzzwords. The presentation should rely on subtle lab values, nuanced physical exam findings, or tricky risk factors. Distractors must be highly plausible alternative diagnoses that require careful differentiation.";
     }
 
-const prompt = `
-You are a Senior Medical Educator writing a high-yield USMLE-style clinical vignette.
-Your goal is to test CLINICAL REASONING, not pattern recognition.
-
-Target Diagnosis: "${targetDisease}"
-Difficulty: ${actualDiff.toUpperCase()}
+const prompt = `Target diagnosis: "${targetDisease}" | Difficulty: ${actualDiff.toUpperCase()}
 ${diffInstructions}
 
-### GENERATION RULES:
+Write a USMLE-style clinical vignette testing reasoning, not just pattern recognition.
 
-1. VIGNETTE:
-- Write a highly concise clinical presentation. 
-- Include ONLY diagnostically relevant or deliberately misleading findings. Strip all filler (no redundant vitals, no "otherwise healthy").
-- Calibrate to the requested difficulty:
-  - EASY: 2-3 classic, textbook features. No red herrings.
-  - MEDIUM: 1 atypical or missing feature. 1 plausible red herring.
-  - HARD: Atypical variant, early/late stage, or complication. Omit the most obvious classic feature. Add 1-2 deliberate red herrings.
-- Anti-Giveaway: Never use 100% pathognomonic buzzwords (e.g., "strawberry tongue") unless operating on HARD mode as a deliberate misdirect.
+VIGNETTE: 3-5 sentences. Only diagnostically relevant or deliberately misleading findings. No introductory filler.
+- EASY: Classic presentation. No red herrings.
+- MEDIUM: 1 atypical feature + 1 red herring.
+- HARD: Atypical/late variant. Omit obvious features. Add 1-2 plausible red herrings.
 
-2. OPTIONS & DISTRACTORS:
-- Provide 4 total options (1 correct, 3 distractors).
-- Distractors must be CONDITIONS in the same clinical category. 
-- Each distractor must share at least 2 features with the vignette to create common exam traps.
+OPTIONS: 4 total (1 correct = "${targetDisease}", 3 distractors). Distractors must be highly plausible alternative diagnoses sharing ≥2 vignette features.
 
-3. HINT:
-- Frame as a clinical question: "What condition affects X population and causes both Y and Z?"
-- Guide the reasoning direction to narrow the differential to 2 conditions.
-- Never name the disease or use pathognomonic giveaways.
+HINT: A 1-sentence clinical question narrowing to 2 options without naming the disease.
 
-4. EXPLANATION:
-- First sentence: Explain the underlying pathophysiological mechanism of ${targetDisease} and why the specific vignette findings confirm it.
-- Subsequent sentences: Mechanistically exclude each wrong option (e.g., "Exclude [Condition] because...").
+EXPLANATION: Write a high-yield, board-style explanation.
+Format: "<b>[correct_disease]</b>: [1-2 sentences on pathophysiology and why the vignette findings confirm it].<br><br><b>[distractor1]</b>: [1 sentence explaining the key differentiating feature that makes this incorrect].<br><b>[distractor2]</b>: [1 sentence explaining the key differentiating feature].<br><b>[distractor3]</b>: [1 sentence explaining the key differentiating feature]."
 
-### OUTPUT INSTRUCTIONS:
-- Output ONLY raw, valid JSON. Do not use markdown code fences (no \`\`\`json).
-- Ensure the "options" array is randomized.
-- Ensure "correct_index" exactly matches the position (0-3) of "${targetDisease}".
-
+Return raw JSON only:
 {
   "correct_disease_name": "${targetDisease}",
-  "vignette": "A [age]-year-old [sex] presents with [trimmed findings].",
-  "options": ["Option A", "Option B", "Option C", "Option D"],
+  "vignette": "A [age]yo [sex] presents with...",
+  "options": ["A", "B", "C", "D"],
   "correct_index": 0,
-  "hint": "[Guiding clinical question hint]",
-  "explanation": "<b>[correct answer]<\b>[Pathophysiology and confirmation of correct diagnosis].<br><br><b>[Distractor 1]<\b>: [Mechanistic reason it is excluded].<br><b>[Distractor 2]<\b>: [Mechanistic reason it is excluded].<br><b>[Distractor 3]<\b>: [Mechanistic reason it is excluded]."
+  "hint": "...",
+  "explanation": "..."
 }
-`;
+Randomize options array. correct_index must match "${targetDisease}" position.`;
 
+  
 
-    const result = await fetchGroqAI(prompt, "You are an expert medical educator creating board-style questions.");
+const result = await fetchGeminiWithFallback(prompt,
+    "You are an expert medical educator. Return only valid JSON, no markdown.",
+    [
+    "gemini-2.5-flash-lite", // Extremely fast, gives you 15 RPM on the Free Tier
+    "gemini-2.5-flash",      // Great medical reasoning, gives you 10 RPM
+    "gemini-3.1-flash-lite-preview" // Insanely fast, but strict 5 RPM limit
+]
+);
+
 
     // ... existing generator code above ...
 
