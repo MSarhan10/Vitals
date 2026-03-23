@@ -1,96 +1,148 @@
-const CACHE_NAME = 'mirimate-v65'; // <-- Remember to bump this on every update!
+// ============================================================
+//  CACHE NAMES
+//  • APP_CACHE    → bump on every release (JS, HTML, manifest)
+//  • STATIC_CACHE → only bump when images actually change
+// ============================================================
+const APP_CACHE    = 'mirimate-v65';       // ← bump every release
+const STATIC_CACHE = 'mirimate-static-v1'; // ← only bump when icons/images change
 
-const ASSETS_TO_CACHE = [
+// How long to wait for the network before falling back to cache
+const NETWORK_TIMEOUT_MS = 15000;
+
+// Core app files — re-fetched fresh on every update
+const APP_ASSETS = [
     './',
     './index.html',
     './manifest.json',
+    './news.js',
+    './labs.js',
+    './ddx.js',
+];
+
+// Static assets — only re-fetched when STATIC_CACHE version is bumped
+const STATIC_ASSETS = [
     './icon-192.png',
     './icon-512.png',
     './icon-maskable-192.png',
     './icon-maskable-512.png',
-    './news.js',
-    './labs.js',
-    './ddx.js',
     './install-instructions1.jpg',
     './install-instructions2.jpg',
     './install-instructions3.jpg',
-    'insta.png'
+    './insta.png',
 ];
 
-// How long to wait for the network before falling back to cache (ms)
-const NETWORK_TIMEOUT_MS = 15000;
+// ============================================================
+//  HELPERS
+// ============================================================
 
-// --- Install ---
-// Cache assets individually so one slow/failed request doesn't wipe out the whole cache.
-// If we're on a terrible connection, we'd rather have a partial new cache (or none)
-// than lose the existing good cache — activate handles that check.
+// Cache a list of URLs into a named cache, failing gracefully per asset.
+// Uses `allSettled` so one slow/failed request never aborts the whole batch.
+async function cacheAssets(cacheName, urls, forceRevalidate = false) {
+    const cache = await caches.open(cacheName);
+    await Promise.allSettled(
+        urls.map(url => {
+            const request = new Request(url, forceRevalidate ? { cache: 'no-cache' } : {});
+            return fetch(request)
+                .then(response => {
+                    if (response && response.ok) {
+                        return cache.put(url, response);
+                    }
+                })
+                .catch(() => {
+                    console.warn(`[SW] Failed to cache: ${url}`);
+                });
+        })
+    );
+}
+
+// Returns true if a given cache contains a specific URL (used as a health check)
+async function cacheHas(cacheName, url) {
+    const match = await caches.match(url);
+    return !!match;
+}
+
+// ============================================================
+//  INSTALL
+//  • App assets: always force-revalidate (no-cache) so updates land immediately
+//  • Static assets: skip if STATIC_CACHE already exists — no need to re-download
+//    unchanged images. New users will still get them on first install.
+// ============================================================
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            return Promise.allSettled(
-                ASSETS_TO_CACHE.map(url => {
-                    const request = new Request(url, { cache: 'no-cache' });
-                    return fetch(request)
-                        .then(response => {
-                            if (response && response.ok) {
-                                return cache.put(url, response);
-                            }
-                        })
-                        .catch(() => {
-                            // One asset failed — log it but don't abort the whole install
-                            console.warn(`[SW] Install: failed to cache ${url}`);
-                        });
-                })
-            );
-        })
+        (async () => {
+            // Always re-fetch app assets fresh
+            await cacheAssets(APP_CACHE, APP_ASSETS, true);
+
+            // Only cache static assets if this static cache version doesn't exist yet
+            const existingCaches = await caches.keys();
+            if (!existingCaches.includes(STATIC_CACHE)) {
+                console.log('[SW] First time seeing this static cache version — caching images.');
+                await cacheAssets(STATIC_CACHE, STATIC_ASSETS, false);
+            } else {
+                console.log('[SW] Static cache already up to date — skipping image download.');
+            }
+        })()
     );
     self.skipWaiting();
 });
 
-// --- Activate ---
-// Before nuking old caches, verify the new cache actually has the most critical
-// asset (index.html). If it doesn't (e.g. install ran offline), keep the old cache alive.
+// ============================================================
+//  ACTIVATE
+//  • Delete old APP_CACHE versions (mirimate-v*) but only if the new one is healthy
+//  • Delete old STATIC_CACHE versions (mirimate-static-v*) if we have a new one
+//  • Never touch a cache that belongs to the current version
+// ============================================================
 self.addEventListener('activate', event => {
     event.waitUntil(
-        caches.match('./index.html').then(hasIndex => {
-            // Only clean up old caches if the new one has the app shell
-            const shouldClean = !!hasIndex;
+        (async () => {
+            const newAppCacheHealthy = await cacheHas(APP_CACHE, './index.html');
 
-            return caches.keys()
-                .then(keys => {
-                    if (!shouldClean) {
-                        console.warn('[SW] Activate: new cache is incomplete, keeping old caches.');
-                        return Promise.resolve();
-                    }
-                    return Promise.all(
-                        keys
-                            .filter(key => key !== CACHE_NAME)
-                            .map(key => caches.delete(key))
-                    );
-                })
-                .then(() => self.clients.claim())
-                .then(() => self.clients.matchAll())
-                .then(clients => {
-                    if (shouldClean) {
-                        clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
-                    }
-                });
-        })
+            if (!newAppCacheHealthy) {
+                // New app cache is incomplete (bad connection during install).
+                // Keep old caches alive and don't notify clients to reload.
+                console.warn('[SW] Activate: new app cache is incomplete — preserving old caches.');
+                await self.clients.claim();
+                return;
+            }
+
+            const allKeys = await caches.keys();
+            await Promise.all(
+                allKeys
+                    .filter(key => {
+                        // Delete old app cache versions
+                        if (key.startsWith('mirimate-v') && !key.startsWith('mirimate-static-') && key !== APP_CACHE) return true;
+                        // Delete old static cache versions
+                        if (key.startsWith('mirimate-static-') && key !== STATIC_CACHE) return true;
+                        return false;
+                    })
+                    .map(key => {
+                        console.log(`[SW] Deleting old cache: ${key}`);
+                        return caches.delete(key);
+                    })
+            );
+
+            await self.clients.claim();
+
+            const clients = await self.clients.matchAll();
+            clients.forEach(client => client.postMessage({ type: 'SW_UPDATED' }));
+        })()
     );
 });
 
-// --- Fetch ---
-// Strategy: Network-first with timeout, falling back to cache.
+// ============================================================
+//  FETCH
+//  Strategy: Network-first with timeout, cache fallback.
 //
-// • If we have a cached version: race the network against a 15s timer.
-//     - Network wins  → return fresh response, update cache, done.
-//     - Timer wins    → return cache immediately, let the network request
-//                       continue in the background to update the cache for
-//                       next time.
-//     - Network error → return cache immediately.
+//  If we have a cached version:
+//    • Race the network against NETWORK_TIMEOUT_MS
+//    • Network wins  → serve fresh, update cache in background
+//    • Timeout wins  → serve cache NOW, network keeps running to update cache
+//    • Network error → serve cache
 //
-// • If no cached version: wait for network (no point timing out with nothing to show).
-//     - If that also fails and it's a navigation, serve index.html as last resort.
+//  If nothing cached:
+//    • Wait for network with no timeout (nothing to fall back to)
+//    • Network fails + navigation → last resort: serve cached index.html
+// ============================================================
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
@@ -98,50 +150,56 @@ self.addEventListener('fetch', event => {
     if (url.origin !== location.origin) return;
 
     event.respondWith(
-        caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
+        (async () => {
+            // Check both caches — static assets might live in STATIC_CACHE
+            const cachedResponse =
+                await caches.match(event.request, { ignoreSearch: true });
 
-            // Shared network fetch — also updates the cache on success
+            // Build a network fetch that also updates whichever cache the asset belongs to
             const networkFetch = fetch(event.request.clone())
-                .then(networkResponse => {
+                .then(async networkResponse => {
                     if (networkResponse && networkResponse.status === 200) {
-                        const clone = networkResponse.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                        const isStatic = STATIC_ASSETS.some(a =>
+                            event.request.url.endsWith(a.replace('./', '/'))
+                            || event.request.url.includes(a.replace('./', ''))
+                        );
+                        const targetCache = isStatic ? STATIC_CACHE : APP_CACHE;
+                        const cache = await caches.open(targetCache);
+                        cache.put(event.request, networkResponse.clone());
                     }
                     return networkResponse;
                 });
 
             if (cachedResponse) {
-                // We have something to show — race network vs timeout
-                const timeoutRace = new Promise(resolve =>
+                // Race: network vs timeout
+                const timeout = new Promise(resolve =>
                     setTimeout(() => resolve('TIMEOUT'), NETWORK_TIMEOUT_MS)
                 );
 
-                return Promise.race([networkFetch, timeoutRace])
-                    .then(result => {
-                        if (result === 'TIMEOUT' || !result) {
-                            // Slow connection: serve cache now, network will update it in bg
-                            console.log('[SW] Network too slow, serving from cache.');
-                            // Let networkFetch keep running silently in the background
-                            networkFetch.catch(() => {});
-                            return cachedResponse;
-                        }
-                        // Network was fast enough
-                        return result;
-                    })
-                    .catch(() => {
-                        // Network error: serve from cache
-                        console.log('[SW] Network error, falling back to cache.');
+                try {
+                    const result = await Promise.race([networkFetch, timeout]);
+
+                    if (result === 'TIMEOUT' || !result) {
+                        console.log('[SW] Network too slow — serving from cache, updating in background.');
+                        networkFetch.catch(() => {}); // let it finish silently
                         return cachedResponse;
-                    });
+                    }
+                    return result;
+                } catch {
+                    console.log('[SW] Network error — falling back to cache.');
+                    return cachedResponse;
+                }
 
             } else {
-                // Nothing cached — just wait for the network
-                return networkFetch.catch(() => {
+                // Nothing in cache — just wait for the network
+                try {
+                    return await networkFetch;
+                } catch {
                     if (event.request.mode === 'navigate') {
                         return caches.match('./index.html');
                     }
-                });
+                }
             }
-        })
+        })()
     );
 });
