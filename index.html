@@ -3491,10 +3491,10 @@ CLINICAL PRESENTATION:
 "${input}"
 
 ### DIAGNOSTIC REASONING RULES:
-1. UNIFIED CAUSE ANALYSIS: Seek ONE diagnosis that explains ALL symptoms. A diagnosis that unifies multiple symptom clusters ranks higher than one explaining only part of the picture.
-2. CAUSE VS. CONSEQUENCE: Combine root causes and their consequences into a single unified entry. (e.g., Use "Sexual abuse with consequent pregnancy", not two separate diagnoses. Use "Septic shock", and list hypotension as a feature, not a separate diagnosis). Maximum one entry per root etiology.
+1. UNIFIED CAUSE ANALYSIS: Seek diagnoses that explain ALL symptoms. A diagnosis that unifies multiple symptom clusters ranks higher than one explaining only part of the picture.
+2. CAUSE VS. CONSEQUENCE: Combine root causes and their consequences into a single unified entry, not two separate diagnoses. List e.g. hypotension as a feature, not a separate diagnosis. Maximum one entry per root etiology.
 3. CONTEXT & VULNERABILITY: Heavily weigh demographics. Actively consider abuse/neglect in pediatrics/elderly, pregnancy/ectopic in reproductive-age females, and opportunistic infections in the immunocompromised.
-4. LETHALITY SCAN: You must identify and include at least one diagnosis that will kill or permanently harm the patient if missed (the "can't-miss" diagnosis).
+4. LETHALITY SCAN: You must identify any diagnosis that can kill or permanently harm the patient if missed (the "can't-miss" diagnosis).
 5. RANKING: Rank diagnoses by Prior Probability × Symptom Unification. Index 1 = most probable.
 
 ### OUTPUT INSTRUCTIONS:
@@ -3511,10 +3511,10 @@ CLINICAL PRESENTATION:
   "diagnoses": [
     {
       "rank": 1,
-      "disease_name": "Precise medical name (include consequence inline if applicable)",
+      "disease_name": "Brief Title",
       "confidence": "High",
       "is_life_threatening": false,
-      "clinical_reasoning": "1-2 sentences explaining WHY this fits THIS patient using specific findings.",
+      "clinical_reasoning": "1-2 brief sentences explaining WHY this fits THIS patient using specific findings.",
       "distinctive_features": ["Classic hallmark 1 pointing to this dx", "Classic hallmark 2"],
       "next_steps_to_differentiate": ["Specific test to confirm or rule out 1", "Specific test 2"],
       "red_flags": []
