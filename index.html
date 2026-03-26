@@ -1956,9 +1956,9 @@ function clearSearch(inputId) {
         <div class="options-wrapper">
             <button class="options-dot-btn" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
             <div class="options-popup" id="pt-opt-popup-${p.id}">
+                <div class="options-popup-item" onclick="closeAllOptions(); openNotes(${p.id})">📝 Patient Notes${hasNotes ? ' ●' : ''}</div>
                 <div class="options-popup-item" onclick="closeAllOptions(); editingPatientId=${p.id}; copySinglePatient()">📋 Copy Patient</div>
                 <div class="options-popup-item" onclick="closeAllOptions(); resetPatientVitals(${p.id})">🔄 Reset Vitals</div>
-                <div class="options-popup-item" onclick="closeAllOptions(); openNotes(${p.id})">📝 Patient Notes${hasNotes ? ' ●' : ''}</div>
                 <div class="options-popup-item danger" onclick="closeAllOptions(); deletePatientById(${p.id})">🗑️ Delete Patient</div>
             </div>
         </div>
@@ -2932,7 +2932,10 @@ function openSupportModal() {
             _openOptionId = null;
         }
 
-        
+        // Close popups when tapping elsewhere
+        document.addEventListener('click', (e) => {
+            if (_openOptionId !== null && !e.target.closest('.options-wrapper')) closeAllOptions();
+        }, true);
 
         // ---- Inline Room actions (no bottom sheet needed) ----
         function copyRoomDataById(roomId) {
