@@ -81,8 +81,71 @@
 .toolbar-btn:active { background: var(--primary); color: white; }
 .toolbar-btn.has-tasks { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important; animation: pulse 1.5s infinite; }
 
-/* FAB removed — replaced by bottom action row */
-.fab-overlay, .fab-container, .fab-menu, .fab-item, .fab-main { display: none !important; }
+/* Quick Actions FAB & Animations */
+.fab-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+    z-index: 990; display: none; opacity: 0; transition: opacity 0.3s;
+}
+.fab-container {
+    position: fixed; bottom: 15px; right: 15px; z-index: 995;
+    display: flex; flex-direction: column; align-items: flex-end;
+    pointer-events: none; /* FIX: Allows clicks to pass through the invisible box to the patients below */
+}
+.fab-menu {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+    margin-bottom: 15px; pointer-events: none;
+}
+.fab-item {
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    padding: 9px 17px; border-radius: 25px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15); font-weight: 700; color: white;
+    border: none; font-size: 1rem; 
+    white-space: nowrap; 
+    opacity: 0; transform: translateY(15px) scale(0.9);
+    visibility: hidden; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), visibility 0.2s;
+}
+.fab-item:active { transform: scale(0.85); opacity: 0.8; }
+
+/* Specific Colors for FAB Options */
+.fab-add-room { background: var(--primary); }
+.fab-delete-all { background: #ef4444; }
+.fab-neutral { background: #475569; }
+:root[data-theme="dark"] .fab-neutral { background: #334155; }
+
+/* Cascading pop-up animation when open */
+.fab-menu.open .fab-item {
+    opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+    visibility: visible; 
+}
+.fab-menu.open .fab-item:nth-child(1) { transition-delay: 0.12s; }
+.fab-menu.open .fab-item:nth-child(2) { transition-delay: 0.09s; }
+.fab-menu.open .fab-item:nth-child(3) { transition-delay: 0.06s; }
+.fab-menu.open .fab-item:nth-child(4) { transition-delay: 0.03s; }
+.fab-menu.open .fab-item:nth-child(5) { transition-delay: 0s; }
+
+.fab-main {
+    width: 60px; height: 60px; 
+    border-radius: 50%; background: var(--primary);
+    color: white; font-size: 2.15rem; 
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4); cursor: pointer; border: none;
+    -webkit-appearance: none; padding: 0; margin: 0; 
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+    pointer-events: auto; /* FIX: Keeps the main button itself clickable */
+}
+.fab-main.active { 
+    transform: rotate(90deg) scale(1.05); 
+    background: #ef4444; 
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4); 
+}
+.fab-icon-wrapper {
+    position: relative;
+    top: -10px; 
+    display: inline-block;
+    line-height: 1;
+}
 
 /* Customize Toolbar Menu */
 .toolbar-edit-item {
@@ -102,7 +165,6 @@
 }
 .toolbar-action-btn.active { background: var(--primary); color: white; border-color: var(--primary-dark); }
 .toolbar-action-btn.hidden-active { background: #ef4444; color: white; border-color: #b91c1c; }
-
 
         .container { max-width: 600px; margin: 0 auto; padding: 16px; }
 
@@ -1072,12 +1134,13 @@ body.is-dragging * {
         <h1 style="margin:0; font-size:1.25rem;">MiriMate</h1>
         <div style="font-size:0.65rem; opacity:0.85; font-weight:400; margin-top:1px; letter-spacing:0.3px;">developed by MSarhan</div>
     </div>
-        <div class="header-btns">
+<div class="header-btns">
             <div style="position: relative; display: inline-block;">
                 <button id="header-news-btn" onclick="openNewsModal()" title="News & Updates">📰</button>
                 <div id="news-badge" style="position: absolute; top: 0; right: 0; background: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--primary); display: none;"></div>
             </div>
             
+            <button id="header-about-btn" onclick="openAboutApp()" title="About App">❔ </button>
             <button id="header-settings-btn" onclick="openSettings()" title="Settings">⚙️</button>
         </div>
     </header>
@@ -1107,6 +1170,29 @@ body.is-dragging * {
     <div id="floating-timer" onclick="openStopwatch()">⏱️ 15s</div>
     <div class="container" id="app-content"></div>
     <div class="overlay" id="main-overlay" onclick="closeModals()"></div>
+<!-- Quick Actions FAB -->
+    <div class="fab-overlay" id="fab-overlay" onclick="closeFab()"></div>
+    <div class="fab-container">
+        <div class="fab-menu" id="fab-menu">
+            <div class="fab-item fab-add-room" onclick="closeFab(); openRoomModal()">👥 Add New Room</div>
+            <div class="fab-item fab-neutral" onclick="closeFab(); copyToClipboard()">📋 Copy All Vitals</div>
+            <div class="fab-item fab-neutral" onclick="closeFab(); resetAllRoomsAction()">🔄 Reset All Vitals</div>
+            <div class="fab-item fab-neutral" onclick="openAnalyzePatientSelector()">🧠 Analyze Patient</div>
+            <div class="fab-item fab-delete-all" onclick="closeFab(); deleteAllRoomsAction()">🗑️ Delete All Rooms</div>
+        </div>
+        <button class="fab-main" id="fab-main-btn" onclick="toggleFab()">⚡</button>
+    </div>
+
+    <!-- Analyze Patient Select Modal (THIS WAS MISSING) -->
+    <div class="center-modal" id="analyze-select-modal">
+        <h2>🧠 Analyze Patient</h2>
+        <p style="font-size:0.95rem; color:var(--text-muted); margin-top:0;">Select a patient to send their vitals and notes to the DDx AI.</p>
+        <select id="analyze-patient-select" style="margin-bottom: 20px;"></select>
+        <div class="btn-row">
+            <button class="btn-secondary" onclick="closeModals()">Cancel</button>
+            <button class="btn-main" onclick="executePatientAnalysis()">Analyze</button>
+        </div>
+    </div>
 
     <!-- Stopwatch Modal -->
     <div class="center-modal" id="stopwatch-modal">
@@ -1935,7 +2021,7 @@ function clearSearch(inputId) {
                 container.appendChild(banner);
             }
 
-            // --- ADDED: Check if there are no rooms ---
+// --- ADDED: Check if there are no rooms ---
             if (appData.rooms.length === 0) {
                 const emptyMsg = document.createElement('div');
                 emptyMsg.style.textAlign = 'center';
@@ -1945,8 +2031,8 @@ function clearSearch(inputId) {
                 emptyMsg.style.lineHeight = '1.75';
                 emptyMsg.innerHTML = `
                     <div style="font-size: 3rem; margin-bottom: 1px; opacity: 0.5;">📭</div>
-                    No rooms yet<br>
-                    Tap  <b style="background: var(--surface); padding: 3px 3px; border-radius: 10px; border: 2px dashed var(--primary); color: var(--primary);">+ Add Room</b>  below to get started.<br><br>
+                    No rooms yet.<br>
+                    Tap the <b style="background: var(--primary); padding: 3px 8px; border-radius: 15px; color: white; font-weight: bold;">⚡ Action Button</b> below to add a room.<br><br>
                 `;
                 container.appendChild(emptyMsg);
             } else {
@@ -1997,7 +2083,8 @@ function clearSearch(inputId) {
                                 <button onclick="openNameModal('${room.id}')" style="padding: 4px 12px; margin-right: 8px; color: white; background: var(--primary); font-size: 0.95rem; border: none; border-radius: 8px; font-weight: bold; height:36px;">+ Patient</button>
                                 <div class="options-wrapper">
                                     <button class="options-dot-btn" id="room-opt-btn-${room.id}" onclick="toggleRoomOptions('${room.id}', event)" title="Room options">⋮</button>
-                                    <div class="options-popup" id="room-opt-popup-${room.id}">
+<div class="options-popup" id="room-opt-popup-${room.id}">
+                                        <div class="options-popup-item" onclick="closeAllOptions(); openRoomModal('${room.id}')">✏️ Rename Room</div>
                                         <div class="options-popup-item" onclick="closeAllOptions(); copyRoomDataById('${room.id}')">📋 Copy Room</div>
                                         <div class="options-popup-item" onclick="closeAllOptions(); resetRoomVitalsById('${room.id}')">🔄 Reset Room</div>
                                         <div class="options-popup-item danger" onclick="closeAllOptions(); deleteRoomById('${room.id}')">🗑️ Delete Room</div>
@@ -2009,7 +2096,7 @@ function clearSearch(inputId) {
                     `;
                     const contentEl = roomEl.querySelector('.room-content');
                     filteredPatients.forEach(p => {
-                        const card = createPatientCard(p);
+                        const card = createPatientCard(p, room.id);
                         contentEl.appendChild(card);
                     });
                     container.appendChild(roomEl);
@@ -2026,19 +2113,11 @@ function clearSearch(inputId) {
                 }
             }
 
-            // Always render bottom action buttons below rooms
-            const bottomRow = document.createElement('div');
-            bottomRow.className = 'bottom-action-row';
-            bottomRow.innerHTML = `
-                <button class="btn-add-room" onclick="openRoomModal()">➕ Add Room</button>
-                <button class="btn-about-app" onclick="openAboutApp()">❔ About App</button>
-            `;
-            container.appendChild(bottomRow);
             // Attach long-press drag to room headers after DOM is rendered
             setTimeout(attachRoomDragListeners, 0);
         } // end renderUI
 
-        function createPatientCard(p) {
+function createPatientCard(p, roomId) {
             const card = document.createElement('div');
             card.className = 'patient-card';
             card.dataset.patientId = p.id;
@@ -2047,23 +2126,24 @@ function clearSearch(inputId) {
 
             card.innerHTML = `
                 <div class="patient-header">
-    <div class="patient-header-left" style="gap:6px;">
-        <div class="patient-drag-handle" title="Hold to drag">⋮⋮</div>
-        <div class="patient-name" dir="auto">${p.name}</div>
-    </div>
-    <div class="patient-header-right">
-        ${hasNotes ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;margin-right:4px;margin-top:6px;flex-shrink:0;" title="Has notes"></span>' : ''}
-        <div class="options-wrapper">
-            <button class="options-dot-btn" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
-            <div class="options-popup" id="pt-opt-popup-${p.id}">
-                <div class="options-popup-item" onclick="closeAllOptions(); openNotes(${p.id})">📝 Patient Notes${hasNotes ? ' ●' : ''}</div>
-                <div class="options-popup-item" onclick="closeAllOptions(); editingPatientId=${p.id}; copySinglePatient()">📋 Copy Patient</div>
-                <div class="options-popup-item" onclick="closeAllOptions(); resetPatientVitals(${p.id})">🔄 Reset Vitals</div>
-                <div class="options-popup-item danger" onclick="closeAllOptions(); deletePatientById(${p.id})">🗑️ Delete Patient</div>
-            </div>
-        </div>
-    </div>
-</div>
+                    <div class="patient-header-left" style="gap:6px;">
+                        <div class="patient-drag-handle" title="Hold to drag">⋮⋮</div>
+                        <div class="patient-name" dir="auto">${p.name}</div>
+                    </div>
+                    <div class="patient-header-right">
+                        ${hasNotes ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;margin-right:4px;margin-top:6px;flex-shrink:0;" title="Has notes"></span>' : ''}
+                        <div class="options-wrapper">
+                            <button class="options-dot-btn" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
+                            <div class="options-popup" id="pt-opt-popup-${p.id}">
+                                <div class="options-popup-item" onclick="closeAllOptions(); openNotes(${p.id})">📝 Patient Notes${hasNotes ? ' ●' : ''}</div>
+                                <div class="options-popup-item" onclick="closeAllOptions(); openNameModal('${roomId}', ${p.id})">✏️ Rename Patient</div>
+                                <div class="options-popup-item" onclick="closeAllOptions(); editingPatientId=${p.id}; copySinglePatient()">📋 Copy Patient</div>
+                                <div class="options-popup-item" onclick="closeAllOptions(); resetPatientVitals(${p.id})">🔄 Reset Vitals</div>
+                                <div class="options-popup-item danger" onclick="closeAllOptions(); deletePatientById(${p.id})">🗑️ Delete Patient</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="vitals-grid">
                     <div class="vital-box ${getVitalClass('hr', p.vitals.hr)}" onclick="openNumpad(${p.id}, 'hr')">
                         <div class="vital-label">HR</div>
@@ -2097,6 +2177,118 @@ function clearSearch(inputId) {
             attachLongPress(handle, () => startPatientDrag(p.id, card));
 
             return card;
+        }
+
+        function toggleFab() {
+            const menu = document.getElementById('fab-menu');
+            const btn = document.getElementById('fab-main-btn');
+            const overlay = document.getElementById('fab-overlay');
+            if (menu.classList.contains('open')) {
+                closeFab();
+            } else {
+                menu.classList.add('open');
+                btn.classList.add('active');
+                btn.innerText = '✕'; // Turns to an X while spinning
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.opacity = '1', 10);
+            }
+        }
+
+        function closeFab() {
+            const menu = document.getElementById('fab-menu');
+            const btn = document.getElementById('fab-main-btn');
+            const overlay = document.getElementById('fab-overlay');
+            if(menu) menu.classList.remove('open');
+            if(btn) {
+                btn.classList.remove('active');
+                setTimeout(() => btn.innerText = '⚡', 150); // Turns back to lightning bolt smoothly
+            }
+            if(overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.style.display = 'none', 300);
+            }
+        }
+
+        function resetAllRoomsAction() {
+            if(confirm("Are you sure you want to clear vitals for ALL patients in ALL rooms?")) {
+                appData.rooms.forEach(r => r.patients.forEach(p => p.vitals = { hr: "", bp: "", temp: "", spo2: "", rr: "", rbg: "" }));
+                saveData(); renderUI(); showToast("All Vitals Cleared 🔄");
+            }
+        }
+
+        function deleteAllRoomsAction() {
+            if(confirm("⚠️ WARNING: This will permanently delete ALL rooms and ALL patients! Are you sure?")) {
+                appData.rooms = [];
+                // Clean up tasks associated with patients but keep general tasks
+                appData.tasks = appData.tasks.filter(t => t.patientId === 'general');
+                saveData(); renderUI(); showToast("All Rooms Deleted 🗑️");
+            }
+        }
+
+        function openAnalyzePatientSelector() {
+            closeFab();
+            let allPatients = [];
+            appData.rooms.forEach(r => r.patients.forEach(p => allPatients.push({p, r})));
+            
+            if (allPatients.length === 0) return showToast("No patients available to analyze.");
+            
+            // If there's only one patient, auto-skip the selector
+            if (allPatients.length === 1) {
+                executePatientAnalysis(allPatients[0].p.id);
+                return;
+            }
+            
+            // Populate the modal
+            const select = document.getElementById('analyze-patient-select');
+            select.innerHTML = '';
+            allPatients.forEach(data => {
+                const opt = document.createElement('option');
+                opt.value = data.p.id;
+                opt.innerText = `${data.p.name} (${data.r.name})`;
+                select.appendChild(opt);
+            });
+            
+            showOverlay();
+            const modal = document.getElementById('analyze-select-modal');
+            modal.style.display = 'block';
+            setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+        }
+
+        function executePatientAnalysis(directId = null) {
+            const pid = directId || parseInt(document.getElementById('analyze-patient-select').value);
+            const pInfo = findPatientAndRoom(pid);
+            if (!pInfo) return;
+            const p = pInfo.patient;
+            
+            // Clean HTML tags from notes
+            const plainNotes = p.notes ? p.notes.replace(/<[^>]*>?/gm, '').trim() : '';
+            
+            // Validation: Ensure the patient actually has enough notes to give a good DDx
+            if (plainNotes.length < 15) {
+                showToast("⚠️ Please add more details to the patient's notes to get an accurate analysis.");
+                if (!directId) closeModals();
+                return;
+            }
+            
+            // Compile text
+            let analysisText = `Patient: ${p.name}\n`;
+            let v = [];
+            if (p.vitals.hr) v.push(`HR: ${p.vitals.hr}`);
+            if (p.vitals.bp) v.push(`BP: ${p.vitals.bp}`);
+            if (p.vitals.temp) v.push(`Temp: ${p.vitals.temp}°C`);
+            if (p.vitals.spo2) v.push(`SpO2: ${p.vitals.spo2}%`);
+            if (p.vitals.rr) v.push(`RR: ${p.vitals.rr}`);
+            if (p.vitals.rbg) v.push(`RBG: ${p.vitals.rbg} mg/dL`);
+            
+            if (v.length > 0) analysisText += `Vitals: ${v.join(', ')}\n`;
+            analysisText += `Notes: ${plainNotes}`;
+            
+            closeModals();
+            openDDx();
+            
+            // Inject text into the DDx input and auto-generate
+            document.getElementById('ddx-input').value = analysisText;
+            setTimeout(() => { generateAIDDx(); }, 300);
         }
 
         function findPatientAndRoom(patientId) {
@@ -2798,8 +2990,6 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             }, 1000);
         }
 
-function toggleFab() { /* FAB removed */ }
-        function closeFab() { /* FAB removed */ }
 
         // =============================================
         // OVERLAYS & MODALS
@@ -3390,22 +3580,22 @@ function attachRoomDragListeners() {
         }
 
         
-        function openNameModal(roomId = null, patientId = null) {
+function openNameModal(roomId = null, patientId = null) {
             activeRoomId = roomId;
-            if (patientId) editingPatientId = patientId;
+            editingPatientId = patientId; // Explicitly set to ID if editing, or null if adding
             const input = document.getElementById('patient-name-input');
 
             if (appData.rooms.length === 0 && !editingPatientId) {
                 return showToast("Please add a room first!");
             }
 
-            if (editingPatientId && !roomId) {
+            // Fixed condition: Only check if editingPatientId exists
+            if (editingPatientId) {
                 document.getElementById('name-modal-title').innerText = "Edit Patient Name";
                 input.value = findPatientAndRoom(editingPatientId).patient.name;
             } else {
                 document.getElementById('name-modal-title').innerText = "New Patient"; 
                 input.value = ""; 
-                editingPatientId = null;
             }
             
             showOverlay(); 
@@ -5421,10 +5611,10 @@ let tutorialStep = 0;
 // UPDATED TUTORIAL STEPS
 // =============================================
 const tutorialSteps = [
-    { target: '.btn-add-room', title: '➕ Add Rooms', text: 'Tap here to add new rooms. Tap a room name to expand or collapse it.', shape: 'rect' },
+    { target: '#fab-main-btn', title: '⚡ Quick Actions', text: 'Tap this floating button to <b>Add Rooms</b>, copy vitals, or <b>Analyze a Patient</b> using AI.', shape: 'circle' },
     { target: '#header-news-btn', title: '📰 News & Updates', text: 'Stay informed! Tap here to see the latest medical news and app updates.', shape: 'circle' },
     { target: '#header-settings-btn', title: '⚙️ Settings', text: 'Toggle Dark Mode, customize your Toolbar buttons, or backup/export your data here.', shape: 'circle' },
-    { target: '.options-dot-btn', title: '⚙️ Quick Options', text: 'The <b>⋮</b> button on rooms and patients lets you copy, reset, or delete them quickly.', shape: 'circle' },
+    { target: '.options-dot-btn', title: '✏️  Quick Options', text: 'The <b>⋮</b> button on rooms and patients lets you rename, copy, reset, or delete them quickly.', shape: 'circle' },
     { target: '.patient-drag-handle', title: '↕️ Drag to Reorder', text: 'Long-press and drag the <b>⋮⋮</b> handle to move patients. Long-press a <b>Room Name</b> to move entire rooms!', shape: 'rect' },
     { target: '.vital-box', title: '❤️ Add Vitals', text: 'Tap any vital box to enter data. The app stores trend history automatically.', shape: 'rect' },
     { target: '#main-toolbar', title: '🛠️ Clinical Tools', text: 'Quick access to Medscape, Labs, and DDx. You can reorder these in Settings.', shape: 'rect' },
