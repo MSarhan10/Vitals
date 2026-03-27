@@ -933,10 +933,17 @@ body.is-dragging {
 }
 .lab-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; background: var(--surface);
-    border-bottom: 1px solid var(--divider); flex-shrink: 0;
+    padding: 12px 16px; background: var(--primary); /* Now uses the green theme color */
+    color: white; /* Ensures any random text inherits white */
+    border-bottom: 1px solid var(--primary-dark); flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* Matches the main header shadow */
 }
-.lab-header-title { font-weight: 800; font-size: 1.05rem; color: var(--text-main); }
+.lab-header-title { font-weight: 800; font-size: 1.05rem; color: white; }
+.lab-header-close {
+    background: rgba(255,255,255,0.2); border: none; border-radius: 50%; /* Matches Notes modal button */
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer; color: white;
+}
 .lab-header-close {
     background: var(--bg); border: 1px solid var(--divider); border-radius: 50%;
     width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
@@ -952,21 +959,6 @@ body.is-dragging {
     border: 1px solid var(--divider); background: var(--bg);
     color: var(--text-main); font-size: 0.95rem; outline: none;
 }
-.lab-filter-row {
-    display: flex; gap: 6px; padding: 8px 14px 6px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-    flex-shrink: 0; background: var(--bg);
-    -webkit-mask-image: linear-gradient(to right,transparent 0,black 10px,black calc(100% - 10px),transparent 100%);
-    mask-image: linear-gradient(to right,transparent 0,black 10px,black calc(100% - 10px),transparent 100%);
-}
-.lab-filter-row::-webkit-scrollbar { display: none; }
-.lab-chip {
-    background: var(--surface); border: 1px solid var(--divider);
-    color: var(--text-muted); padding: 5px 12px; border-radius: 20px;
-    font-size: 0.76rem; font-weight: 700; white-space: nowrap;
-    cursor: pointer; transition: 0.15s; flex-shrink: 0;
-}
-.lab-chip.active { background: var(--primary); color: white; border-color: var(--primary-dark); }
 .lab-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 12px 40px; }
 .lab-category {
     background: var(--surface); border-radius: 18px;
@@ -1436,7 +1428,6 @@ body.is-dragging * {
                 <button class="clear-search-btn" onclick="clearSearch('lab-search-input')">✕</button>
             </div>
         </div>
-        <div class="lab-filter-row" id="lab-filter-row"></div>
         <div class="lab-scroll" id="lab-values-content"></div>
     </div>
 
@@ -1494,7 +1485,7 @@ body.is-dragging * {
         </div>
         
         <!-- Floating Quiz Button inside DDx -->
-        <button onclick="openQuiz()" style="position: absolute; bottom: 10px; right: 10px; background: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;">💡 Quiz Me</button>
+        <button onclick="openQuiz()" style="position: absolute; bottom: 15px; right: 15px; background: var(--primary); color: white; border: none; padding: 14px 24px; border-radius: 30px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.25); cursor: pointer; z-index: 10; display: flex; align-items: center; gap: 8px;">💡 Quiz Me</button>
     </div>
 
     <!-- Saved Analyses Panel -->
@@ -1918,14 +1909,14 @@ function clearSearch(inputId) {
             if (appData.rooms.length === 0) {
                 const emptyMsg = document.createElement('div');
                 emptyMsg.style.textAlign = 'center';
-                emptyMsg.style.padding = '60px 20px';
+                emptyMsg.style.padding = '10px 10px';
                 emptyMsg.style.color = 'var(--text-muted)';
-                emptyMsg.style.fontSize = '1.1rem';
-                emptyMsg.style.lineHeight = '1.6';
+                emptyMsg.style.fontSize = '1rem';
+                emptyMsg.style.lineHeight = '1.75';
                 emptyMsg.innerHTML = `
-                    <div style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;">📭</div>
-                    No rooms yet.<br>
-                    Tap <b style="background: var(--surface); padding: 4px 8px; border-radius: 8px; border: 2px dashed var(--primary); color: var(--primary);">+ Add Room</b> below to get started.
+                    <div style="font-size: 3rem; margin-bottom: 1px; opacity: 0.5;">📭</div>
+                    No rooms yet<br>
+                    Tap  <b style="background: var(--surface); padding: 3px 3px; border-radius: 10px; border: 2px dashed var(--primary); color: var(--primary);">+ Add Room</b>  below to get started.<br><br>
                 `;
                 container.appendChild(emptyMsg);
             } else {
@@ -3643,57 +3634,29 @@ function attachRoomDragListeners() {
             window.open('https://www.medscape.com/ai-search', '_blank');
         }
 
-
-        let _labActiveCategory = null; // null = show all
-
         function openLabValues() {
-            closeModals();
-            lockScroll();
-            const searchInput = document.getElementById('lab-search-input');
-            if (searchInput) searchInput.value = '';
-            _labActiveCategory = null;
-            try { renderLabFilterChips(); renderLabValues(''); } catch(e) { console.error(e); }
-            const modal = document.getElementById('lab-modal');
-            if (modal) modal.style.display = 'flex';
-        }
+    closeModals();
+    lockScroll();
+    const searchInput = document.getElementById('lab-search-input');
+    if (searchInput) searchInput.value = '';
+    try { renderLabValues(''); } catch(e) { console.error(e); }
+    const modal = document.getElementById('lab-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
 
         function closeLabValues() {
             closeModals();
         }
 
-        function renderLabFilterChips() {
-            const row = document.getElementById('lab-filter-row');
-            if (!row) return;
-            let html = `<button class="lab-chip ${_labActiveCategory === null ? 'active' : ''}" onclick="setLabCategory(null)">All</button>`;
-            LAB_DATA.forEach(cat => {
-                const active = _labActiveCategory === cat.category ? 'active' : '';
-                html += `<button class="lab-chip ${active}" onclick="setLabCategory('${cat.category.replace(/'/g,"\\'")}')"> ${cat.icon} ${cat.category}</button>`;
-            });
-            row.innerHTML = html;
-        }
-
-        function setLabCategory(cat) {
-            _labActiveCategory = cat;
-            renderLabFilterChips();
-            const searchInput = document.getElementById('lab-search-input');
-            renderLabValues(searchInput ? searchInput.value : '');
-            // Scroll chips row to keep active chip visible
-            const row = document.getElementById('lab-filter-row');
-            if (row) {
-                const active = row.querySelector('.lab-chip.active');
-                if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-            }
-        }
-
+        
         function renderLabValues(filter) {
             const container = document.getElementById('lab-values-content');
             container.innerHTML = '';
             const q = filter.toLowerCase().trim();
             let anyResults = false;
 
-            const dataToRender = _labActiveCategory
-                ? LAB_DATA.filter(cat => cat.category === _labActiveCategory)
-                : LAB_DATA;
+            const dataToRender = LAB_DATA;
 
             dataToRender.forEach(cat => {
                 const matchingTests = cat.tests.filter(t => {
@@ -3706,9 +3669,9 @@ function attachRoomDragListeners() {
                 anyResults = true;
 
                 const catEl = document.createElement('div');
-                // Expand single-category view or when filtering by search
-                const autoExpand = !!_labActiveCategory || !!q;
-                catEl.className = 'lab-category' + (autoExpand ? ' expanded' : '');
+// Expand single-category view or when filtering by search
+const autoExpand = !!q;
+catEl.className = 'lab-category' + (autoExpand ? ' expanded' : '');
 
                 let catHTML = `
                     <div class="lab-cat-header" onclick="this.closest('.lab-category').classList.toggle('expanded')">
