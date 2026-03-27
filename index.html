@@ -620,12 +620,42 @@ html.modal-open, body.modal-open {
 /* --- NEW QUIZ UI & CONFETTI --- */
 .quiz-controls {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--divider);
+    padding: 7px 13px; background: var(--surface); border-bottom: 1px solid var(--divider);
     flex-shrink: 0;
 }
 .quiz-round-badge { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
-.quiz-diff-select { margin: 0; padding: 6px 10px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; width: auto; background: var(--bg); border: 1px solid var(--divider); outline: none; color: var(--text-main); }
+.quiz-diff-select { margin: 0; padding: 7px 10px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; width: auto; background: var(--bg); border: 1px solid var(--divider); outline: none; color: var(--text-main); }
+/* Modern Difficulty Pills */
+.quiz-diff-pills {
+    display: flex; gap: 1.5px; background: var(--bg);
+    border-radius: 8px; padding: 1.5px; border: 1px solid var(--divider);
+    flex-shrink: 0;
+}
+.quiz-diff-pill {
+    padding: 4px 5px; border-radius: 6px; font-size: 0.65rem; font-weight: 700;
+    border: none; cursor: pointer; background: transparent; color: var(--text-muted);
+    transition: 0.15s; white-space: nowrap; line-height: 1;
+}
+.quiz-diff-pill.active {
+    background: var(--surface); color: var(--primary-dark);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
 
+/* Quiz Start Screen */
+.quiz-start-screen {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    flex-grow: 1; padding: 30px 24px; gap: 16px; text-align: center;
+}
+.quiz-start-icon { font-size: 3.5rem; }
+.quiz-start-title { font-size: 1.6rem; font-weight: 900; color: var(--text-main); margin: 0; }
+.quiz-start-sub { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin: 0; }
+.quiz-start-btn {
+    background: var(--primary); color: white; border: none;
+    padding: 15px 48px; border-radius: 50px; font-size: 1.15rem; font-weight: 800;
+    cursor: pointer; box-shadow: 0 4px 15px rgba(34,197,94,0.35);
+    transition: transform 0.15s, box-shadow 0.15s; margin-top: 8px;
+}
+.quiz-start-btn:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(34,197,94,0.2); }
 .quiz-q-header { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px; border-bottom: 1px dashed var(--divider); padding-bottom: 8px; }
 .quiz-diff-badge { font-size: 0.75rem; font-weight: 800; padding: 4px 8px; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
 .quiz-diff-badge.easy { background: #dcfce7; color: #166534; }
@@ -1510,15 +1540,15 @@ body.is-dragging * {
             <div style="width:38px;"></div>
         </div>
         
-        <div class="quiz-controls">
-            <div class="quiz-round-badge" id="quiz-round-display">Streak 🔥 0</div>
-            <select class="quiz-diff-select" id="quiz-difficulty-select" onchange="changeQuizDifficulty(this.value)">
-                <option value="incremental">📈 Incremental</option>
-                <option value="easy">🟢 Easy</option>
-                <option value="intermediate">🟡 Intermediate</option>
-                <option value="hard">🔴 Hard</option>
-            </select>
-        </div>
+<div class="quiz-controls">
+    <div class="quiz-round-badge" id="quiz-round-display">Streak 🔥 0</div>
+    <div class="quiz-diff-pills" id="quiz-diff-pills">
+        <button class="quiz-diff-pill active" data-val="incremental" onclick="setQuizDiffPill(this,'incremental')">📈 Auto</button>
+        <button class="quiz-diff-pill" data-val="easy" onclick="setQuizDiffPill(this,'easy')">🟢 Easy</button>
+        <button class="quiz-diff-pill" data-val="intermediate" onclick="setQuizDiffPill(this,'intermediate')">🟡 Med</button>
+        <button class="quiz-diff-pill" data-val="hard" onclick="setQuizDiffPill(this,'hard')">🔴 Hard</button>
+    </div>
+</div>
 
         <div class="quiz-content" id="quiz-content"></div>
     </div>
@@ -4832,7 +4862,14 @@ const QUIZ_DISEASE_POOL = [
 let currentQuizExplanation = ""; 
 let currentQuizHint = "";
 let quizDifficultySetting = localStorage.getItem('mirimate_quiz_difficulty') || 'incremental';
-let quizStreak = 0;
+
+function loadStreakForMode(mode) {
+    return parseInt(localStorage.getItem('mirimate_quiz_streak_' + mode) || '0', 10);
+}
+function saveStreakForMode(mode, val) {
+    localStorage.setItem('mirimate_quiz_streak_' + mode, val);
+}
+let quizStreak = loadStreakForMode(quizDifficultySetting)
 let currentQuizCorrectIndex = -1;
 let availableHints = [];
 let isQuizAnswered = true;
@@ -4862,13 +4899,37 @@ function triggerEncouragement(streak) {
     setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); }, 2500);
 }
 
-function changeQuizDifficulty(val) {
+function setQuizDiffPill(el, val) {
     quizDifficultySetting = val;
     localStorage.setItem('mirimate_quiz_difficulty', val);
-    quizStreak = 0;
-    appData.quizStreak = 0;
-    saveData();
-    generateQuizQuestion();
+    syncQuizDiffPills(val);
+    // Load this mode's saved streak — no reset
+    quizStreak = loadStreakForMode(val);
+    appData.quizStreak = quizStreak;
+    // If we're still on the start screen, refresh it to show new streak
+    const container = document.getElementById('quiz-content');
+    if (container.querySelector('.quiz-start-screen')) {
+        showQuizStartScreen();
+    }
+}
+
+function syncQuizDiffPills(val) {
+    document.querySelectorAll('.quiz-diff-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.val === val);
+    });
+}
+
+function showQuizStartScreen() {
+    const container = document.getElementById('quiz-content');
+    document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
+    container.innerHTML = `
+        <div class="quiz-start-screen">
+            <div class="quiz-start-icon">🧠</div>
+            <div class="quiz-start-title">Quiz Me</div>
+            <div class="quiz-start-sub">AI-generated Case Scenarios.<br>Pick a difficulty above, then tap Start.</div>
+            <button class="quiz-start-btn" onclick="generateQuizQuestion()">▶ Start Quiz</button>
+        </div>
+    `;
 }
 
 function openQuiz() {
@@ -4881,13 +4942,13 @@ function openQuiz() {
     closeModals();
     lockScroll();
     
-    if (appData.quizStreak !== undefined) quizStreak = appData.quizStreak;
-    document.getElementById('quiz-difficulty-select').value = quizDifficultySetting;
+quizStreak = loadStreakForMode(quizDifficultySetting);
+    appData.quizStreak = quizStreak;    syncQuizDiffPills(quizDifficultySetting);
     document.getElementById('quiz-modal').style.display = 'flex';
     
     const container = document.getElementById('quiz-content');
     if (container.innerHTML.trim() === '' || isQuizAnswered) {
-        generateQuizQuestion();
+        showQuizStartScreen(); // Show start screen instead of fetching immediately
     } else {
         document.getElementById('quiz-round-display').innerText = `Streak 🔥 ${quizStreak}`;
     }
@@ -5045,8 +5106,9 @@ function handleQuizAnswer(selectedIndex, isCorrect) {
     
     const streakDisplay = document.getElementById('quiz-round-display');
 
-    if (isCorrect) {
+if (isCorrect) {
         quizStreak++;
+        saveStreakForMode(quizDifficultySetting, quizStreak);
         let isMilestone = (quizStreak > 0 && quizStreak % 5 === 0);
         
         playQuizAudio(true, isMilestone);
@@ -5054,13 +5116,14 @@ function handleQuizAnswer(selectedIndex, isCorrect) {
         shootConfetti(); 
         
         streakDisplay.innerText = `Streak 🔥 ${quizStreak}`;
-        if (isMilestone) {
+if (isMilestone) {
             streakDisplay.classList.add('streak-celebrate');
             triggerEncouragement(quizStreak); 
             setTimeout(() => streakDisplay.classList.remove('streak-celebrate'), 600);
         }
-    } else {
-        quizStreak = 0; 
+} else {
+        quizStreak = 0;
+        saveStreakForMode(quizDifficultySetting, 0);
         playQuizAudio(false);
         streakDisplay.innerText = `Streak 🔥 0`;
         document.getElementById(`quiz-opt-${selectedIndex}`).classList.add('wrong');
