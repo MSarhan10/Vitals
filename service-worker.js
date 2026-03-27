@@ -1,7 +1,7 @@
 // ============================================================
 //  CACHE NAMES
 // ============================================================
-const APP_CACHE    = 'mirimate-v75';
+const APP_CACHE    = 'mirimate-v76';
 const STATIC_CACHE = 'mirimate-static-v1';
 const TEMP_CACHE   = 'mirimate-temp';      // ← permanent name, never deleted
 
