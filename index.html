@@ -835,6 +835,35 @@ html.modal-open, body.modal-open {
     padding: 4px 10px; font-size: 0.78rem; font-weight: 600; color: var(--text-muted);
 }
 
+/* Task Modal Improvements */
+.task-type-pills {
+    display: flex; gap: 5px; background: var(--bg);
+    border-radius: 12px; padding: 4px; border: 1px solid var(--divider);
+}
+.task-type-pill {
+    flex: 1; padding: 12px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+    border: none; cursor: pointer; background: transparent; color: var(--text-muted);
+    transition: all 0.2s;
+}
+.task-type-pill.active {
+    background: var(--surface); color: var(--primary-dark);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+:root[data-theme="dark"] .task-type-pill.active {
+    background: var(--primary-dark); color: white;
+}
+.sync-cal-label {
+    display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 600; 
+    color: var(--text-main); cursor: pointer; background: var(--bg); 
+    padding: 12px; border-radius: 12px; border: 1px solid var(--divider);
+    transition: background 0.2s;
+}
+.sync-cal-label:active { background: var(--divider); }
+.sync-cal-checkbox {
+    width: 20px; height: 20px; margin: 0; accent-color: var(--primary); cursor: pointer;
+}
+
+
         #toast {
     visibility: hidden;
     min-width: 250px;
@@ -1260,25 +1289,35 @@ body.is-dragging * {
         <button class="btn-secondary" onclick="closeModals()">Close</button>
     </div>
 
-    <!-- Add Task Modal -->
     <div class="center-modal" id="add-task-modal">
-        <h2 id="add-task-title">New Task</h2>
+        <h2 id="add-task-title" style="margin-bottom: 16px;">New Task</h2>
+        
         <input type="text" id="task-text-input" placeholder="Task description..." dir="auto">
         
-        <select id="task-patient-select" style="margin-bottom: 15px;">
-            <option value="general">General (no patient)</option>
+        <select id="task-patient-select" style="margin-bottom: 16px; font-weight: 600;">
+            <option value="general">🌐 General (no patient)</option>
         </select>
         
-        <div style="display: flex; gap: 15px; margin-bottom: 15px; font-weight: 600;">
-            <label><input type="radio" name="task-type" value="normal" checked onchange="toggleTaskTimeInput(false)"> Normal</label>
-            <label><input type="radio" name="task-type" value="timed" onchange="toggleTaskTimeInput(true)"> Timed</label>
+        <div class="task-type-pills" style="margin-bottom: 16px;">
+            <button class="task-type-pill active" id="btn-task-normal" onclick="setTaskType('normal')">📝 Normal</button>
+            <button class="task-type-pill" id="btn-task-timed" onclick="setTaskType('timed')">⏱️ Timed</button>
         </div>
-        <input type="datetime-local" id="task-time-input" style="display: none;">
+        
+        <div id="task-time-container" style="display: none; margin-bottom: 20px;">
+            <input type="time" id="task-time-input" style="font-size: 1.3rem; font-weight: bold; text-align: center; display: block;">
+            
+            <label class="sync-cal-label">
+                <input type="checkbox" id="task-sync-cal" class="sync-cal-checkbox" checked>
+                Sync with Google Calendar for reliable alert
+            </label>
+        </div>
+
         <div class="btn-row">
             <button class="btn-secondary" onclick="document.getElementById('add-task-modal').style.display='none'">Cancel</button>
             <button class="btn-main" onclick="saveNewTask()">Save Task</button>
         </div>
     </div>
+
 
     <!-- Manage Patients Bottom Sheet -->
 <div class="bottom-sheet" id="manage-patients-sheet">
@@ -2865,22 +2904,29 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             }
         }
 
+        let currentTaskType = 'normal';
+
         function openAddTaskModal() {
             document.getElementById('task-text-input').value = "";
-            document.querySelector('input[name="task-type"][value="normal"]').checked = true;
-            toggleTaskTimeInput(false);
+            setTaskType('normal'); // Reset to normal state
             
+            // Set current time as default value in the time picker
             const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Set to current time precisely
-            document.getElementById('task-time-input').value = now.toISOString().slice(0, 16);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('task-time-input').value = `${hours}:${minutes}`;
             
+            // Reset sync checkbox to checked
+            document.getElementById('task-sync-cal').checked = true; 
+            
+            // Improved patient dropdown parsing
             const select = document.getElementById('task-patient-select');
-            select.innerHTML = '<option value="general">General (no patient)</option>';
+            select.innerHTML = '<option value="general">🌐 General (no patient)</option>';
             appData.rooms.forEach(r => {
                 r.patients.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.innerText = `${p.name} (${r.name})`;
+                    opt.innerText = `👤 ${p.name} (${r.name})`;
                     select.appendChild(opt);
                 });
             });
@@ -2889,41 +2935,107 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             setTimeout(() => { document.getElementById('add-task-modal').style.opacity = '1'; }, 10);
         }
 
-        function toggleTaskTimeInput(show) { document.getElementById('task-time-input').style.display = show ? 'block' : 'none'; }
+        function setTaskType(type) {
+            currentTaskType = type;
+            const btnNormal = document.getElementById('btn-task-normal');
+            const btnTimed = document.getElementById('btn-task-timed');
+            const timeContainer = document.getElementById('task-time-container');
+            const timeInput = document.getElementById('task-time-input');
+            
+            if (type === 'normal') {
+                btnNormal.classList.add('active');
+                btnTimed.classList.remove('active');
+                timeContainer.style.display = 'none';
+            } else {
+                btnTimed.classList.add('active');
+                btnNormal.classList.remove('active');
+                timeContainer.style.display = 'block';
+                
+                // Automatically open the clock/time picker UI natively
+                setTimeout(() => {
+                    timeInput.focus();
+                    if (typeof timeInput.showPicker === 'function') {
+                        try { timeInput.showPicker(); } catch(e) {}
+                    }
+                }, 50);
+            }
+        }
 
         function saveNewTask() {
-            initAudio();
-            const text = document.getElementById('task-text-input').value.trim();
-            if (!text) return showToast("Task description required");
+    initAudio();
+    const text = document.getElementById('task-text-input').value.trim();
+    if (!text) return showToast("Task description required");
 
-            const isTimed = document.querySelector('input[name="task-type"]:checked').value === 'timed';
-            let taskTime = null;
-            
-            if (isTimed) {
-                const timeStr = document.getElementById('task-time-input').value;
-                if (!timeStr) return showToast("Time required for timed tasks");
-                taskTime = new Date(timeStr).getTime();
-            }
+    const isTimed = currentTaskType === 'timed';
+    let taskTime = null;
+    
+    const patientIdVal = document.getElementById('task-patient-select').value;
+    const patientId = patientIdVal === 'general' ? 'general' : parseInt(patientIdVal);
+    
+    let patientName = 'General Task';
+    if (patientId !== 'general') {
+        const p = findPatientAndRoom(patientId);
+        if (p) patientName = p.patient.name;
+    }
 
-            const patientIdVal = document.getElementById('task-patient-select').value;
-            const patientId = patientIdVal === 'general' ? 'general' : parseInt(patientIdVal);
-
-            const newTask = { id: Date.now(), text: text, type: isTimed ? 'timed' : 'normal', time: taskTime, status: 'pending', patientId: patientId };
-
-            appData.tasks.push(newTask);
-            saveData(); 
-            renderAllTasksList();
-
-            let patientName = 'General Task';
-            if (patientId !== 'general') {
-                const p = findPatientAndRoom(patientId);
-                if (p) patientName = p.patient.name;
-            }
-            if (isTimed) scheduleLocalAlert(newTask, patientName);
-
-            renderUI();
-            document.getElementById('add-task-modal').style.display = 'none';
+    if (isTimed) {
+        const timeStr = document.getElementById('task-time-input').value; 
+        if (!timeStr) return showToast("Time required for timed tasks");
+        
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const now = new Date();
+        // Create date object based on local time
+        let targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+        
+        // Smart Day Rollover: If time passed today, set for tomorrow
+        if (targetDate.getTime() <= now.getTime()) {
+            targetDate.setDate(targetDate.getDate() + 1);
         }
+        taskTime = targetDate.getTime();
+        
+        const syncChecked = document.getElementById('task-sync-cal').checked;
+        if (syncChecked) {
+            // FIX: Convert local time to UTC format for Google Calendar (YYYYMMDDTHHMMSSZ)
+            const formatGCalUTC = (date) => {
+                return date.getUTCFullYear().toString() +
+                       String(date.getUTCMonth() + 1).padStart(2, '0') +
+                       String(date.getUTCDate()).padStart(2, '0') + 'T' +
+                       String(date.getUTCHours()).padStart(2, '0') +
+                       String(date.getUTCMinutes()).padStart(2, '0') + '00Z';
+            };
+            
+            const startStr = formatGCalUTC(targetDate);
+            const endDate = new Date(targetDate.getTime() + 15 * 60000); // 15 min duration
+            const endStr = formatGCalUTC(endDate);
+            
+            const eventTitle = encodeURIComponent(`🚨 MiriMate: ${text}`);
+            const eventDetails = encodeURIComponent(`Patient: ${patientName}`);
+            
+            const gCalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${startStr}/${endStr}&details=${eventDetails}`;
+            
+            window.open(gCalUrl, '_blank');
+        }
+    }
+
+    const newTask = { 
+        id: Date.now(), 
+        text: text, 
+        type: isTimed ? 'timed' : 'normal', 
+        time: taskTime, 
+        status: 'pending', 
+        patientId: patientId 
+    };
+
+    appData.tasks.push(newTask);
+    saveData(); 
+    renderAllTasksList();
+
+    if (isTimed) scheduleLocalAlert(newTask, patientName);
+
+    renderUI();
+    document.getElementById('add-task-modal').style.display = 'none';
+}
+
 
         function markTaskComplete(taskId) {
             const task = appData.tasks.find(t => t.id === taskId);
