@@ -1,25 +1,25 @@
 // =============================================
-// sheet.js â€” Smart Hx Knowledge Base
+// sheet.js — Smart Hx Knowledge Base
 // =============================================
 
 const HX_SYSTEMS = {
-    GEN:  { name: "General Look",      icon: "ðŸ§",  color: "#10b981" }, // GEN is reserved and rendered first
-    GI:   { name: "Gastrointestinal",  icon: "ðŸ", color: "#f59e0b" },
-    CVS:  { name: "Cardiovascular",    icon: "â¤ï¸",  color: "#ef4444" },
-    RESP: { name: "Respiratory",       icon: "ðŸ«",  color: "#3b82f6" },
-    CNS:  { name: "Neurological",      icon: "ðŸ§ ",  color: "#8b5cf6" },
-    GU:   { name: "Genitourinary",     icon: "ðŸ’§",  color: "#06b6d4" },
-    OBS:  { name: "OBS/GYN",  icon: "ðŸ¤°",  color: "#ec4899" },
-    MSK:  { name: "Musculoskeletal",   icon: "ðŸ¦´",  color: "#d97706" },
-    NEPH: { name: "Nephrology",        icon: "ðŸ«˜",  color: "#a855f7" },
-    ENDO: { name: "Endocrine",         icon: "ðŸ¦‹",  color: "#f97316" }
+    GEN:  { name: "General Look",      icon: "🧍",  color: "#10b981" }, // GEN is reserved and rendered first
+    GI:   { name: "Gastrointestinal",  icon: "🍏", color: "#f59e0b" },
+    CVS:  { name: "Cardiovascular",    icon: "❤️",  color: "#ef4444" },
+    RESP: { name: "Respiratory",       icon: "🫁",  color: "#3b82f6" },
+    CNS:  { name: "Neurological",      icon: "🧠",  color: "#8b5cf6" },
+    GU:   { name: "Genitourinary",     icon: "💧",  color: "#06b6d4" },
+    OBS:  { name: "OBS/GYN",  icon: "🤰",  color: "#ec4899" },
+    MSK:  { name: "Musculoskeletal",   icon: "🦴",  color: "#d97706" },
+    NEPH: { name: "Nephrology",        icon: "🫘",  color: "#a855f7" },
+    ENDO: { name: "Endocrine",         icon: "🦋",  color: "#f97316" }
 };
 
 // =============================================
 // BASELINE PAST HISTORY SUGGESTIONS
 // =============================================
 const HX_BASELINE_PAST = {
-    medical:  ['Hypertension', 'Diabetes Mellitus', 'Ischemic Heart Disease'', 'CKD'],
+    medical:  ['Hypertension', 'Diabetes Mellitus', 'Ischemic Heart Disease', 'CKD'],
     surgical: ['Appendectomy', 'Cholecystectomy'],
     drug:     [],
     family:   ['Diabetes Mellitus', 'Hypertension', 'Malignancy'],
@@ -30,13 +30,13 @@ const HX_BASELINE_PAST = {
 // EXCLUSION RULES
 // =============================================
 const HX_EXCLUSIONS = {
-    // â”€â”€ Social History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Social History ───────────────────────────────────────────────────────
     'Smoking':                               { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Alcohol':                               { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Illicit Drugs':                         { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Occupational exposure (dust/chemicals)':{ excludeAgeGroups: ['Neonate', 'Pediatric'] },
 
-    // â”€â”€ Medical History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Medical History ──────────────────────────────────────────────────────
     'Hypertension':                          { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Diabetes Mellitus':                     { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'CKD':                                   { excludeAgeGroups: ['Neonate', 'Pediatric'] },
@@ -62,7 +62,7 @@ const HX_EXCLUSIONS = {
     'Polycystic Kidney Disease':             { },
     'Glomerulonephritis':                    { },
 
-    // â”€â”€ Surgical History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Surgical History ─────────────────────────────────────────────────────
     'CABG':                                  { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'PCI/Stents':                            { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'TIPS':                                  { excludeAgeGroups: ['Neonate', 'Pediatric'] },
@@ -78,7 +78,7 @@ const HX_EXCLUSIONS = {
     'AV Fistula Creation':                   { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Hemodialysis':                          { excludeAgeGroups: ['Neonate'] },
 
-    // â”€â”€ Drug History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Drug History ─────────────────────────────────────────────────────────
     'Nitrates':                              { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Beta Blockers':                         { excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'Statins':                               { excludeAgeGroups: ['Neonate', 'Pediatric'] },
@@ -94,13 +94,13 @@ const HX_EXCLUSIONS = {
     'Anticholinergics':                      { excludeAgeGroups: ['Neonate'] },
     'Oral Contraceptives':                   { excludeAgeGroups: ['Neonate', 'Pediatric'], excludeSex: ['Male'] },
 
-    // â”€â”€ Family History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Family History ───────────────────────────────────────────────────────
     'Premature CAD':                         { excludeAgeGroups: ['Neonate'] },
     'Sudden cardiac death':                  { },
     'Bleeding disorders':                    { },
     'Malignancy':                            { },
 
-    // â”€â”€ Sex-specific items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Sex-specific items ───────────────────────────────────────────────────
     'Prostate Disease':                      { excludeSex: ['Female'], excludeAgeGroups: ['Neonate', 'Pediatric'] },
     'BPH':                                   { excludeSex: ['Female'], excludeAgeGroups: ['Neonate', 'Pediatric', 'Adolescent', 'Adult'] },
     'Previous C-Section':                    { excludeSex: ['Male'], excludeAgeGroups: ['Neonate', 'Pediatric', 'Adolescent'] },
@@ -125,7 +125,7 @@ const HX_TEMPLATES = {
         { id: "site",        label: "Exact Location",      type: "chips", options: ["Retrosternal", "Left Sided", "Right Sided", "Diffuse"] },
         { id: "radiation",   label: "Radiation",           type: "chips", options: ["Left Arm", "Both Arms", "Jaw/Neck", "Back", "None"] },
         { id: "character",   label: "Character",           type: "chips", options: ["Crushing/Pressure", "Tearing", "Stabbing/Sharp", "Burning", "Aching"] },
-        { id: "severity",    label: "Severity (1â€“10)",     type: "number", min: 1, max: 10 },
+        { id: "severity",    label: "Severity (1–10)",     type: "number", min: 1, max: 10 },
         { id: "aggravating", label: "Aggravating Factors", type: "text" },
         { id: "relieving",   label: "Relieving Factors",   type: "text" }
     ],
@@ -133,7 +133,7 @@ const HX_TEMPLATES = {
         { id: "site",        label: "Quadrant / Site",     type: "chips", options: ["Epigastric", "RUQ", "RLQ", "LUQ", "LLQ", "Suprapubic", "Diffuse"] },
         { id: "radiation",   label: "Radiation",           type: "chips", options: ["Back", "Right Shoulder", "Left Shoulder", "Groin", "None"] },
         { id: "character",   label: "Character",           type: "chips", options: ["Colicky/Cramping", "Dull Aching", "Sharp/Stabbing", "Burning"] },
-        { id: "severity",    label: "Severity (1â€“10)",     type: "number", min: 1, max: 10 },
+        { id: "severity",    label: "Severity (1–10)",     type: "number", min: 1, max: 10 },
         { id: "aggravating", label: "Aggravating",         type: "text" },
         { id: "relieving",   label: "Relieving",           type: "text" }
     ],
@@ -141,7 +141,7 @@ const HX_TEMPLATES = {
         { id: "site",        label: "Location",            type: "chips", options: ["Frontal", "Occipital", "Temporal", "Unilateral (Half)", "Holocranial"] },
         { id: "radiation",   label: "Radiation",           type: "chips", options: ["Neck", "Face", "Eye", "None"] },
         { id: "character",   label: "Character",           type: "chips", options: ["Throbbing/Pulsating", "Tight Band/Pressure", "Stabbing", "Dull"] },
-        { id: "severity",    label: "Severity (1â€“10)",     type: "number", min: 1, max: 10 },
+        { id: "severity",    label: "Severity (1–10)",     type: "number", min: 1, max: 10 },
         { id: "aggravating", label: "Aggravating Factors", type: "text" },
         { id: "relieving",   label: "Relieving Factors",   type: "text" }
     ],
@@ -149,7 +149,7 @@ const HX_TEMPLATES = {
         { id: "site",        label: "Location",            type: "chips", options: ["Cervical", "Thoracic", "Lumbar", "Sacral"] },
         { id: "radiation",   label: "Radiation",           type: "chips", options: ["Down one leg (Sciatica)", "Down both legs", "Arms", "None"] },
         { id: "character",   label: "Character",           type: "chips", options: ["Dull aching", "Sharp/Shooting", "Spasm-like"] },
-        { id: "severity",    label: "Severity (1â€“10)",     type: "number", min: 1, max: 10 },
+        { id: "severity",    label: "Severity (1–10)",     type: "number", min: 1, max: 10 },
         { id: "aggravating", label: "Aggravating",         type: "text" },
         { id: "relieving",   label: "Relieving",           type: "text" }
     ],
@@ -163,7 +163,7 @@ const HX_TEMPLATES = {
         { id: "chills",       label: "Chills / Rigors",  type: "toggle" },
         { id: "night_sweats", label: "Night Sweats",     type: "toggle" },
         { id: "pattern",      label: "Pattern",          type: "chips", options: ["Continuous", "Intermittent", "Remittent", "Relapsing"] },
-        { id: "max_temp",     label: "Max Temp (Â°C)",    type: "number", min: 37, max: 42 }
+        { id: "max_temp",     label: "Max Temp (°C)",    type: "number", min: 37, max: 42 }
     ],
     neuro_ams: [
         { id: "gcs",            label: "GCS (3-15)",            type: "number", min: 3, max: 15 },
@@ -237,7 +237,7 @@ const HX_SYMPTOMS = [
         id: "hx_fever",
         name: "Fever",
         systems: ["GEN"],
-        searchTerms: ["high temp", "hot", "pyrexia", "Ø­Ø±Ø§Ø±Ø©", "Ø³Ø®ÙˆÙ†Ø©"],
+        searchTerms: ["high temp", "hot", "pyrexia", "حرارة", "سخونة"],
         globalRank: 1,
         template: "fever",
         customAttributes: [
@@ -260,7 +260,7 @@ const HX_SYMPTOMS = [
         id: "hx_sob",
         name: "Dyspnea",
         systems: ["RESP", "CVS"],
-        searchTerms: ["sob", "dyspnea", "breathless", "shortness of breath", "Ø¶ÙŠÙ‚ ØªÙ†ÙØ³", "Ù†Ù‡Ø¬Ø§Ù†"],
+        searchTerms: ["sob", "dyspnea", "breathless", "shortness of breath", "ضيق تنفس", "نهجان"],
         globalRank: 2,
         template: "generic",
         customAttributes: [
@@ -283,7 +283,7 @@ const HX_SYMPTOMS = [
         id: "hx_chest_pain",
         name: "Chest Pain",
         systems: ["CVS", "RESP"],
-        searchTerms: ["cp", "chest", "pain", "angina", "Ø£Ù„Ù… Ø¨Ø§Ù„ØµØ¯Ø±"],
+        searchTerms: ["cp", "chest", "pain", "angina", "ألم بالصدر"],
         globalRank: 3,
         template: "pain_chest",
         customAttributes: [
@@ -307,7 +307,7 @@ const HX_SYMPTOMS = [
         id: "hx_abd_pain",
         name: "Abdominal Pain",
         systems: ["GI", "GU", "OBS"],
-        searchTerms: ["stomach ache", "belly", "colic", "Ø£Ù„Ù… Ø¨Ø§Ù„Ø¨Ø·Ù†", "Ù…ØºØµ"],
+        searchTerms: ["stomach ache", "belly", "colic", "ألم بالبطن", "مغص"],
         globalRank: 4,
         template: "pain_abd",
         customAttributes: [
@@ -331,7 +331,7 @@ const HX_SYMPTOMS = [
         id: "hx_ams",
         name: "Altered Mental Status",
         systems: ["CNS", "GEN"],
-        searchTerms: ["confusion", "coma", "delirium", "drowsy", "ØºÙŠØ¨ÙˆØ¨Ø©", "ØªØ®Ù„ÙŠØ·"],
+        searchTerms: ["confusion", "coma", "delirium", "drowsy", "غيبوبة", "تخليط"],
         globalRank: 5,
         template: "neuro_ams",
         customAttributes: [
@@ -354,7 +354,7 @@ const HX_SYMPTOMS = [
         id: "hx_gi_nausea_vomit",
         name: "Nausea & Vomiting",
         systems: ["GI", "GEN"],
-        searchTerms: ["vomiting", "nausea", "throw up", "puke", "Ù‚ÙŠØ¡", "ØºØ«ÙŠØ§Ù†"],
+        searchTerms: ["vomiting", "nausea", "throw up", "puke", "قيء", "غثيان"],
         globalRank: 6,
         template: "gi_vomiting",
         customAttributes: [
@@ -377,7 +377,7 @@ const HX_SYMPTOMS = [
         id: "hx_gi_diarrhea",
         name: "Diarrhea",
         systems: ["GI"],
-        searchTerms: ["loose stool", "frequent stool", "diarrhea", "Ø¥Ø³Ù‡Ø§Ù„"],
+        searchTerms: ["loose stool", "frequent stool", "diarrhea", "إسهال"],
         globalRank: 7,
         template: "gi_bowel",
         customAttributes: [
@@ -401,7 +401,7 @@ const HX_SYMPTOMS = [
         id: "hx_headache",
         name: "Headache",
         systems: ["CNS"],
-        searchTerms: ["ha", "head", "migraine", "ØµØ¯Ø§Ø¹"],
+        searchTerms: ["ha", "head", "migraine", "صداع"],
         globalRank: 8,
         template: "pain_headache",
         customAttributes: [
@@ -425,7 +425,7 @@ const HX_SYMPTOMS = [
         id: "hx_cough",
         name: "Cough",
         systems: ["RESP"],
-        searchTerms: ["coughing", "sputum", "phlegm", "Ø³Ø¹Ø§Ù„"],
+        searchTerms: ["coughing", "sputum", "phlegm", "سعال"],
         globalRank: 9,
         template: "generic",
         customAttributes: [
@@ -450,7 +450,7 @@ const HX_SYMPTOMS = [
         id: "hx_dysuria",
         name: "Dysuria",
         systems: ["GU"],
-        searchTerms: ["burning urine", "frequency", "uti", "urinary symptoms", "Ø­Ø±Ù‚Ø§Ù† Ø¨Ø§Ù„Ø¨ÙˆÙ„"],
+        searchTerms: ["burning urine", "frequency", "uti", "urinary symptoms", "حرقان بالبول"],
         globalRank: 10,
         template: "urinary",
         customAttributes: [
@@ -473,7 +473,7 @@ const HX_SYMPTOMS = [
         id: "hx_dizziness",
         name: "Dizziness",
         systems: ["CNS", "CVS"],
-        searchTerms: ["dizzy", "spinning", "lightheaded", "faint", "vertigo", "Ø¯ÙˆØ®Ø©", "Ø¯ÙˆØ§Ø±"],
+        searchTerms: ["dizzy", "spinning", "lightheaded", "faint", "vertigo", "دوخة", "دوار"],
         globalRank: 11,
         template: "dizziness",
         customAttributes: [
@@ -497,7 +497,7 @@ const HX_SYMPTOMS = [
         id: "hx_back_pain",
         name: "Back Pain",
         systems: ["MSK", "GU", "CNS"],
-        searchTerms: ["backache", "lumbago", "sciatica", "Ø£Ù„Ù… Ø¨Ø§Ù„Ø¸Ù‡Ø±"],
+        searchTerms: ["backache", "lumbago", "sciatica", "ألم بالظهر"],
         globalRank: 12,
         template: "pain_back",
         customAttributes: [
@@ -521,7 +521,7 @@ const HX_SYMPTOMS = [
         id: "hx_hematemesis",
         name: "Hematemesis",
         systems: ["GI"],
-        searchTerms: ["vomiting blood", "melena", "blood vomit", "gi bleed", "Ù‚ÙŠØ¡ Ø¯Ù…", "Ø¨Ø±Ø§Ø² Ø£Ø³ÙˆØ¯"],
+        searchTerms: ["vomiting blood", "melena", "blood vomit", "gi bleed", "قيء دم", "براز أسود"],
         globalRank: 13,
         template: "bleeding",
         customAttributes: [
@@ -544,7 +544,7 @@ const HX_SYMPTOMS = [
         id: "hx_edema",
         name: "Edema",
         systems: ["NEPH", "CVS", "GI"],
-        searchTerms: ["swelling", "edema", "puffy", "ØªÙˆØ±Ù…", "ÙˆØ°Ù…Ø©"],
+        searchTerms: ["swelling", "edema", "puffy", "تورم", "وذمة"],
         globalRank: 14,
         template: "edema",
         customAttributes: [
@@ -567,7 +567,7 @@ const HX_SYMPTOMS = [
         id: "hx_oliguria",
         name: "Oliguria",
         systems: ["NEPH", "GU"],
-        searchTerms: ["low urine", "anuria", "oliguria", "decreased urine output", "Ù‚Ù„Ø© Ø§Ù„Ø¨ÙˆÙ„", "Ø§Ù†Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø¨ÙˆÙ„"],
+        searchTerms: ["low urine", "anuria", "oliguria", "decreased urine output", "قلة البول", "انقطاع البول"],
         globalRank: 15,
         template: "urine_output",
         customAttributes: [
@@ -590,7 +590,7 @@ const HX_SYMPTOMS = [
         id: "hx_hematuria",
         name: "Hematuria",
         systems: ["NEPH", "GU"],
-        searchTerms: ["blood in urine", "red urine", "hematuria", "Ø¯Ù… ÙÙŠ Ø§Ù„Ø¨ÙˆÙ„"],
+        searchTerms: ["blood in urine", "red urine", "hematuria", "دم في البول"],
         globalRank: 16,
         template: "urine_appearance",
         customAttributes: [
@@ -614,7 +614,7 @@ const HX_SYMPTOMS = [
         id: "hx_flank_pain",
         name: "Flank Pain",
         systems: ["NEPH", "GU", "MSK"],
-        searchTerms: ["flank", "loin", "renal colic", "Ø£Ù„Ù… ÙÙŠ Ø§Ù„Ø¬Ù†Ø¨", "Ù…ØºØµ ÙƒÙ„ÙˆÙŠ"],
+        searchTerms: ["flank", "loin", "renal colic", "ألم في الجنب", "مغص كلوي"],
         globalRank: 17,
         template: "pain_abd",
         customAttributes: [
@@ -638,7 +638,7 @@ const HX_SYMPTOMS = [
         id: "hx_frothy_urine",
         name: "Frothy Urine",
         systems: ["NEPH"],
-        searchTerms: ["frothy", "foamy", "bubbles in urine", "proteinuria", "Ø¨ÙˆÙ„ Ø±ØºÙˆÙŠ"],
+        searchTerms: ["frothy", "foamy", "bubbles in urine", "proteinuria", "بول رغوي"],
         globalRank: 18,
         template: "urine_appearance",
         customAttributes: [
@@ -661,7 +661,7 @@ const HX_SYMPTOMS = [
         id: "hx_polyuria",
         name: "Polyuria",
         systems: ["NEPH", "GU", "GEN"],
-        searchTerms: ["frequent urination", "nocturia", "polyuria", "ÙƒØ«Ø±Ø© Ø§Ù„ØªØ¨ÙˆÙ„", "ØªØ¨ÙˆÙ„ Ù„ÙŠÙ„ÙŠ"],
+        searchTerms: ["frequent urination", "nocturia", "polyuria", "كثرة التبول", "تبول ليلي"],
         globalRank: 19,
         template: "urine_output",
         customAttributes: [
@@ -684,7 +684,7 @@ const HX_SYMPTOMS = [
         id: "hx_palpitations",
         name: "Palpitations",
         systems: ["CVS", "ENDO"],
-        searchTerms: ["heart racing", "fluttering", "fast heartbeat", "Ø±ÙØ±ÙØ©", "Ø¶Ø±Ø¨Ø§Øª Ù‚Ù„Ø¨ Ø³Ø±ÙŠØ¹Ø©"],
+        searchTerms: ["heart racing", "fluttering", "fast heartbeat", "رفرفة", "ضربات قلب سريعة"],
         globalRank: 2,
         template: "palpitations",
         customAttributes: [
@@ -707,7 +707,7 @@ const HX_SYMPTOMS = [
         id: "hx_syncope",
         name: "Syncope",
         systems: ["CVS", "CNS"],
-        searchTerms: ["fainting", "passed out", "blackout", "loss of consciousness", "Ø¥ØºÙ…Ø§Ø¡", "ÙÙ‚Ø¯Ø§Ù† Ø§Ù„ÙˆØ¹ÙŠ"],
+        searchTerms: ["fainting", "passed out", "blackout", "loss of consciousness", "إغماء", "فقدان الوعي"],
         globalRank: 3,
         template: "syncope",
         customAttributes: [
@@ -730,7 +730,7 @@ const HX_SYMPTOMS = [
         id: "hx_jaundice",
         name: "Jaundice",
         systems: ["GI", "GEN"],
-        searchTerms: ["yellow skin", "yellow eyes", "icterus", "ØµÙØ±Ø§Ø¡", "ÙŠØ±Ù‚Ø§Ù†"],
+        searchTerms: ["yellow skin", "yellow eyes", "icterus", "صفراء", "يرقان"],
         globalRank: 4,
         template: "generic",
         customAttributes: [
@@ -754,7 +754,7 @@ const HX_SYMPTOMS = [
         id: "hx_constipation",
         name: "Constipation",
         systems: ["GI", "ENDO"],
-        searchTerms: ["no stool", "obstipation", "hard stool", "Ø¥Ù…Ø³Ø§Ùƒ"],
+        searchTerms: ["no stool", "obstipation", "hard stool", "إمساك"],
         globalRank: 2,
         template: "generic",
         customAttributes: [
@@ -780,7 +780,7 @@ const HX_SYMPTOMS = [
 // EXAMS (Template Based)
 // =============================================
 const HX_EXAMS = [
-    // â”€â”€ General Look â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── General Look ──────────────────────────────────
     { id: "gen_appearance", system: "GEN", section: "Appearance", desc: "Consciousness, distress, habitus", rank: 1, template: [
         { id: "loc", label: "Consciousness", type: "chips", options: ["Alert", "Confused", "Lethargic", "Comatose"] },
         { id: "distress", label: "Distress", type: "toggle" },
@@ -798,7 +798,7 @@ const HX_EXAMS = [
         { id: "turgor", label: "Skin Turgor", type: "chips", options: ["Normal", "Decreased", "Tenting"] },
         { id: "cap_refill", label: "Cap Refill", type: "chips", options: ["< 2s", "> 2s"] }
     ]},
-    // â”€â”€ Respiratory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Respiratory ───────────────────────────────────
     { id: "resp_insp", system: "RESP", section: "Inspection", desc: "Chest shape, effort", rank: 1, template: [
         { id: "effort", label: "Effort", type: "chips", options: ["Normal", "Use of accessory muscles", "Retractions"] },
         { id: "shape", label: "Shape", type: "chips", options: ["Normal", "Barrel", "Pectus Excavatum", "Pectus Carinatum"] },
@@ -813,7 +813,7 @@ const HX_EXAMS = [
         { id: "breath_sounds", label: "Breath Sounds", type: "chips", options: ["Vesicular", "Bronchial"] },
         { id: "added", label: "Added Sounds", type: "chips", options: ["None", "Wheezes", "Crepitations/Crackles", "Pleural Rub"] }
     ]},
-    // â”€â”€ CVS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── CVS ───────────────────────────────────────────
     { id: "cvs_insp", system: "CVS", section: "Inspection & Palpation", desc: "JVP, heaves, thrills", rank: 1, template: [
         { id: "jvp", label: "JVP", type: "chips", options: ["Normal", "Elevated", "Not visible"] },
         { id: "apex", label: "Apex Beat", type: "chips", options: ["Normal", "Displaced", "Heaving"] },
@@ -830,7 +830,7 @@ const HX_EXAMS = [
         { id: "character", label: "Character/Volume", type: "chips", options: ["Normal", "Weak/Thready", "Bounding", "Collapsing"] },
         { id: "equality", label: "Equality", type: "chips", options: ["Equal", "Radio-radial delay", "Radio-femoral delay"] }
     ]},
-    // â”€â”€ GI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GI ────────────────────────────────────────────
     { id: "gi_insp", system: "GI", section: "Inspection", desc: "Contour, scars", rank: 1, template: [
         { id: "contour", label: "Contour", type: "chips", options: ["Flat", "Scaphoid", "Distended"] },
         { id: "scars", label: "Scars/Striae", type: "toggle" },
@@ -854,7 +854,7 @@ const HX_EXAMS = [
         { id: "prostate", label: "Prostate", type: "chips", options: ["Normal", "Enlarged", "Nodular/Hard", "Tender"] },
         { id: "mass", label: "Rectal Mass", type: "toggle" }
     ]},
-    // â”€â”€ CNS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── CNS ───────────────────────────────────────────
     { id: "cns_cranial", system: "CNS", section: "Cranial Nerves", desc: "Pupils, facial symmetry", rank: 1, template: [
         { id: "pupils", label: "Pupils", type: "chips", options: ["PEARL", "Anisocoria", "Sluggish", "Fixed/Dilated", "Pinpoint"] },
         { id: "face", label: "Facial Symmetry", type: "chips", options: ["Symmetrical", "UMN Lesion", "LMN Lesion"] },
@@ -871,7 +871,7 @@ const HX_EXAMS = [
         { id: "coordination", label: "Coordination", type: "chips", options: ["Intact", "Dysmetria", "Dysdiadochokinesia", "Ataxic Gait"] },
         { id: "meningeal", label: "Meningeal Signs", type: "chips", options: ["None", "Neck Stiffness", "Kernig's", "Brudzinski's"] }
     ]},
-    // â”€â”€ GU & Nephrology â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── GU & Nephrology ───────────────────────────────
     { id: "gu_exam", system: "GU", section: "Genitourinary", desc: "CVA, bladder, genitalia", rank: 1, template: [
         { id: "cva", label: "CVA Tenderness", type: "chips", options: ["None", "Right", "Left", "Bilateral"] },
         { id: "bladder", label: "Palpable Bladder", type: "toggle" },
@@ -882,21 +882,21 @@ const HX_EXAMS = [
         { id: "fluid", label: "Fluid Status", type: "chips", options: ["Euvolemic", "Overloaded", "Depleted"] },
         { id: "fistula", label: "AV Fistula", type: "chips", options: ["N/A", "Functioning (Thrill/Bruit)", "Failed/Thrombosed"] }
     ]},
-    // â”€â”€ MSK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── MSK ───────────────────────────────────────────
     { id: "msk_exam", system: "MSK", section: "Joints & Spine", desc: "Swelling, ROM, spine", rank: 1, template: [
         { id: "inspection", label: "Inspection", type: "chips", options: ["Normal", "Swelling", "Erythema", "Deformity"] },
         { id: "palpation", label: "Palpation", type: "chips", options: ["Non-tender", "Warmth", "Tenderness", "Effusion"] },
         { id: "rom", label: "Range of Motion", type: "chips", options: ["Full", "Restricted Active", "Restricted Passive", "Painful"] },
         { id: "spine", label: "Spine", type: "chips", options: ["Normal", "Tenderness", "Step-off", "Positive SLR"] }
     ]},
-    // â”€â”€ OBS / GYN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── OBS / GYN ─────────────────────────────────────
     { id: "obs_exam", system: "OBS", section: "Obstetrics / Gynecology", desc: "Fundus, FHR, PV", rank: 1, template: [
         { id: "fundus", label: "Fundal Height", type: "chips", options: ["Consistent with dates", "Large for dates", "Small for dates"] },
         { id: "lie", label: "Lie/Presentation", type: "chips", options: ["Longitudinal/Cephalic", "Breech", "Transverse"] },
         { id: "fhr", label: "Fetal Heart Rate", type: "chips", options: ["Normal (110-160)", "Tachycardia", "Bradycardia", "Absent"] },
         { id: "pv", label: "Pelvic Exam", type: "chips", options: ["Normal", "Bleeding", "Discharge", "Cervical Motion Tenderness"] }
     ]},
-    // â”€â”€ Endocrine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Endocrine ─────────────────────────────────────
     { id: "endo_thyroid", system: "ENDO", section: "Thyroid Exam", desc: "Inspection, palpation, eye signs", rank: 1, template: [
         { id: "size", label: "Thyroid Size", type: "chips", options: ["Normal", "Goiter (Diffuse)", "Nodular"] },
         { id: "bruit", label: "Thyroid Bruit", type: "toggle" },
@@ -961,7 +961,7 @@ const HX_LABS = [
     { name: "ALT (SGPT)",      min: 7,    max: 56,    unit: "U/L" },
     { name: "AST (SGOT)",      min: 10,   max: 40,    unit: "U/L" },
     { name: "Total Bilirubin", min: 0.1,  max: 1.2,   unit: "mg/dL" },
-    { name: "Ammonia",         min: 15,   max: 45,    unit: "Âµg/dL" },
+    { name: "Ammonia",         min: 15,   max: 45,    unit: "µg/dL" },
     { name: "Amylase",         min: 30,   max: 110,   unit: "U/L" },
     { name: "Lipase",          min: 0,    max: 160,   unit: "U/L" },
     { name: "CRP",             min: 0,    max: 10,    unit: "mg/L" },
