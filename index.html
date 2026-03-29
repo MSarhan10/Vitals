@@ -260,7 +260,7 @@
             border-radius: 8px; padding: 4px 10px; margin-left: 6px; color: var(--text-main); font-weight: bold;
         }
         .patient-header-right button:active { background: var(--divider); }
-        .has-notes { background: var(--primary) !important; color: white !important; border-color: var(--primary-dark) !important; }
+        
         
         .btn-secondary.has-tasks { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important;  animation: pulse 1.5s infinite;}
         
@@ -508,54 +508,6 @@
         .slider:before { position: absolute; content: "☀️"; display:flex; align-items:center; justify-content:center; font-size:14px; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(24px); content: "🌙"; }
-
-        /* Notes Full-Screen Modal & Toolbar */
-        #notes-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); z-index: 2000; flex-direction: column;
-        }
-        .notes-header {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px 16px; background: var(--primary); color: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-shrink: 0;
-        }
-        .notes-header-close {
-            background: rgba(255,255,255,0.2); border: none; color: white;
-            font-size: 1.3rem; border-radius: 50%; width: 38px; height: 38px;
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-        }
-        .notes-toolbar {
-            display: flex; gap: 6px; padding: 10px; background: var(--surface);
-            border-bottom: 1px solid var(--divider); flex-wrap: nowrap; flex-shrink: 0;
-            align-items: center; justify-content: flex-start; overflow-x: auto;
-            -webkit-overflow-scrolling: touch; -ms-overflow-style: none; scrollbar-width: none;
-        }
-        .notes-toolbar::-webkit-scrollbar { display: none; }
-        .notes-toolbar button {
-            background: var(--bg); border: 1px solid var(--divider); border-radius: 6px;
-            min-width: 36px; height: 36px; font-size: 1.1rem; color: var(--text-main);
-            cursor: pointer; display: flex; align-items: center; justify-content: center;
-            font-weight: bold; padding: 0 8px;
-        }
-        .notes-toolbar button:active { background: var(--divider); }
-        .notes-toolbar .color-btn { border-radius: 50%; width: 24px; height: 24px; min-width: 24px; border: 2px solid var(--divider); padding: 0; }
-        .notes-toolbar .divider { width: 1px; height: 24px; background: var(--divider); margin: 0 4px; }
-        
-        .notes-editor {
-            flex-grow: 1; padding: 16px; background: var(--bg); color: var(--text-main);
-            font-size: 1.1rem; overflow-y: auto; outline: none; line-height: 1.6;
-            white-space: pre-wrap; word-break: break-word; -webkit-overflow-scrolling: touch;
-        }
-        /* Reduce bullet padding and margins */
-        .notes-editor ul, .notes-editor ol {
-            padding-inline-start: 24px;
-            margin-top: 4px;
-            margin-bottom: 4px;
-        }
-        .notes-editor li {
-            margin-bottom: 2px;
-        }
-        .notes-editor:empty:before { content: attr(placeholder); color: var(--text-muted); pointer-events: none; }
 
         /* Lab Modal */
         /* News Modal */
@@ -862,6 +814,214 @@ html.modal-open, body.modal-open {
 .sync-cal-checkbox {
     width: 20px; height: 20px; margin: 0; accent-color: var(--primary); cursor: pointer;
 }
+
+/* =============================================
+   SMART HX SHEET STYLES (TABBED INTERFACE)
+   ============================================= */
+#hx-modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg); z-index: 2500; flex-direction: column; overflow: hidden;
+}
+
+/* ── Tab Bar Navigation ──────── */
+.hx-tab-bar {
+    display: flex; gap: 8px; overflow-x: auto; padding: 10px 16px;
+    background: var(--surface); border-bottom: 1px solid var(--divider);
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; flex-shrink: 0;
+}
+.hx-tab-bar::-webkit-scrollbar { display: none; }
+.hx-tab-btn {
+    background: var(--bg); border: 1px solid var(--divider); color: var(--text-muted);
+    padding: 8px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+    white-space: nowrap; cursor: pointer; transition: 0.2s;
+}
+.hx-tab-btn.active {
+    background: var(--primary); color: white; border-color: var(--primary-dark);
+}
+
+.hx-scroll-area {
+    flex-grow: 1; overflow-y: auto; padding: 16px 16px 80px 16px;
+    -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
+}
+
+/* Hide inactive tabs */
+.hx-tab-content { display: none; animation: fadeIn 0.2s ease-in; }
+.hx-tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Mobile-Friendly Forms (No + Button) ──────── */
+.hx-add-form { display: block; margin-top: 8px; width: 100%; }
+.hx-entry-input {
+    width: 100%; padding: 8px 12px; height: 36px;
+    border: 1.5px dashed var(--primary); border-radius: 8px;
+    background: var(--bg); color: var(--text-main); font-size: 0.85rem;
+    outline: none; transition: 0.2s; box-sizing: border-box; margin: 0;
+}
+.hx-entry-input:focus { border-style: solid; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1); }
+
+/* ── Suggestion Bar & Chips ──────────────────── */
+.hx-sugg-bar { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.hx-sugg-bar::-webkit-scrollbar { display: none; }
+.hx-chip {
+    background: var(--surface); border: 1px solid var(--divider); color: var(--text-main);
+    padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+    white-space: nowrap; cursor: pointer; transition: 0.15s; flex-shrink: 0;
+}
+.hx-chip.active-added { background: var(--primary); color: white; border-color: var(--primary-dark); }
+.hx-chip.correlation { background: #e0f2fe; border: 1px dashed #7dd3fc; color: #0369a1; }
+:root[data-theme="dark"] .hx-chip.correlation { background: #082f49; border-color: #0284c7; color: #bae6fd; }
+.hx-active-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+
+/* ── Compact Cards & Inputs ──────────────────── */
+.hx-card { background: var(--surface); border: 1px solid var(--divider); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.hx-card-header { font-weight: 800; font-size: 1rem; color: var(--text-main); margin-bottom: 10px; }
+.hx-field-row { margin-bottom: 8px; }
+.hx-field-label { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); margin-bottom: 4px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.hx-input, .hx-select {
+    width: 100%; padding: 6px 10px; height: 34px; border: 1px solid var(--divider); border-radius: 8px;
+    background: var(--bg); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; box-sizing: border-box; margin: 0;
+}
+.hx-input:focus, .hx-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+.hx-item-title { font-weight: 800; font-size: 0.9rem; color: var(--primary-dark); margin-bottom: 8px; display: block; padding-bottom: 4px; border-bottom: 1px solid var(--divider); }
+
+/* ── Horizontal Select Chips (Replaces Dropdowns & Toggles) ── */
+.hx-chip-bar {
+    display: flex; gap: 6px; overflow-x: auto; padding: 4px 12px; margin: 0 -12px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+}
+.hx-chip-bar::-webkit-scrollbar { display: none; }
+.hx-select-chip {
+    background: var(--bg); border: 1px solid var(--divider); color: var(--text-muted);
+    padding: 6px 14px; border-radius: 16px; font-size: 0.8rem; font-weight: 700;
+    white-space: nowrap; cursor: pointer; transition: 0.2s; user-select: none;
+    flex-shrink: 0;
+}
+.hx-select-chip.active {
+    background: var(--primary); color: white; border-color: var(--primary-dark);
+    box-shadow: 0 2px 5px rgba(34,197,94,0.2);
+}
+
+/* ── Collapsible Cards (Complaints & Exams) ──────────────────── */
+.hx-card { background: var(--surface); border: 1px solid var(--divider); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+.hx-card-summary { display: flex; justify-content: space-between; align-items: center; padding: 14px; font-weight: 800; font-size: 1rem; color: var(--text-main); cursor: pointer; outline: none; list-style: none; user-select: none; background: var(--surface); }
+.hx-card-summary::-webkit-details-marker { display: none; }
+.hx-card-content { padding: 0 14px 14px 14px; border-top: 1px dashed var(--divider); margin-top: 4px; padding-top: 12px; }
+
+.hx-field-row { margin-bottom: 12px; }
+.hx-field-label { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.hx-input, .hx-select {
+    width: 100%; padding: 6px 10px; height: 36px; border: 1px solid var(--divider); border-radius: 8px;
+    background: var(--bg); color: var(--text-main); font-size: 0.85rem; outline: none; transition: 0.2s; box-sizing: border-box; margin: 0;
+}
+.hx-input:focus, .hx-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+.hx-item-title { font-weight: 800; font-size: 0.9rem; color: var(--primary-dark); margin-bottom: 10px; display: block; padding-bottom: 4px; border-bottom: 1px solid var(--divider); }
+
+/* ── Past History Items ──────── */
+.hx-past-item { padding: 8px 0; border-bottom: 1px dashed var(--divider); display: flex; flex-direction: column; gap: 6px; }
+.hx-past-item:last-child { border-bottom: none; }
+.hx-past-item-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hx-past-item-name { font-weight: 600; font-size: 0.85rem; color: var(--text-main); flex: 1; line-height: 1.3; }
+.hx-del-btn { background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 6px; }
+.hx-del-btn:active { background: #fee2e2; }
+
+/* ── 3-State Toggle (Yes/No/Skip) ──────────────────────────── */
+.hx-toggle-group { display: flex; background: var(--bg); border: 1px solid var(--divider); border-radius: 8px; overflow: hidden; padding: 2px; gap: 2px; }
+.hx-toggle-btn { flex: 1; padding: 5px 2px; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); cursor: pointer; border-radius: 6px; transition: 0.15s; user-select: none; }
+.hx-toggle-btn[data-state="neg"].active  { background: #fee2e2; color: #b91c1c; }
+.hx-toggle-btn[data-state="skip"].active { background: var(--surface); color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.hx-toggle-btn[data-state="pos"].active  { background: #dcfce7; color: #15803d; }
+:root[data-theme="dark"] .hx-toggle-btn[data-state="neg"].active  { background: #450a0a; color: #fca5a5; }
+:root[data-theme="dark"] .hx-toggle-btn[data-state="pos"].active  { background: #064e3b; color: #6ee7b7; }
+
+/* ── Examination Specifics ─────────── */
+.hx-exam-card { 
+    background: var(--surface); border: 1px solid var(--divider); 
+    border-top-width: 3px; border-radius: 12px; 
+    margin-bottom: 12px; overflow: hidden; 
+}
+.hx-exam-card-summary { 
+    display: flex; align-items: center; gap: 8px; 
+    padding: 10px 14px; font-weight: 800; font-size: 0.9rem; 
+    background: var(--bg); border-bottom: 1px solid var(--divider); 
+    cursor: pointer; user-select: none; list-style: none; outline: none; 
+}
+.hx-exam-card-summary::-webkit-details-marker { display: none; }
+
+/* Adjusted badge to no longer push right, making way for the chevron */
+.hx-exam-relevant-badge { margin-left: 8px; background: rgba(34,197,94,0.12); color: #15803d; border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; letter-spacing: 0.4px; text-transform: uppercase; }
+:root[data-theme="dark"] .hx-exam-relevant-badge { background: rgba(16,185,129,0.15); color: #6ee7b7; border-color: rgba(16,185,129,0.3); }
+
+/* Chevron pushed to far right */
+.hx-exam-chevron { font-size: 0.65rem; color: var(--text-muted); transition: transform 0.2s; margin-left: auto; }
+.hx-exam-card[open] > .hx-exam-card-summary .hx-exam-chevron { transform: rotate(90deg); }
+
+.hx-exam-section-group { padding: 0 12px; }
+.hx-exam-section-label { font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin: 10px 0 4px; padding-bottom: 4px; border-bottom: 1px solid var(--divider); }
+
+/* New styles for nested collapsible exam sections */
+.hx-exam-item-details { border-bottom: 1px dashed var(--divider); }
+.hx-exam-item-details:last-child { border-bottom: none; }
+.hx-exam-item-summary { 
+    display: flex; justify-content: space-between; align-items: center; 
+    padding: 10px 0; font-size: 0.85rem; font-weight: 700; color: var(--text-main); 
+    cursor: pointer; list-style: none; user-select: none; outline: none;
+}
+.hx-exam-item-summary::-webkit-details-marker { display: none; }
+.hx-exam-item-content { padding-bottom: 12px; }
+.hx-exam-item-details[open] > .hx-exam-item-summary .hx-exam-chevron { transform: rotate(90deg); }
+
+/* Age Badge Styling */
+.hx-age-badge { font-size: 0.7rem; font-weight: 800; color: var(--primary-dark); background: var(--vital-bg); padding: 3px 8px; border-radius: 10px; margin-left: 8px; white-space: nowrap; text-transform: uppercase; }
+:root[data-theme="dark"] .hx-age-badge { color: var(--primary); background: rgba(34,197,94,0.15); }
+
+/* ── Lab & Rad Rows ─────────────── */
+.hx-lab-row { 
+    display: flex; flex-direction: column; gap: 8px; 
+    background: var(--surface); border: 1px solid var(--divider); 
+    padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; 
+}
+.hx-lab-header { 
+    display: flex; justify-content: space-between; align-items: center; width: 100%;
+}
+.hx-lab-name { 
+    font-weight: 800; color: var(--text-main); font-size: 0.9rem; 
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;
+}
+.hx-lab-actions {
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.hx-lab-icon {
+    background: var(--bg); color: var(--primary); border: 1px solid var(--divider);
+    width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 800; font-style: italic; cursor: pointer; transition: 0.15s;
+}
+.hx-lab-icon:active { transform: scale(0.9); }
+.hx-lab-input { 
+    width: 100%; text-align: left; font-weight: 600; font-size: 0.95rem;
+    height: 38px; padding: 8px 12px; border: 1px solid var(--divider); 
+    border-radius: 8px; background: var(--bg); color: var(--text-main); outline: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.hx-lab-input:focus { border-color: var(--primary); }
+.hx-lab-input.out-of-range {
+    color: #ef4444; border-color: #fca5a5; background: #fef2f2;
+}
+:root[data-theme="dark"] .hx-lab-input.out-of-range {
+    color: #fca5a5; border-color: #ef4444; background: #450a0a;
+}
+.hx-rad-row { background: var(--surface); border: 1px solid var(--divider); padding: 10px; border-radius: 10px; margin-bottom: 8px; }
+.hx-rad-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 8px; color: var(--text-main); font-size: 0.85rem; }
+
+/* ── Vitals Editor ───────────────────────────── */
+.hx-vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.hx-vital-input-group { background: var(--surface); border: 1px solid var(--divider); border-radius: 10px; padding: 8px; text-align: center; }
+.hx-vital-input-group label { display: block; font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+.hx-vital-input-group input { width: 100%; text-align: center; height: 36px; padding: 4px; font-weight: 700; font-size: 1.1rem; border: none; background: var(--bg); border-radius: 6px; color: var(--primary-dark); outline: none; }
+.hx-vital-input-group input:focus { box-shadow: inset 0 0 0 1.5px var(--primary); }
+
 
 
         #toast {
@@ -1181,7 +1341,6 @@ body.is-dragging * {
         <div class="filter-chips">
             <button class="filter-chip" onclick="setPatientFilter('measured')">📊 Measured</button>
             <button class="filter-chip" onclick="setPatientFilter('abnormal')">🚨 Abnormal</button>
-            <button class="filter-chip" onclick="setPatientFilter('notes')">📝 Notes</button>
             <button class="filter-chip" onclick="setPatientFilter('empty')">📭 Empty</button>
         </div>
         <div class="search-wrapper filter-search-wrap">
@@ -1206,21 +1365,9 @@ body.is-dragging * {
             <div class="fab-item fab-add-room" onclick="closeFab(); openRoomModal()">👥 Add New Room</div>
             <div class="fab-item fab-neutral" onclick="closeFab(); copyToClipboard()">📋 Copy All Vitals</div>
             <div class="fab-item fab-neutral" onclick="closeFab(); resetAllRoomsAction()">🔄 Reset All Vitals</div>
-            <div class="fab-item fab-neutral" onclick="openAnalyzePatientSelector()">🧠 Analyze Patient</div>
             <div class="fab-item fab-delete-all" onclick="closeFab(); deleteAllRoomsAction()">🗑️ Delete All Rooms</div>
         </div>
         <button class="fab-main" id="fab-main-btn" onclick="toggleFab()">⚡</button>
-    </div>
-
-    <!-- Analyze Patient Select Modal (THIS WAS MISSING) -->
-    <div class="center-modal" id="analyze-select-modal">
-        <h2>🧠 Analyze Patient</h2>
-        <p style="font-size:0.95rem; color:var(--text-muted); margin-top:0;">Select a patient to send their vitals and notes to the DDx AI.</p>
-        <select id="analyze-patient-select" style="margin-bottom: 20px;"></select>
-        <div class="btn-row">
-            <button class="btn-secondary" onclick="closeModals()">Cancel</button>
-            <button class="btn-main" onclick="executePatientAnalysis()">Analyze</button>
-        </div>
     </div>
 
     <!-- Stopwatch Modal -->
@@ -1253,33 +1400,7 @@ body.is-dragging * {
         <button class="btn-secondary" onclick="closeModals()">Close</button>
     </div>
 
-    <!-- Notes Full-Screen Modal -->
-    <div id="notes-modal">
-        <div class="notes-header">
-            <button class="notes-header-close" onclick="closeNotes()">✕</button>
-            <div style="flex-grow: 1;"></div>
-            <button onclick="clearNotes()" style="background: #fee2e2; color: #b91c1c; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px;">🗑️ Clear Notes</button>
-        </div>
-        <div class="notes-toolbar">
-            <button onmousedown="event.preventDefault(); formatNote('bold')" title="Bold">B</button>
-            <button onmousedown="event.preventDefault(); formatNote('italic')" title="Italic" style="font-style: italic;">I</button>
-            <button onmousedown="event.preventDefault(); formatNote('underline')" title="Underline" style="text-decoration: underline;">U</button>
-            <button onmousedown="event.preventDefault(); formatNote('strikeThrough')" title="Strikethrough" style="text-decoration: line-through;">S</button>
-            <div class="divider"></div>
-            <button id="color-cycle-btn" class="color-btn" style="background: var(--text-main);" onmousedown="event.preventDefault(); cycleColor()" title="Cycle Color"></button>
-            <button onmousedown="event.preventDefault(); formatNote('removeFormat')" title="Reset Formatting" style="font-size: 1.1rem; font-weight: bold;">↺</button>
-            <div class="divider"></div>
-            <button onmousedown="event.preventDefault(); alignText('left')" title="Align Left">⬅️</button>
-            <button onmousedown="event.preventDefault(); alignText('center')" title="Align Center">⏺️</button>
-            <button onmousedown="event.preventDefault(); alignText('right')" title="Align Right">➡️</button>
-            <button onmousedown="event.preventDefault(); formatNote('insertUnorderedList')" title="List" style="font-size: 1.1rem; font-weight: bold;">☰</button>
-        </div>
-        
-        <div id="notes-title" style="padding: 16px 16px 0 16px; font-weight: 800; font-size: 1.25rem; color: var(--primary-dark); background: var(--bg); flex-shrink: 0; text-align: center;">Patient Name</div>
-        
-        <div id="notes-editor" class="notes-editor" contenteditable="true" dir="auto" placeholder="Type case notes, plans, reminders..." oninput="autoSaveNotes()" style="padding-top: 10px;"></div>
-    </div>
-
+    
     <!-- Overdue Tasks Bottom Sheet -->
     <div class="bottom-sheet" id="overdue-tasks-sheet">
         <div class="numpad-header">
@@ -1289,14 +1410,15 @@ body.is-dragging * {
         <button class="btn-secondary" onclick="closeModals()">Close</button>
     </div>
 
-    <div class="center-modal" id="add-task-modal">
+<div class="center-modal" id="add-task-modal">
         <h2 id="add-task-title" style="margin-bottom: 16px;">New Task</h2>
         
         <input type="text" id="task-text-input" placeholder="Task description..." dir="auto">
         
-        <select id="task-patient-select" style="margin-bottom: 16px; font-weight: 600;">
-            <option value="general">🌐 General (no patient)</option>
-        </select>
+        <!-- Replaced Select Dropdown with a Text Label -->
+        <div id="task-patient-label" style="margin-bottom: 16px; font-weight: 700; color: var(--text-muted); padding: 8px; background: var(--surface); border-radius: 8px; border: 1px dashed var(--divider);">
+            🌐 General Task
+        </div>
         
         <div class="task-type-pills" style="margin-bottom: 16px;">
             <button class="task-type-pill active" id="btn-task-normal" onclick="setTaskType('normal')">📝 Normal</button>
@@ -1586,6 +1708,164 @@ body.is-dragging * {
         <div class="lab-scroll" id="lab-values-content"></div>
     </div>
 
+<!-- Smart Hx Sheet Full-Screen Modal -->
+<div id="hx-modal">
+    <div class="lab-header">
+        <button class="lab-header-close" onclick="closeHxSheet()">✕</button>
+        <span style="font-weight:700; font-size:1.1rem;">📄 Smart Hx Sheet</span>
+        <div style="display:flex; gap:8px;">
+            <button class="lab-header-close" onclick="generateHxSummary()" title="Copy Summary" style="font-size:1.1rem;">📋</button>
+            <button class="lab-header-close" onclick="clearHxSheet()"     title="Clear Form"   style="font-size:1.1rem;">🔄</button>
+        </div>
+    </div>
+
+    <!-- ── Tab Navigation ── -->
+    <div class="hx-tab-bar">
+        <button class="hx-tab-btn active" onclick="switchHxTab('profile')">Profile & Vitals</button>
+        <button class="hx-tab-btn" onclick="switchHxTab('complaint')">Complaint & PHx</button>
+        <button class="hx-tab-btn" onclick="switchHxTab('past')">Past History</button>
+        <button class="hx-tab-btn" onclick="switchHxTab('exam')">Examination</button>
+        <button class="hx-tab-btn" onclick="switchHxTab('investigations')">Labs & Rads</button>
+        <button class="hx-tab-btn" onclick="switchHxTab('notes')">Notes</button>
+    </div>
+
+    <div class="hx-scroll-area" id="hx-content">
+
+<!-- TAB: PROFILE & VITALS -->
+        <div id="hx-tab-profile" class="hx-tab-content active">
+            <div class="hx-item-title">👤 Demographics</div>
+            <div id="hx-patient-name-display" style="font-weight:800; font-size:1.15rem; margin-bottom:16px; color:var(--primary-dark);"></div>
+            
+            <div class="hx-field-row">
+                <label class="hx-field-label">Age</label>
+                <div style="display: flex; align-items: center; background: var(--bg); border: 1px solid var(--divider); border-radius: 8px; padding-right: 10px; overflow: hidden; height: 36px;">
+                    <input type="text" id="hx-demo-age" class="hx-input" placeholder="e.g. 45 y, 6 m, 12 d..." oninput="handleAgeInput(this.value)" style="border: none; margin: 0; background: transparent; flex: 1;">
+                    <span id="hx-age-group-badge" class="hx-age-badge" style="display: none;"></span>
+                </div>
+            </div>
+            
+            <div class="hx-field-row">
+                <label class="hx-field-label">Sex</label>
+                <div class="hx-chip-bar" id="hx-demo-sex-bar">
+                    <div class="hx-select-chip" onclick="setDemoChip('sex', 'Male', this)">Male</div>
+                    <div class="hx-select-chip" onclick="setDemoChip('sex', 'Female', this)">Female</div>
+                </div>
+            </div>
+
+            <div class="hx-field-row" id="hx-demo-marital-row">
+        <label class="hx-field-label">Marital Status</label>
+        <div class="hx-chip-bar" id="hx-demo-marital-bar">
+            <div class="hx-select-chip" onclick="setDemoChip('marital', 'Single', this)">Single</div>
+            <div class="hx-select-chip" onclick="setDemoChip('marital', 'Married', this)">Married</div>
+            <div class="hx-select-chip" onclick="setDemoChip('marital', 'Divorced', this)">Divorced</div>
+            <div class="hx-select-chip" onclick="setDemoChip('marital', 'Widowed', this)">Widowed</div>
+        </div></div>
+    
+
+            <div class="hx-field-row">
+                <label class="hx-field-label">Occupation & Residence</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="hx-demo-occ" class="hx-input" placeholder="Occupation" oninput="saveHxState('demo', 'occ', this.value)">
+                    <input type="text" id="hx-demo-residence" class="hx-input" placeholder="Residence" oninput="saveHxState('demo', 'residence', this.value)">
+                </div>
+            </div>
+
+            <div class="hx-field-row">
+                <label class="hx-field-label">Blood Group</label>
+                <input type="text" id="hx-demo-blood" class="hx-input" placeholder="e.g. O+, AB-..." oninput="saveHxState('demo', 'blood', this.value)">
+            </div>
+
+            <div class="hx-item-title" style="margin-top:30px;">❤️ Vitals</div>
+            <div class="hx-vitals-grid">
+                <div class="hx-vital-input-group"><label>HR</label><input type="tel" id="hx-vit-hr" placeholder="-" oninput="updateCurrentVital('hr', this.value)" onchange="commitVitalHistory('hr', this.value)"></div>
+                <div class="hx-vital-input-group"><label>BP</label><input type="tel" id="hx-vit-bp" placeholder="-/-" oninput="updateCurrentVital('bp', this.value)" onchange="commitVitalHistory('bp', this.value)"></div>
+                <div class="hx-vital-input-group"><label>Temp</label><input type="tel" id="hx-vit-temp" placeholder="-" oninput="updateCurrentVital('temp', this.value)" onchange="commitVitalHistory('temp', this.value)"></div>
+                <div class="hx-vital-input-group"><label>SpO2</label><input type="tel" id="hx-vit-spo2" placeholder="-" oninput="updateCurrentVital('spo2', this.value)" onchange="commitVitalHistory('spo2', this.value)"></div>
+                <div class="hx-vital-input-group"><label>RR</label><input type="tel" id="hx-vit-rr" placeholder="-" oninput="updateCurrentVital('rr', this.value)" onchange="commitVitalHistory('rr', this.value)"></div>
+                <div class="hx-vital-input-group"><label>RBG</label><input type="tel" id="hx-vit-rbg" placeholder="-" oninput="updateCurrentVital('rbg', this.value)" onchange="commitVitalHistory('rbg', this.value)"></div></div></div>
+            
+
+<!-- TAB: COMPLAINT & PHx -->
+        <div id="hx-tab-complaint" class="hx-tab-content">
+            <div class="hx-item-title">🗣️ Chief Complaint</div>
+            <div class="hx-chip-bar" id="hx-co-system-filter" style="margin-bottom: 12px;"></div>
+            <form class="hx-add-form" onsubmit="handleComplaintSubmit(event)">
+                <input type="text" id="hx-co-search" class="hx-entry-input" placeholder="Write a complaint, then press enter..." oninput="filterHxSymptoms(this.value)" autocomplete="off">
+            </form>
+            <div class="hx-sugg-bar" id="hx-co-suggestions"></div>
+            <div id="hx-active-complaints" class="hx-active-pills" style="margin-bottom: 24px;"></div>
+
+            <div class="hx-item-title">⏳ History of Present Illness</div>
+            <div id="hx-present-container"></div>
+        </div>
+
+        <!-- TAB: PAST HISTORY -->
+        <div id="hx-tab-past" class="hx-tab-content">
+            <div class="hx-item-title">🩺 Medical / Chronic</div>
+            <div id="hx-pmh-container"></div>
+            <form class="hx-add-form" onsubmit="handlePastSubmit(event, 'medical')">
+                <input type="text" class="hx-entry-input hx-past-input" placeholder="Write illness, then press enter...">
+            </form>
+
+            <div class="hx-item-title" style="margin-top:24px;">🔪 Surgical</div>
+            <div id="hx-psh-container"></div>
+            <form class="hx-add-form" onsubmit="handlePastSubmit(event, 'surgical')">
+                <input type="text" class="hx-entry-input hx-past-input" placeholder="Write procedure, then press enter...">
+            </form>
+
+            <div class="hx-item-title" style="margin-top:24px;">💊 Medications</div>
+            <div id="hx-drug-container"></div>
+            <form class="hx-add-form" onsubmit="handlePastSubmit(event, 'drug')">
+                <input type="text" class="hx-entry-input hx-past-input" placeholder="Write medication, then press enter...">
+            </form>
+
+            <div class="hx-item-title" style="margin-top:24px;">👪 Family History</div>
+            <div id="hx-fam-container"></div>
+            <form class="hx-add-form" onsubmit="handlePastSubmit(event, 'family')">
+                <input type="text" class="hx-entry-input hx-past-input" placeholder="Write family illness, then press enter...">
+            </form>
+
+            <div class="hx-item-title" style="margin-top:24px;">🏘️ Social & Habits</div>
+            <div id="hx-soc-container"></div>
+            <form class="hx-add-form" onsubmit="handlePastSubmit(event, 'social')">
+                <input type="text" class="hx-entry-input hx-past-input" placeholder="Write habit, then press enter...">
+            </form>
+        </div>
+
+        <!-- TAB: EXAMINATION -->
+        <div id="hx-tab-exam" class="hx-tab-content">
+            <div class="hx-item-title" style="margin-bottom:12px;">🩺 Clinical Examination</div>
+            <div id="hx-exam-container"></div>
+        </div>
+
+<!-- TAB: INVESTIGATIONS -->
+        <div id="hx-tab-investigations" class="hx-tab-content">
+            <div class="hx-item-title">🧪 Laboratory Tests</div>
+            <div id="hx-lab-sugg-container"></div>
+            <form class="hx-add-form" onsubmit="handleLabSubmit(event)">
+                <input type="text" id="hx-lab-search" class="hx-entry-input" placeholder="Write lab name, then press enter..." oninput="filterHxLabs(this.value)" autocomplete="off">
+            </form>
+            <div class="hx-sugg-bar" id="hx-lab-search-results" style="margin-top:4px;"></div>
+            <div id="hx-active-labs" style="margin-top:10px;"></div>
+
+            <div class="hx-item-title" style="margin-top:30px;">🩻 Radiology / Imaging</div>
+            <div id="hx-rad-sugg-container"></div>
+            <form class="hx-add-form" onsubmit="handleRadSubmit(event)">
+                <input type="text" id="hx-rad-search" class="hx-entry-input" placeholder="Write imaging name, then press enter..." oninput="filterHxRads(this.value)" autocomplete="off">
+            </form>
+            <div class="hx-sugg-bar" id="hx-rad-search-results" style="margin-top:4px;"></div>
+            <div id="hx-active-rads" style="margin-top:10px;"></div>
+        </div>
+
+        <!-- TAB: NOTES -->
+        <div id="hx-tab-notes" class="hx-tab-content">
+            <div class="hx-item-title">📝 Extra Notes & Plans</div>
+            <textarea class="hx-input" id="hx-extra-notes" style="height: 200px;" placeholder="Additional clinical context, treatment plans, or free notes…" oninput="saveHxState('extraNotes', null, this.value)"></textarea>
+        </div>
+
+    </div>
+</div>
+
 <!-- AI DDx Full-Screen Modal -->
 <div id="ddx-modal">
     <div class="lab-header">
@@ -1724,6 +2004,7 @@ body.is-dragging * {
     </div>
 </div>
 
+<script src="sheet.js"></script>
 <script src="news.js"></script>
     <script src="labs.js"></script>
     <script src="ddx.js"></script>
@@ -2109,30 +2390,31 @@ function clearSearch(inputId) {
                         ? (room.filterCollapsed === undefined ? false : room.filterCollapsed) 
                         : (room.collapsed !== false); // collapsed by default (undefined → collapsed)
 
-                    const roomEl = document.createElement('div');
-                    roomEl.className = 'room-section';
-                    roomEl.dataset.roomId = room.id;
-                    roomEl.innerHTML = `
-                        <div class="room-header">
-                            <div class="room-header-clickable" onclick="toggleRoomCollapse('${room.id}')">
-                                <span class="room-collapse-arrow ${isVisuallyCollapsed ? '' : 'open'}">▶</span>
-                                <div class="room-title">${room.name}</div>
-                            </div>
-                            <div class="room-actions">
-                                <button onclick="openNameModal('${room.id}')" style="padding: 4px 12px; margin-right: 8px; color: white; background: var(--primary); font-size: 0.95rem; border: none; border-radius: 8px; font-weight: bold; height:36px;">+ Patient</button>
-                                <div class="options-wrapper">
-                                    <button class="options-dot-btn" id="room-opt-btn-${room.id}" onclick="toggleRoomOptions('${room.id}', event)" title="Room options">⋮</button>
-<div class="options-popup" id="room-opt-popup-${room.id}">
-                                        <div class="options-popup-item" onclick="closeAllOptions(); openRoomModal('${room.id}')">✏️ Rename Room</div>
-                                        <div class="options-popup-item" onclick="closeAllOptions(); copyRoomDataById('${room.id}')">📋 Copy Room</div>
-                                        <div class="options-popup-item" onclick="closeAllOptions(); resetRoomVitalsById('${room.id}')">🔄 Reset Room</div>
-                                        <div class="options-popup-item danger" onclick="closeAllOptions(); deleteRoomById('${room.id}')">🗑️ Delete Room</div>
-                                    </div>
+const roomEl = document.createElement('div');
+                roomEl.className = 'room-section';
+                roomEl.dataset.roomId = room.id;
+                roomEl.innerHTML = `
+                    <div class="room-header">
+                        <div class="room-header-clickable" onclick="toggleRoomCollapse('${room.id}')">
+                            <span class="room-collapse-arrow ${isVisuallyCollapsed ? '' : 'open'}">▶</span>
+                            <div class="room-title">${room.name}</div>
+                        </div>
+                        <div class="room-actions">
+                            <button onclick="openNameModal('${room.id}')" style="padding: 4px 12px; margin-right: 8px; color: white; background: var(--primary); font-size: 0.95rem; border: none; border-radius: 8px; font-weight: bold; height:36px;">+ Patient</button>
+                            <div class="options-wrapper">
+                                <!-- ADDED data-icon="⋮" HERE -->
+                                <button class="options-dot-btn" data-icon="⋮" id="room-opt-btn-${room.id}" onclick="toggleRoomOptions('${room.id}', event)" title="Room options">⋮</button>
+                                <div class="options-popup" id="room-opt-popup-${room.id}">
+                                    <div class="options-popup-item" onclick="closeAllOptions(); openRoomModal('${room.id}')">✏️ Rename Room</div>
+                                    <div class="options-popup-item" onclick="closeAllOptions(); copyRoomDataById('${room.id}')">📋 Copy Room</div>
+                                    <div class="options-popup-item" onclick="closeAllOptions(); resetRoomVitalsById('${room.id}')">🔄 Reset Room</div>
+                                    <div class="options-popup-item danger" onclick="closeAllOptions(); deleteRoomById('${room.id}')">🗑️ Delete Room</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="room-content" data-room-id="${room.id}" style="display: ${isVisuallyCollapsed ? 'none' : 'block'};"></div>
-                    `;
+                    </div>
+                    <div class="room-content" data-room-id="${room.id}" style="display: ${isVisuallyCollapsed ? 'none' : 'block'};"></div>
+                `;
                     const contentEl = roomEl.querySelector('.room-content');
                     filteredPatients.forEach(p => {
                         const card = createPatientCard(p, room.id);
@@ -2156,67 +2438,73 @@ function clearSearch(inputId) {
             setTimeout(attachRoomDragListeners, 0);
         } // end renderUI
 
+// Replace the entire createPatientCard function
 function createPatientCard(p, roomId) {
-            const card = document.createElement('div');
-            card.className = 'patient-card';
-            card.dataset.patientId = p.id;
-            
-            const hasNotes = p.notes && p.notes.trim() !== '' && p.notes !== '<br>';
+    const card = document.createElement('div');
+    card.className = 'patient-card';
+    card.dataset.patientId = p.id;
 
-            card.innerHTML = `
-                <div class="patient-header">
-                    <div class="patient-header-left" style="gap:6px;">
-                        <div class="patient-drag-handle" title="Hold to drag">⋮⋮</div>
-                        <div class="patient-name" dir="auto">${p.name}</div>
-                    </div>
-                    <div class="patient-header-right">
-                        ${hasNotes ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;margin-right:4px;margin-top:6px;flex-shrink:0;" title="Has notes"></span>' : ''}
-                        <div class="options-wrapper">
-                            <button class="options-dot-btn" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
-                            <div class="options-popup" id="pt-opt-popup-${p.id}">
-                                <div class="options-popup-item" onclick="closeAllOptions(); openNotes(${p.id})">📝 Patient Notes${hasNotes ? ' ●' : ''}</div>
-                                <div class="options-popup-item" onclick="closeAllOptions(); openNameModal('${roomId}', ${p.id})">✏️ Rename Patient</div>
-                                <div class="options-popup-item" onclick="closeAllOptions(); editingPatientId=${p.id}; copySinglePatient()">📋 Copy Patient</div>
-                                <div class="options-popup-item" onclick="closeAllOptions(); resetPatientVitals(${p.id})">🔄 Reset Vitals</div>
-                                <div class="options-popup-item danger" onclick="closeAllOptions(); deletePatientById(${p.id})">🗑️ Delete Patient</div>
-                            </div>
-                        </div>
+    card.innerHTML = `
+        <div class="patient-header">
+            <div class="patient-header-left" style="gap:6px;">
+                <div class="patient-drag-handle" title="Hold to drag">⋮⋮</div>
+                <div class="patient-name" dir="auto">${p.name}</div>
+            </div>
+            <div class="patient-header-right" style="gap:6px; display:flex; align-items:flex-start;">
+                <!-- NEW ADVANCED OPTIONS BUTTON -->
+                <div class="options-wrapper">
+                    <button class="options-dot-btn" data-icon="🪪" id="pt-adv-btn-${p.id}" onclick="toggleAdvancedOptions(${p.id}, event)" title="Advanced options" style="font-size: 1.1rem;">🪪</button>
+                    <div class="options-popup" id="pt-adv-popup-${p.id}">
+                        <div class="options-popup-item" onclick="closeAllOptions(); openHxSheet(${p.id})">📄 Hx Sheet</div>
+                        <div class="options-popup-item" onclick="closeAllOptions(); executePatientAnalysis(${p.id})">🧠 Analyze Patient</div>
+                        <div class="options-popup-item" onclick="closeAllOptions(); openAddTaskModal(${p.id})">✅ Add Task</div>
                     </div>
                 </div>
-                <div class="vitals-grid">
-                    <div class="vital-box ${getVitalClass('hr', p.vitals.hr)}" onclick="openNumpad(${p.id}, 'hr')">
-                        <div class="vital-label">HR</div>
-                        <div class="vital-value">${p.vitals.hr || '+'}</div>
-                    </div>
-                    <div class="vital-box ${getVitalClass('bp', p.vitals.bp)}" onclick="openNumpad(${p.id}, 'bp')">
-                        <div class="vital-label">BP</div>
-                        <div class="vital-value">${p.vitals.bp || '+'}</div>
-                    </div>
-                    <div class="vital-box ${getVitalClass('temp', p.vitals.temp)}" onclick="openNumpad(${p.id}, 'temp')">
-                        <div class="vital-label">Temp</div>
-                        <div class="vital-value">${p.vitals.temp || '+'}</div>
-                    </div>
-                    <div class="vital-box ${getVitalClass('spo2', p.vitals.spo2)}" onclick="openNumpad(${p.id}, 'spo2')">
-                        <div class="vital-label">SpO2%</div>
-                        <div class="vital-value">${p.vitals.spo2 || '+'}</div>
-                    </div>
-                    <div class="vital-box ${getVitalClass('rr', p.vitals.rr)}" onclick="openNumpad(${p.id}, 'rr')">
-                        <div class="vital-label">RR</div>
-                        <div class="vital-value">${p.vitals.rr || '+'}</div>
-                    </div>
-                    <div class="vital-box ${getVitalClass('rbg', p.vitals.rbg)}" onclick="openNumpad(${p.id}, 'rbg')">
-                        <div class="vital-label">RBG</div>
-                        <div class="vital-value">${p.vitals.rbg || '+'}</div>
+                
+                <!-- EXISTING PATIENT OPTIONS BUTTON -->
+                <div class="options-wrapper">
+                    <button class="options-dot-btn" data-icon="⋮" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
+                    <div class="options-popup" id="pt-opt-popup-${p.id}">
+                        <div class="options-popup-item" onclick="closeAllOptions(); openNameModal('${roomId}', ${p.id})">✏️ Rename Patient</div>
+                        <div class="options-popup-item" onclick="closeAllOptions(); editingPatientId=${p.id}; copySinglePatient()">📋 Copy Patient</div>
+                        <div class="options-popup-item" onclick="closeAllOptions(); resetPatientVitals(${p.id})">🔄 Reset Vitals</div>
+                        <div class="options-popup-item danger" onclick="closeAllOptions(); deletePatientById(${p.id})">🗑️ Delete Patient</div>
                     </div>
                 </div>
-            `;
-            
-            // Attach long-press drag to the drag handle
-            const handle = card.querySelector('.patient-drag-handle');
-            attachLongPress(handle, () => startPatientDrag(p.id, card));
-
-            return card;
-        }
+            </div>
+        </div>
+        <div class="vitals-grid">
+            <div class="vital-box ${getVitalClass('hr', p.vitals.hr)}" onclick="openNumpad(${p.id}, 'hr')">
+                <div class="vital-label">HR</div>
+                <div class="vital-value">${p.vitals.hr || '+'}</div>
+            </div>
+            <div class="vital-box ${getVitalClass('bp', p.vitals.bp)}" onclick="openNumpad(${p.id}, 'bp')">
+                <div class="vital-label">BP</div>
+                <div class="vital-value">${p.vitals.bp || '+'}</div>
+            </div>
+            <div class="vital-box ${getVitalClass('temp', p.vitals.temp)}" onclick="openNumpad(${p.id}, 'temp')">
+                <div class="vital-label">Temp</div>
+                <div class="vital-value">${p.vitals.temp || '+'}</div>
+            </div>
+            <div class="vital-box ${getVitalClass('spo2', p.vitals.spo2)}" onclick="openNumpad(${p.id}, 'spo2')">
+                <div class="vital-label">SpO2%</div>
+                <div class="vital-value">${p.vitals.spo2 || '+'}</div>
+            </div>
+            <div class="vital-box ${getVitalClass('rr', p.vitals.rr)}" onclick="openNumpad(${p.id}, 'rr')">
+                <div class="vital-label">RR</div>
+                <div class="vital-value">${p.vitals.rr || '+'}</div>
+            </div>
+            <div class="vital-box ${getVitalClass('rbg', p.vitals.rbg)}" onclick="openNumpad(${p.id}, 'rbg')">
+                <div class="vital-label">RBG</div>
+                <div class="vital-value">${p.vitals.rbg || '+'}</div>
+            </div>
+        </div>
+    `;
+    
+    const handle = card.querySelector('.patient-drag-handle');
+    attachLongPress(handle, () => startPatientDrag(p.id, card));
+    return card;
+}
 
         function toggleFab() {
             const menu = document.getElementById('fab-menu');
@@ -2264,71 +2552,1242 @@ function createPatientCard(p, roomId) {
             }
         }
 
-        function openAnalyzePatientSelector() {
-            closeFab();
-            let allPatients = [];
-            appData.rooms.forEach(r => r.patients.forEach(p => allPatients.push({p, r})));
-            
-            if (allPatients.length === 0) return showToast("No patients available to analyze.");
-            
-            // If there's only one patient, auto-skip the selector
-            if (allPatients.length === 1) {
-                executePatientAnalysis(allPatients[0].p.id);
-                return;
-            }
-            
-            // Populate the modal
-            const select = document.getElementById('analyze-patient-select');
-            select.innerHTML = '';
-            allPatients.forEach(data => {
-                const opt = document.createElement('option');
-                opt.value = data.p.id;
-                opt.innerText = `${data.p.name} (${data.r.name})`;
-                select.appendChild(opt);
+// Remove openAnalyzePatientSelector() completely, and use this:
+function executePatientAnalysis(patientId) {
+    const pInfo = findPatientAndRoom(patientId);
+    if (!pInfo) return;
+
+    // Temporarily load this patient into hxState to generate full summary
+    if (pInfo.patient.hx) {
+        hxState = JSON.parse(JSON.stringify(pInfo.patient.hx));
+    } else {
+        hxState = {
+            demo: { age: '', sex: '', occ: '', marital: '', residence: '', blood: '' },
+            complaints: [], presentData: {},
+            pastData: { medical: {}, surgical: {}, drug: {}, family: {}, social: {} },
+            examData: {}, labs: [], rads: [], extraNotes: ''
+        };
+    }
+    hxState.patientId = patientId;
+
+    // Generate compact sheet summary, flag true to skip clipboard
+    let analysisText = generateHxSummary(true);
+
+    closeModals();
+    openDDx();
+
+    document.getElementById('ddx-input').value = analysisText;
+
+    setTimeout(() => {
+        document.getElementById('ddx-input').focus();
+        showToast("Review the patient data, then tap Generate ✨");
+    }, 300);
+}
+
+// =============================================
+// SMART HX SHEET ENGINE (TABBED & PERSISTENT)
+// =============================================
+
+let hxState = {
+    patientId: null,
+    demo: { age: '', sex: '', occ: '', marital: '', residence: '', blood: '' },
+    complaints: [], presentData: {},
+    pastData: { medical: {}, surgical: {}, drug: {}, family: {}, social: {} },
+    examData: {}, labs: [], rads: [], extraNotes: ''
+};
+
+
+// ── Tab Navigation ───────────────────────────────────────────────────────────
+function switchHxTab(tabId) {
+    document.querySelectorAll('.hx-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.hx-tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector(`.hx-tab-btn[onclick*="${tabId}"]`).classList.add('active');
+    document.getElementById(`hx-tab-${tabId}`).classList.add('active');
+}
+
+// ── Persistent Save Logic ───────────────────────────────────────────────────
+function syncHxStateToPatient() {
+    if (!hxState.patientId) return;
+    const pInfo = findPatientAndRoom(hxState.patientId);
+    if (pInfo) {
+        pInfo.patient.hx = JSON.parse(JSON.stringify(hxState));
+        saveData();
+    }
+}
+
+function saveHxState(category, key, value) {
+    if (category === 'extraNotes') hxState.extraNotes = value;
+    else if (category === 'demo') hxState.demo[key] = value;
+    syncHxStateToPatient();
+}
+
+function updateCurrentVital(key, value) {
+    if (!hxState.patientId) return;
+    const pInfo = findPatientAndRoom(hxState.patientId);
+    if (pInfo) {
+        pInfo.patient.vitals[key] = value;
+        saveData(); 
+        renderUI(); // Updates the background view
+    }
+}
+
+function commitVitalHistory(key, value) {
+    if (!hxState.patientId) return;
+    const pInfo = findPatientAndRoom(hxState.patientId);
+    
+    // Only save to history when field loses focus & isn't completely empty
+    if (pInfo && value !== "") {
+        if (!pInfo.patient.vitalHistory) pInfo.patient.vitalHistory = {};
+        if (!pInfo.patient.vitalHistory[key]) pInfo.patient.vitalHistory[key] = [];
+        
+        pInfo.patient.vitalHistory[key].push(value);
+        if (pInfo.patient.vitalHistory[key].length > 3) pInfo.patient.vitalHistory[key].shift();
+        
+        saveData();
+    }
+}
+
+function getPatientProfile() {
+    return {
+        ageGroup: calculateAgeGroup(hxState.demo.age || ''),
+        sex: hxState.demo.sex || ''
+    };
+}
+
+function filterByProfile(items, profile) {
+    if (!profile.ageGroup && !profile.sex) return items;
+    return items.filter(item => {
+        const rule = HX_EXCLUSIONS[item];
+        if (!rule) return true;
+        if (profile.ageGroup && rule.excludeAgeGroups?.includes(profile.ageGroup)) return false;
+        if (profile.sex     && rule.excludeSex?.includes(profile.sex))            return false;
+        return true;
+    });
+}
+
+function calculateAgeGroup(str) {
+    if (!str) return '';
+    const numMatch = str.match(/\d+(\.\d+)?/);
+    if (!numMatch) return '';
+    const num = parseFloat(numMatch[0]);
+    const lowerStr = str.toLowerCase();
+
+    let unit = 'y'; // default to years
+    
+    // Check for Years: 'r' (years/yrs) or 'س' (سنة/سنين)
+    // Note: 'س' is checked before 'ي' because the word "سنين" contains a "ي"
+    if (lowerStr.includes('r') || lowerStr.includes('س')) {
+        unit = 'y';
+    } 
+    // Check for Months: 'm' (months/mos) or 'ش' (شهر/شهور)
+    else if (lowerStr.includes('m') || lowerStr.includes('ش')) {
+        unit = 'm';
+    } 
+    // Check for Days: 'd' (days/d) or 'ي' (يوم/أيام)
+    else if (lowerStr.includes('d') || lowerStr.includes('ي')) {
+        unit = 'd';
+    }
+
+    let ageInYears = 0;
+    if (unit === 'y') ageInYears = num;
+    else if (unit === 'm') ageInYears = num / 12;
+    else if (unit === 'd') ageInYears = num / 365;
+
+    if (unit === 'd' && num <= 28) return 'Neonate';
+    if (ageInYears < 12) return 'Pediatric';
+    if (ageInYears >= 12 && ageInYears < 18) return 'Adolescent';
+    if (ageInYears >= 18 && ageInYears < 45) return 'Adult';
+    if (ageInYears >= 45 && ageInYears < 65) return 'Middle Age';
+    if (ageInYears >= 65) return 'Elderly';
+
+    return '';
+}
+
+function handleAgeInput(val) {
+    saveHxState('demo', 'age', val);
+    const badge = document.getElementById('hx-age-group-badge');
+    const group = calculateAgeGroup(val);
+    
+    if (group) {
+        badge.innerText = group;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+
+    // Hide Marital Status for Pediatric and Neonate
+    const maritalRow = document.getElementById('hx-demo-marital-row');
+    if (maritalRow) {
+        if (group === 'Neonate' || group === 'Pediatric') {
+            maritalRow.style.display = 'none';
+        } else {
+            maritalRow.style.display = 'block';
+        }
+    }
+
+    // Instantly update Hx exclusions dynamically as user types
+    renderHxAll();
+}
+
+// ── Open / Close ─────────────────────────────────────────────────────────────
+
+
+
+function openHxSheet(patientId) {
+    const pInfo = findPatientAndRoom(patientId);
+    if (!pInfo) return;
+
+    if (pInfo.patient.hx) {
+        hxState = JSON.parse(JSON.stringify(pInfo.patient.hx));
+        hxState.patientId = patientId; 
+    } else {
+        hxState = {
+            patientId: patientId,
+            demo: { age: '', sex: '', occ: '', marital: '', residence: '', blood: '' },
+            complaints: [], presentData: {},
+            pastData: { medical: {}, surgical: {}, drug: {}, family: {}, social: {} },
+            examData: {}, labs: [], rads: [], extraNotes: ''
+        };
+    }
+
+    switchHxTab('profile');
+
+    document.getElementById('hx-patient-name-display').innerText = pInfo.patient.name;
+    document.getElementById('hx-demo-age').value = hxState.demo.age || '';
+    handleAgeInput(hxState.demo.age || ''); // Set the age badge & marital visibility on load
+    
+    document.getElementById('hx-demo-occ').value = hxState.demo.occ || '';
+    document.getElementById('hx-demo-residence').value = hxState.demo.residence || '';
+    document.getElementById('hx-demo-blood').value = hxState.demo.blood || ''; // <-- Added
+    document.getElementById('hx-extra-notes').value = hxState.extraNotes || '';
+
+    initDemoChips(); 
+activeHxSystemFilter = null;
+    renderHxSystemFilterBar();
+    const v = pInfo.patient.vitals;
+    document.getElementById('hx-vit-hr').value = v.hr || '';
+    document.getElementById('hx-vit-bp').value = v.bp || '';
+    document.getElementById('hx-vit-temp').value = v.temp || '';
+    document.getElementById('hx-vit-spo2').value = v.spo2 || '';
+    document.getElementById('hx-vit-rr').value = v.rr || '';
+    document.getElementById('hx-vit-rbg').value = v.rbg || '';
+
+    ['hx-co-search','hx-lab-search','hx-rad-search'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    document.querySelectorAll('#hx-modal .hx-past-input').forEach(el => el.value = '');
+
+    renderHxAll();
+    closeModals();
+    lockScroll();
+    document.getElementById('hx-modal').style.display = 'flex';
+}
+
+function closeHxSheet() {
+    document.getElementById('hx-modal').style.display = 'none';
+    unlockScroll();
+}
+
+function clearHxSheet() {
+    if (confirm("Clear the entire Hx sheet for this patient?")) {
+        const pInfo = findPatientAndRoom(hxState.patientId);
+        if (pInfo) {
+            pInfo.patient.hx = null;
+            saveData();
+            openHxSheet(hxState.patientId);
+        }
+    }
+}
+
+// ── Context Engine ────────────────────────────────────────────────────────────
+function getHxContext() {
+    let systems = new Set(), pmh = [], psh = [], drug = [], fam = [], soc = [];
+    let labs = new Set(), rads = new Set(), priorityExams = new Set();
+
+    hxState.complaints.forEach(c => {
+        if (c.systems)       c.systems.forEach(s => systems.add(s));
+        if (c.correlations) {
+            if (c.correlations.medical)  pmh.push(...c.correlations.medical);
+            if (c.correlations.surgical) psh.push(...c.correlations.surgical);
+            if (c.correlations.drug)     drug.push(...c.correlations.drug);
+            if (c.correlations.family)   fam.push(...c.correlations.family);
+            if (c.correlations.social)   soc.push(...c.correlations.social);
+        }
+        if (c.examPriority) c.examPriority.forEach(e => priorityExams.add(e));
+        if (c.labHints)     c.labHints.forEach(l => labs.add(l));
+        if (c.radioHints)   c.radioHints.forEach(r => rads.add(r));
+    });
+
+    const rankItems = arr => {
+        let counts = {};
+        arr.forEach(x => counts[x] = (counts[x] || 0) + 1);
+        return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    };
+
+    const profile = getPatientProfile();
+
+    return {
+        systems: Array.from(systems),
+        pmh:  filterByProfile(rankItems(pmh),  profile),
+        psh:  filterByProfile(rankItems(psh),  profile),
+        drug: filterByProfile(rankItems(drug), profile),
+        fam:  rankItems(fam),                           // no exclusions on family history
+        soc:  filterByProfile(rankItems(soc),  profile),
+        exams: Array.from(priorityExams),
+        labs:  Array.from(labs),
+        rads:  Array.from(rads)
+    };
+}
+
+
+function renderHxAll() {
+    const ctx = getHxContext();
+    filterHxSymptoms(document.getElementById('hx-co-search')?.value || '');
+    renderHxActiveComplaints();
+    renderHxPresent();
+    renderHxPastSections(ctx);
+    renderHxExam(ctx);
+    renderHxInvestigations(ctx);
+}
+
+// ── Demographic Chip Logic ──────────────────────────────────────────────────
+function setDemoChip(key, val, el) {
+    const isActive = el.classList.contains('active');
+    el.parentElement.querySelectorAll('.hx-select-chip').forEach(c => c.classList.remove('active'));
+    
+    if (isActive) hxState.demo[key] = ''; 
+    else { el.classList.add('active'); hxState.demo[key] = val; }
+    
+    syncHxStateToPatient();
+
+    // If Sex changes, re-render Exams to show/hide OBS/GYN
+    if (key === 'sex') {
+        renderHxExam(getHxContext());
+    }
+}
+
+function initDemoChips() {
+    ['sex', 'marital'].forEach(key => {
+        const bar = document.getElementById(`hx-demo-${key}-bar`);
+        if (bar) {
+            bar.querySelectorAll('.hx-select-chip').forEach(c => {
+                c.classList.toggle('active', c.innerText.trim() === hxState.demo[key]);
             });
-            
-            showOverlay();
-            const modal = document.getElementById('analyze-select-modal');
-            modal.style.display = 'block';
-            setTimeout(() => { modal.style.opacity = '1'; modal.style.transform = 'translate(-50%, -50%) scale(1)'; }, 10);
+        }
+    });
+}
+
+function buildChipBarHtml(complaintId, attrId, options, currentVal) {
+    let html = `<div class="hx-chip-bar">`;
+    options.forEach(o => {
+        const active = (currentVal === o) ? 'active' : '';
+        html += `<div class="hx-select-chip ${active}" onclick="setHxMultiToggle(this, '${complaintId}', '${attrId}', '${o}')">${o}</div>`;
+    });
+    html += `</div>`;
+    return html;
+}
+
+// ── 1. Chief Complaint ────────────────────────────────────────────────────────
+function filterHxSymptoms(query) {
+    const q   = query.toLowerCase().trim();
+    const bar = document.getElementById('hx-co-suggestions');
+    bar.innerHTML = '';
+
+    const profile = getPatientProfile();
+
+    let pool = HX_SYMPTOMS.filter(s => {
+        if (profile.sex === 'Male' && s.systems && s.systems.length > 0 && s.systems.every(sys => sys === 'OBS')) return false;
+        return true;
+    });
+
+    // 1. Filter by manual chip system selection
+    if (activeHxSystemFilter) {
+        pool = pool.filter(s => s.systems && s.systems.includes(activeHxSystemFilter));
+    }
+
+    // 2. Filter by search query text
+    if (q) {
+        pool = pool.filter(s =>
+            s.name.toLowerCase().includes(q) ||
+            (s.searchTerms && s.searchTerms.some(t => t.toLowerCase().includes(q)))
+        );
+    }
+
+    // 3. ALWAYS sort: Contextual System Match first, then Global Rank
+    const ctx = getHxContext();
+    pool.sort((a, b) => {
+        let aScore = 0;
+        let bScore = 0;
+        
+        if (ctx.systems && ctx.systems.length > 0) {
+            // If the symptom shares at least one system with already-added complaints, flag it as highly relevant
+            aScore = (a.systems || []).some(sys => ctx.systems.includes(sys)) ? 1 : 0;
+            bScore = (b.systems || []).some(sys => ctx.systems.includes(sys)) ? 1 : 0;
         }
 
-        function executePatientAnalysis(directId = null) {
-            const pid = directId || parseInt(document.getElementById('analyze-patient-select').value);
-            const pInfo = findPatientAndRoom(pid);
-            if (!pInfo) return;
-            const p = pInfo.patient;
+        // Put score 1 (relevant system) before score 0 (unrelated system)
+        if (bScore !== aScore) return bScore - aScore;
+        
+        // If they are both relevant (or both not), sort normally by rank
+        return (a.globalRank || 999) - (b.globalRank || 999);
+    });
+
+    // 4. Render the top 20 suggestions
+    pool.slice(0, 20).forEach(sym => {
+        if (hxState.complaints.some(c => c.id === sym.id)) return; // Skip already added
+        const btn = document.createElement('button');
+        btn.type      = 'button';
+        btn.className = 'hx-chip';
+        btn.innerText = `+ ${sym.name}`;
+        btn.onclick   = () => {
+            // Clear the search bar FIRST so renderHxAll() processes an empty query
+            document.getElementById('hx-co-search').value = ''; 
+            addHxComplaint(sym);
+            filterHxSymptoms(''); // Reset suggestions view
+        };
+        bar.appendChild(btn);
+    });
+}
+
+function toggleHxExamFinding(examId, finding, btn) {
+    if (!hxState.examData[examId]) hxState.examData[examId] = { status: 'abnormal', text: '', findings: [] };
+    if (!hxState.examData[examId].findings) hxState.examData[examId].findings = [];
+
+    let arr = hxState.examData[examId].findings;
+    if (arr.includes(finding)) {
+        hxState.examData[examId].findings = arr.filter(f => f !== finding);
+        btn.classList.remove('active-added');
+    } else {
+        hxState.examData[examId].findings.push(finding);
+        btn.classList.add('active-added');
+    }
+    syncHxStateToPatient();
+}
+
+let activeHxSystemFilter = null;
+
+function renderHxSystemFilterBar() {
+    const bar = document.getElementById('hx-co-system-filter');
+    if (!bar) return;
+    let html = `<div class="hx-select-chip ${!activeHxSystemFilter ? 'active' : ''}" onclick="setHxSystemFilter(null)">All Systems</div>`;
+    Object.keys(HX_SYSTEMS).forEach(sys => {
+        if (sys === 'GEN') return; 
+        let sysData = HX_SYSTEMS[sys];
+        let active = activeHxSystemFilter === sys ? 'active' : '';
+        html += `<div class="hx-select-chip ${active}" onclick="setHxSystemFilter('${sys}')">${sysData.icon} ${sysData.name}</div>`;
+    });
+    bar.innerHTML = html;
+}
+
+function setHxSystemFilter(sys) {
+    activeHxSystemFilter = sys;
+    renderHxSystemFilterBar();
+    filterHxSymptoms(document.getElementById('hx-co-search').value);
+}
+
+function handleComplaintSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById('hx-co-search');
+    const val = input.value.trim();
+    if (!val) return;
+
+    const q = val.toLowerCase();
+    const match = HX_SYMPTOMS.find(s => s.name.toLowerCase() === q || s.searchTerms.some(t => t.toLowerCase() === q));
+
+    if (match && !hxState.complaints.some(c => c.id === match.id)) addHxComplaint(match);
+    else if (!match) addHxComplaint({ id: 'cust_' + Date.now(), name: val, template: 'generic' });
+    
+    input.value = ''; input.blur(); filterHxSymptoms('');
+}
+
+function addHxComplaint(sym) {
+    if (!hxState.complaints.some(c => c.id === sym.id)) {
+        hxState.complaints.push(sym);
+        // Changed to a single duration string
+        hxState.presentData[sym.id] = { onset: '', course: '', duration: '' };
+        syncHxStateToPatient(); renderHxAll();
+    }
+}
+
+function removeHxComplaint(id) {
+    hxState.complaints = hxState.complaints.filter(c => c.id !== id);
+    delete hxState.presentData[id];
+    syncHxStateToPatient(); renderHxAll();
+}
+
+function renderHxActiveComplaints() {
+    const cont = document.getElementById('hx-active-complaints');
+    cont.innerHTML = '';
+    hxState.complaints.forEach(c => {
+        const chip = document.createElement('div');
+        chip.className = 'hx-chip active-added';
+        chip.innerHTML = `${c.name} <span style="margin-left:5px; opacity:0.75; font-size:0.9em;">✕</span>`;
+        chip.onclick = () => removeHxComplaint(c.id);
+        cont.appendChild(chip);
+    });
+}
+
+function setHxStateData(complaintId, attrId, val) {
+    hxState.presentData[complaintId][attrId] = val;
+    syncHxStateToPatient();
+    renderHxPresent(); // Re-render to update the active classes on the toggle bars
+}
+
+// ── 2. Present History ────────────────────────────────────────────────────────
+function renderHxPresent() {
+    const cont = document.getElementById('hx-present-container');
+    if (hxState.complaints.length === 0) {
+        cont.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; font-style:italic; padding:10px 0;">Add a complaint above to generate attributes.</div>';
+        return;
+    }
+    cont.innerHTML = '';
+
+    hxState.complaints.forEach(c => {
+        // CHANGED: Using <details> so it is collapsible and defaults to closed (no 'open' attribute)
+        const card = document.createElement('details'); 
+        card.className = 'hx-card';
+        card.innerHTML = `
+            <summary class="hx-card-summary">
+                ${c.name} <span class="hx-exam-chevron">▶</span>
+            </summary>
+            <div class="hx-card-content">
+        `;
+        
+        const d = hxState.presentData[c.id];
+
+        let onsetHtml = `
+            <div class="hx-field-row">
+                <label class="hx-field-label">Onset</label>
+                ${buildChipBarHtml(c.id, 'onset', ['Sudden', 'Acute', 'Subacute', 'Gradual', 'Insidious'], d.onset)}
+            </div>`;
             
-            // Clean HTML tags from notes
-            const plainNotes = p.notes ? p.notes.replace(/<[^>]*>?/gm, '').trim() : '';
+        let courseHtml = `
+            <div class="hx-field-row">
+                <label class="hx-field-label">Course</label>
+                ${buildChipBarHtml(c.id, 'course', ['Progressive', 'Stationary', 'Intermittent', 'Regressive'], d.course)}
+            </div>`;
+
+        let durationHtml = `
+            <div class="hx-field-row" style="margin-bottom: 16px;">
+                <label class="hx-field-label">Duration</label>
+                <input type="text" class="hx-input" placeholder="e.g. 3 days, few weeks, sudden..." value="${d.duration||''}" oninput="hxState.presentData['${c.id}'].duration=this.value; syncHxStateToPatient();">
+            </div>`;
             
-            // Validation: Ensure the patient actually has enough notes to give a good DDx
-            if (plainNotes.length < 15) {
-                showToast("⚠️ Please add more details to the patient's notes to get an accurate analysis.");
-                if (!directId) closeModals();
-                return;
+        card.querySelector('.hx-card-content').insertAdjacentHTML('beforeend', onsetHtml + courseHtml + durationHtml);
+
+        const allAttrs = [...(HX_TEMPLATES[c.template] || []), ...(c.customAttributes || [])];
+        allAttrs.forEach(attr => {
+            let fieldHtml = `<div class="hx-field-row"><label class="hx-field-label">${attr.label}</label>`;
+            if (attr.type === 'chips') {
+                fieldHtml += buildChipBarHtml(c.id, attr.id, attr.options, d[attr.id]);
+            } else if (attr.type === 'number') {
+                fieldHtml += `<input type="number" class="hx-input" placeholder="${attr.min||0}–${attr.max||10}" value="${d[attr.id]||''}" oninput="hxState.presentData['${c.id}']['${attr.id}']=this.value; syncHxStateToPatient();">`;
+            } else if (attr.type === 'toggle') {
+                const isPos = d[attr.id] === true, isNeg = d[attr.id] === false;
+                fieldHtml += `
+                    <div class="hx-toggle-group">
+                        <div class="hx-toggle-btn ${(!isPos&&!isNeg)?'active':''}" data-state="skip" onclick="setHxToggle(this,'${c.id}','${attr.id}',null)">—</div>
+                        <div class="hx-toggle-btn ${isNeg?'active':''}" data-state="neg" onclick="setHxToggle(this,'${c.id}','${attr.id}',false)">No</div>
+                        <div class="hx-toggle-btn ${isPos?'active':''}" data-state="pos" onclick="setHxToggle(this,'${c.id}','${attr.id}',true)">Yes</div>
+                    </div>`;
+            } else {
+                fieldHtml += `<input type="text" class="hx-input" placeholder="…" value="${d[attr.id]||''}" oninput="hxState.presentData['${c.id}']['${attr.id}']=this.value; syncHxStateToPatient();">`;
+            }
+            fieldHtml += `</div>`;
+            card.querySelector('.hx-card-content').insertAdjacentHTML('beforeend', fieldHtml);
+        });
+
+        card.querySelector('.hx-card-content').insertAdjacentHTML('beforeend', `
+            <div class="hx-field-row" style="margin-bottom:0;">
+                <label class="hx-field-label">Additional Details</label>
+                <textarea class="hx-input" rows="2" placeholder="Any other specifics…" oninput="hxState.presentData['${c.id}'].extra=this.value; syncHxStateToPatient();" style="height:auto;">${d.extra||''}</textarea>
+            </div>
+        `);
+        cont.appendChild(card);
+    });
+}
+
+
+function setHxToggle(btn, complaintId, attrId, val) {
+    btn.parentElement.querySelectorAll('.hx-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    hxState.presentData[complaintId][attrId] = val;
+    syncHxStateToPatient();
+}
+
+function setHxMultiToggle(btn, complaintId, attrId, val) {
+    const parentRow = btn.parentElement;
+    const isActive = btn.classList.contains('active');
+    
+    parentRow.querySelectorAll('.hx-select-chip').forEach(b => b.classList.remove('active'));
+    
+    if (isActive) hxState.presentData[complaintId][attrId] = '';
+    else { btn.classList.add('active'); hxState.presentData[complaintId][attrId] = val; }
+    
+    syncHxStateToPatient();
+}
+
+// ── 3. Past History ───────────────────────────────────────────────────────────
+function handlePastSubmit(event, category) {
+    event.preventDefault();
+    const form = event.target;
+    const input = form.querySelector('input');
+    const val = input.value.trim();
+    if (!val) return;
+    
+    // Custom items default to null (renders as '—')
+    hxState.pastData[category][val] = null;
+    syncHxStateToPatient();
+    
+    input.value = ''; input.blur(); renderHxAll();
+}
+
+function deleteHxPastItem(category, item) {
+    delete hxState.pastData[category][item];
+    syncHxStateToPatient();
+    renderHxAll();
+}
+
+function renderHxPastSections(ctx) {
+    const profile = getPatientProfile();
+
+    const sections = [
+        {
+            key: 'medical',
+            id:  'hx-pmh',
+            sugg: filterByProfile([...HX_BASELINE_PAST.medical, ...ctx.pmh], profile)
+        },
+        {
+            key: 'surgical',
+            id:  'hx-psh',
+            sugg: filterByProfile([...HX_BASELINE_PAST.surgical, ...ctx.psh], profile)
+        },
+        {
+            key: 'drug',
+            id:  'hx-drug',
+            sugg: filterByProfile([...HX_BASELINE_PAST.drug, ...ctx.drug], profile)
+        },
+        {
+            key: 'family',
+            id:  'hx-fam',
+            sugg: [...HX_BASELINE_PAST.family, ...ctx.fam]   // no profile filter on family
+        },
+        {
+            key: 'social',
+            id:  'hx-soc',
+            sugg: filterByProfile([...HX_BASELINE_PAST.social, ...ctx.soc], profile)
+        }
+    ];
+
+    sections.forEach(sec => {
+        const cont = document.getElementById(`${sec.id}-container`);
+        if (!cont) return;
+        cont.innerHTML = '';
+
+        const nativeItems = new Set(sec.sugg);
+        const savedItems  = Object.keys(hxState.pastData[sec.key]);
+
+        // Custom items: saved items that are not in the current suggestion set.
+        // These are always shown so user data is never hidden.
+        const customItems = savedItems.filter(item => !nativeItems.has(item));
+
+        const itemsToRender = Array.from(new Set([...sec.sugg, ...customItems])).slice(0, 20);
+        if (itemsToRender.length === 0) return;
+
+        itemsToRender.forEach(item => {
+            const val     = hxState.pastData[sec.key][item];
+            const isPos   = val === true || typeof val === 'string';
+            const isNeg   = val === false;
+            const isNative = nativeItems.has(item);
+
+            const row = document.createElement('div');
+            row.className = 'hx-past-item';
+            row.innerHTML = `
+                <div class="hx-past-item-row">
+                    <div class="hx-past-item-name">${item}</div>
+                    <div class="hx-toggle-group" style="width:120px; flex-shrink:0;">
+                        <div class="hx-toggle-btn ${val === undefined || val === null ? 'active' : ''}" data-state="skip" onclick="setHxPastToggle(this,'${sec.key}','${item}',null)">—</div>
+                        <div class="hx-toggle-btn ${isNeg ? 'active' : ''}" data-state="neg" onclick="setHxPastToggle(this,'${sec.key}','${item}',false)">No</div>
+                        <div class="hx-toggle-btn ${isPos ? 'active' : ''}" data-state="pos" onclick="setHxPastToggle(this,'${sec.key}','${item}',true)">Yes</div>
+                    </div>
+                    ${!isNative
+                        ? `<button type="button" class="hx-del-btn" onclick="deleteHxPastItem('${sec.key}', '${item}')">✕</button>`
+                        : `<div style="width:28px;"></div>`}
+                </div>
+                <div id="hx-past-details-${sec.key}-${item.replace(/[^a-zA-Z0-9]/g, '')}" style="display:${isPos ? 'block' : 'none'};">
+                    <input type="text" class="hx-input" placeholder="Details (duration, dosage, etc.)…"
+                        value="${typeof val === 'string' ? val : ''}"
+                        oninput="hxState.pastData['${sec.key}']['${item}']=this.value; syncHxStateToPatient();">
+                </div>
+            `;
+            cont.appendChild(row);
+        });
+    });
+}
+
+function setHxPastToggle(btn, category, item, val) {
+    btn.parentElement.querySelectorAll('.hx-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    if (val === null) {
+        const suggList = getHxContext()[category === 'medical' ? 'pmh' : category === 'surgical' ? 'psh' : category === 'drug' ? 'drug' : category === 'family' ? 'fam' : 'soc'];
+        const isNative = suggList.includes(item) || 
+                         (category==='medical' && ['HTN','DM','Liver Disease','CKD'].includes(item)) ||
+                         (category==='social' && ['Smoking','Alcohol','Illicit Drugs'].includes(item));
+        
+        if (isNative) hxState.pastData[category][item] = null;
+        else delete hxState.pastData[category][item]; // Delete custom items completely if set to '—'
+    } else {
+        hxState.pastData[category][item] = val;
+    }
+    
+    syncHxStateToPatient();
+    renderHxAll(); 
+}
+
+// ── 4. Clinical Examination ───────────────────────────────────────────────────
+
+function buildExamFieldHtml(examId, attr, currentData) {
+    let html = `<div class="hx-field-row"><label class="hx-field-label">${attr.label}</label>`;
+    let val = currentData ? currentData[attr.id] : undefined;
+    
+    if (attr.type === 'chips') {
+        html += `<div class="hx-chip-bar">`;
+        attr.options.forEach(o => {
+            const active = (val === o) ? 'active' : '';
+            html += `<div class="hx-select-chip ${active}" onclick="setHxExamFieldChip(this, '${examId}', '${attr.id}', '${o}')">${o}</div>`;
+        });
+        html += `</div>`;
+    } else if (attr.type === 'toggle') {
+        const isPos = val === true, isNeg = val === false;
+        html += `
+            <div class="hx-toggle-group">
+                <div class="hx-toggle-btn ${(!isPos&&!isNeg)?'active':''}" data-state="skip" onclick="setHxExamFieldToggle(this,'${examId}','${attr.id}',null)">—</div>
+                <div class="hx-toggle-btn ${isNeg?'active':''}" data-state="neg" onclick="setHxExamFieldToggle(this,'${examId}','${attr.id}',false)">No</div>
+                <div class="hx-toggle-btn ${isPos?'active':''}" data-state="pos" onclick="setHxExamFieldToggle(this,'${examId}','${attr.id}',true)">Yes</div>
+            </div>`;
+    }
+    html += `</div>`;
+    return html;
+}
+
+
+function updateExamChevrons() {
+    document.querySelectorAll('.hx-exam-card').forEach(card => {
+        const sysId = card.dataset.sys;
+        if (!sysId) return;
+        const sysInfo = HX_SYSTEMS[sysId];
+        let sysHasData = (hxState.examData[`extra_${sysId}`] || '').trim() !== '';
+        
+        card.querySelectorAll('.hx-exam-item-details').forEach(item => {
+            const exId = item.dataset.ex;
+            const fieldsData = hxState.examData[exId]?.fields || {};
+            const textData   = hxState.examData[exId]?.text || '';
+            const hasData = Object.values(fieldsData).some(v => v !== undefined && v !== null && v !== '') || textData.trim() !== '';
+            
+            if (hasData) sysHasData = true;
+            
+            const chevron = item.querySelector('.hx-exam-item-summary .hx-exam-chevron');
+            if (chevron) chevron.style.color = hasData ? sysInfo.color : 'var(--text-muted)';
+        });
+        
+        const sysChevron = card.querySelector('.hx-exam-card-summary .hx-exam-chevron');
+        if (sysChevron) sysChevron.style.color = sysHasData ? sysInfo.color : 'var(--text-muted)';
+    });
+}
+
+function setHxExamFieldChip(btn, examId, attrId, val) {
+    const parentRow = btn.parentElement;
+    const isActive = btn.classList.contains('active');
+    parentRow.querySelectorAll('.hx-select-chip').forEach(b => b.classList.remove('active'));
+    
+    if (!hxState.examData[examId]) hxState.examData[examId] = {};
+    if (!hxState.examData[examId].fields) hxState.examData[examId].fields = {};
+    
+    if (isActive) hxState.examData[examId].fields[attrId] = '';
+    else { btn.classList.add('active'); hxState.examData[examId].fields[attrId] = val; }
+    
+    syncHxStateToPatient();
+    updateExamChevrons(); // Instantly updates arrow colors
+}
+
+function setHxExamFieldToggle(btn, examId, attrId, val) {
+    btn.parentElement.querySelectorAll('.hx-toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    if (!hxState.examData[examId]) hxState.examData[examId] = {};
+    if (!hxState.examData[examId].fields) hxState.examData[examId].fields = {};
+    
+    hxState.examData[examId].fields[attrId] = val;
+    
+    syncHxStateToPatient();
+    updateExamChevrons(); // Instantly updates arrow colors
+}
+
+
+
+function renderHxExam(ctx) {
+    const cont    = document.getElementById('hx-exam-container');
+    cont.innerHTML = '';
+    const profile = getPatientProfile();
+
+    const grouped = {};
+    HX_EXAMS.forEach(e => {
+        if (!grouped[e.system]) grouped[e.system] = [];
+        grouped[e.system].push(e);
+    });
+
+    const sortedSystems = Object.keys(grouped).sort((a, b) => {
+        if (a === 'GEN') return -1;
+        if (b === 'GEN') return  1;
+        const aR = ctx.systems.includes(a), bR = ctx.systems.includes(b);
+        if (aR && !bR) return -1;
+        if (!aR && bR) return  1;
+        return 0;
+    });
+
+    sortedSystems.forEach(sys => {
+        const rule = EXAM_SYSTEM_RULES[sys];
+        if (rule) {
+            if (rule.requireSex && profile.sex && profile.sex !== rule.requireSex) return;
+            if (rule.excludeAgeGroups?.includes(profile.ageGroup)) return;
+        }
+
+        const sysInfo    = HX_SYSTEMS[sys] || { name: sys, icon: '🩺', color: '#64748b' };
+        const isRelevant = ctx.systems.includes(sys) || sys === 'GEN';
+        const extraSysId = `extra_${sys}`;
+        const extraVal   = hxState.examData[extraSysId] || '';
+
+        // Pre-calculate if this system has any user data to color the main chevron
+        let sysHasData = extraVal.trim() !== '';
+        grouped[sys].forEach(ex => {
+            const fieldsData = hxState.examData[ex.id]?.fields || {};
+            const textData   = hxState.examData[ex.id]?.text || '';
+            if (Object.values(fieldsData).some(v => v !== undefined && v !== null && v !== '') || textData.trim() !== '') {
+                sysHasData = true;
+            }
+        });
+
+        const sysChevronColor = sysHasData ? sysInfo.color : 'var(--text-muted)';
+
+        const card = document.createElement('details');
+        card.className = 'hx-exam-card';
+        card.style.borderTopColor = sysInfo.color;
+        card.dataset.sys = sys; // Tag for dynamic color updates
+
+        const summary = document.createElement('summary');
+        summary.className = 'hx-exam-card-summary';
+        summary.style.color = sysInfo.color;
+        summary.innerHTML = `
+            <span style="font-size:1.1rem;">${sysInfo.icon}</span>
+            <span>${sysInfo.name}</span>
+            ${isRelevant && sys !== 'GEN' ? '<span class="hx-exam-relevant-badge">Relevant ⭐</span>' : ''}
+            <span class="hx-exam-chevron" style="color: ${sysChevronColor};">▶</span>
+        `;
+        card.appendChild(summary);
+
+        const sectionGroups = {};
+        grouped[sys].sort((a, b) => a.rank - b.rank).forEach(ex => {
+            if (!sectionGroups[ex.section]) sectionGroups[ex.section] = [];
+            sectionGroups[ex.section].push(ex);
+        });
+
+        Object.entries(sectionGroups).forEach(([section, exams]) => {
+            const sg = document.createElement('div');
+            sg.className = 'hx-exam-section-group';
+            sg.innerHTML = `<div class="hx-exam-section-label">${section}</div>`;
+
+            exams.forEach(ex => {
+                const isPriority = ctx.exams.includes(ex.id);
+                const fieldsData = hxState.examData[ex.id]?.fields || {};
+                const textData   = hxState.examData[ex.id]?.text || '';
+
+                let fieldsHtml = '';
+                if (ex.template) {
+                    ex.template.forEach(attr => {
+                        fieldsHtml += buildExamFieldHtml(ex.id, attr, fieldsData);
+                    });
+                }
+
+                const hasData = Object.values(fieldsData).some(v => v !== undefined && v !== null && v !== '') || textData.trim() !== '';
+                const itemChevronColor = hasData ? sysInfo.color : 'var(--text-muted)';
+
+                const row = document.createElement('details');
+                row.className = 'hx-exam-item-details';
+                row.dataset.ex = ex.id; // Tag for dynamic color updates
+                if (hasData) row.open = true;
+
+                row.innerHTML = `
+                    <summary class="hx-exam-item-summary">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            ${ex.desc}
+                            ${isPriority ? '<span style="font-size:0.75rem;">⭐</span>' : ''}
+                        </div>
+                        <span class="hx-exam-chevron" style="color: ${itemChevronColor};">▶</span>
+                    </summary>
+                    <div class="hx-exam-item-content">
+                        ${fieldsHtml}
+                        <textarea class="hx-input" rows="2" placeholder="Additional notes..."
+                            oninput="if(!hxState.examData['${ex.id}']) hxState.examData['${ex.id}']={}; hxState.examData['${ex.id}'].text=this.value; syncHxStateToPatient(); updateExamChevrons();"
+                            style="height:auto; margin-top:4px;">${textData}</textarea>
+                    </div>
+                `;
+                sg.appendChild(row);
+            });
+            card.appendChild(sg);
+        });
+
+        card.insertAdjacentHTML('beforeend', `
+            <div style="padding: 12px;">
+                <label class="hx-field-label">Additional Findings (${sysInfo.name})</label>
+                <textarea class="hx-input" rows="2" placeholder="Other findings..."
+                    oninput="hxState.examData['${extraSysId}']=this.value; syncHxStateToPatient(); updateExamChevrons();"
+                    style="height:auto;">${extraVal}</textarea>
+            </div>
+        `);
+
+        cont.appendChild(card);
+    });
+}
+
+
+// ── 5. Investigations ─────────────────────────────────────────────────────────
+function filterHxLabs(query) {
+    const q = query.toLowerCase().trim();
+    const bar = document.getElementById('hx-lab-search-results');
+    bar.innerHTML = '';
+    if (!q) return;
+    HX_LABS.filter(l => l.name.toLowerCase().includes(q)).slice(0, 10).forEach(lab => {
+        const btn = document.createElement('button'); 
+        btn.type = 'button';
+        btn.className = 'hx-chip';
+        btn.innerHTML = `+ ${lab.name}`;
+        btn.onclick = () => { addHxLab({ name: lab.name }); document.getElementById('hx-lab-search').value = ''; bar.innerHTML = ''; };
+        bar.appendChild(btn);
+    });
+}
+
+function filterHxRads(query) {
+    const q = query.toLowerCase().trim();
+    const bar = document.getElementById('hx-rad-search-results');
+    bar.innerHTML = '';
+    if (!q) return;
+    HX_RADIOLOGY.filter(r => r.name.toLowerCase().includes(q) || r.modalities.some(m => m.toLowerCase().includes(q))).slice(0, 8).forEach(rad => {
+        const btn = document.createElement('button'); 
+        btn.type = 'button';
+        btn.className = 'hx-chip'; 
+        btn.innerHTML = `+ ${rad.name}`;
+        btn.onclick = () => { addHxRad({ name: rad.name }); document.getElementById('hx-rad-search').value = ''; bar.innerHTML = ''; };
+        bar.appendChild(btn);
+    });
+}
+
+function handleLabSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById('hx-lab-search');
+    const val = input.value.trim();
+    if (!val) return;
+    
+    const match = HX_LABS.find(l => l.name.toLowerCase() === val.toLowerCase() || l.name.toLowerCase().includes(val.toLowerCase()));
+    if (match) addHxLab({ name: match.name });
+    else addHxLab({ name: val });
+    
+    input.value = ''; input.blur(); document.getElementById('hx-lab-search-results').innerHTML = '';
+}
+
+function handleRadSubmit(event) {
+    event.preventDefault();
+    const input = document.getElementById('hx-rad-search');
+    const val = input.value.trim();
+    if (!val) return;
+    
+    const match = HX_RADIOLOGY.find(r => r.name.toLowerCase().includes(val.toLowerCase()));
+    if (match) addHxRad({ name: match.name });
+    else addHxRad({ name: val });
+    
+    input.value = ''; input.blur(); document.getElementById('hx-rad-search-results').innerHTML = '';
+}
+
+function addHxLab(labObj) {
+    if (!hxState.labs.some(l => l.name === labObj.name)) {
+        hxState.labs.push({ name: labObj.name, result: '' });
+        syncHxStateToPatient(); renderHxInvestigations(getHxContext());
+    }
+}
+function removeHxLab(index) {
+    hxState.labs.splice(index, 1);
+    syncHxStateToPatient(); renderHxInvestigations(getHxContext());
+}
+function addHxRad(radObj) {
+    if (!hxState.rads.some(r => r.name === radObj.name)) {
+        hxState.rads.push({ name: radObj.name, result: '' });
+        syncHxStateToPatient(); renderHxInvestigations(getHxContext());
+    }
+}
+function removeHxRad(index) {
+    hxState.rads.splice(index, 1);
+    syncHxStateToPatient(); renderHxInvestigations(getHxContext());
+}
+
+function updateLabResult(inputEl, idx, minStr, maxStr) {
+    const val = inputEl.value;
+    hxState.labs[idx].result = val;
+    syncHxStateToPatient();
+    
+    if (minStr !== "undefined" && maxStr !== "undefined") {
+        const v = parseFloat(val);
+        if (!isNaN(v) && (v < parseFloat(minStr) || v > parseFloat(maxStr))) {
+            inputEl.classList.add('out-of-range');
+        } else {
+            inputEl.classList.remove('out-of-range');
+        }
+    }
+}
+
+function renderHxInvestigations(ctx) {
+    const labSuggCont = document.getElementById('hx-lab-sugg-container');
+    labSuggCont.innerHTML = '';
+    
+    // ⭐ Relevant Badges injected automatically if there are hints
+    if (ctx.labs.length > 0) {
+        let html = `<div style="font-size:0.65rem; font-weight:800; color:var(--primary-dark); margin-bottom:2px; text-transform:uppercase;">⭐ Suggested for this patient</div><div class="hx-sugg-bar">`;
+        ctx.labs.forEach(lName => {
+            if (hxState.labs.some(a => a.name === lName)) return;
+            html += `<button type="button" class="hx-chip correlation" onclick="addHxLab({name: '${lName}'})">+ ${lName}</button>`;
+        });
+        html += `</div>`;
+        labSuggCont.innerHTML = html;
+    }
+
+    const labCont = document.getElementById('hx-active-labs');
+    labCont.innerHTML = '';
+    hxState.labs.forEach((lab, idx) => {
+        const dbLab = HX_LABS.find(l => l.name === lab.name);
+        let hasRange = false;
+        let rangeText = "";
+        let isAbnormal = false;
+        
+        if (dbLab && dbLab.min !== undefined && dbLab.max !== undefined) {
+            hasRange = true;
+            rangeText = `Normal Range: ${dbLab.min} - ${dbLab.max} ${dbLab.unit}`;
+            let v = parseFloat(lab.result);
+            if (!isNaN(v) && (v < dbLab.min || v > dbLab.max)) isAbnormal = true;
+        }
+
+        labCont.insertAdjacentHTML('beforeend', `
+            <div class="hx-lab-row">
+                <div class="hx-lab-header">
+                    <span class="hx-lab-name">${lab.name}</span>
+                    <div class="hx-lab-actions">
+                        ${hasRange ? `<button type="button" class="hx-lab-icon" onclick="showToast('${rangeText}')">i</button>` : ''}
+                        <button type="button" class="hx-del-btn" onclick="removeHxLab(${idx})">✕</button>
+                    </div>
+                </div>
+                <input type="text" class="hx-input hx-lab-input ${isAbnormal ? 'out-of-range' : ''}" placeholder="Result..." value="${lab.result}" oninput="updateLabResult(this, ${idx}, '${dbLab?.min}', '${dbLab?.max}')">
+            </div>
+        `);
+    });
+
+    const radSuggCont = document.getElementById('hx-rad-sugg-container');
+    radSuggCont.innerHTML = '';
+    if (ctx.rads.length > 0) {
+        let html = `<div style="font-size:0.65rem; font-weight:800; color:var(--primary-dark); margin-bottom:2px; text-transform:uppercase;">⭐ Suggested for this patient</div><div class="hx-sugg-bar">`;
+        ctx.rads.forEach(rName => {
+            if (hxState.rads.some(a => a.name === rName)) return;
+            html += `<button type="button" class="hx-chip correlation" onclick="addHxRad({name: '${rName}'})">+ ${rName}</button>`;
+        });
+        html += `</div>`;
+        radSuggCont.innerHTML = html;
+    }
+
+    const radCont = document.getElementById('hx-active-rads');
+    radCont.innerHTML = '';
+    hxState.rads.forEach((rad, idx) => {
+        radCont.insertAdjacentHTML('beforeend', `
+            <div class="hx-rad-row">
+                <div class="hx-rad-header">
+                    <span>${rad.name}</span>
+                    <button type="button" class="hx-del-btn" onclick="removeHxRad(${idx})">✕</button>
+                </div>
+                <textarea class="hx-input" rows="2" placeholder="Findings..." oninput="hxState.rads[${idx}].result=this.value; syncHxStateToPatient();" style="height:auto;">${rad.result}</textarea>
+            </div>
+        `);
+    });
+}
+// ── Summary Generation ────────────────────────────────────────────────────────
+// =============================================
+// COMPACT SUMMARY & DDX AI INTEGRATION
+// =============================================
+
+function generateHxSummary(isForAi = false) {
+    const pInfo = hxState.patientId ? findPatientAndRoom(hxState.patientId) : null;
+    const pt = pInfo ? pInfo.patient : null;
+    let txt = '';
+
+    // ── Profile & Vitals ──────────────────────────────────────────────
+    if (pt) txt += `Patient: ${pt.name}\n`;
+    const d = hxState.demo;
+    const demoParts = [];
+    if (d.age)      demoParts.push(`${d.age}`);
+    if (d.sex)      demoParts.push(`${d.sex}`);
+    if (d.occ)      demoParts.push(`Job: ${d.occ}`);
+    if (d.marital)  demoParts.push(`${d.marital}`);
+    if (d.residence)demoParts.push(`Lives in: ${d.residence}`);
+    if (d.blood)    demoParts.push(`Blood: ${d.blood}`);
+    if (demoParts.length) txt += `Profile: ${demoParts.join(' | ')}\n`;
+
+    if (pt?.vitals) {
+        const v = pt.vitals;
+        const vitalsArr = [];
+        if (v.hr) vitalsArr.push(`HR ${v.hr}`);
+        if (v.bp) vitalsArr.push(`BP ${v.bp}`);
+        if (v.temp) vitalsArr.push(`Temp ${v.temp}°C`);
+        if (v.spo2) vitalsArr.push(`SpO2 ${v.spo2}%`);
+        if (v.rr) vitalsArr.push(`RR ${v.rr}`);
+        if (v.rbg) vitalsArr.push(`RBG ${v.rbg}`);
+        if (vitalsArr.length) txt += `Vitals: ${vitalsArr.join(', ')}\n`;
+    }
+
+    // ── History of Present Illness (HPI) ──────────────────────────────
+    if (hxState.complaints.length > 0) {
+        txt += `\n[C/O]\n`;
+        hxState.complaints.forEach(c => {
+            const cd = hxState.presentData[c.id];
+            if (!cd) return;
+            
+            let parts = [];
+            if (cd.onset) parts.push(`Onset: ${cd.onset}`);
+            if (cd.course) parts.push(`Course: ${cd.course}`);
+            if (cd.duration) parts.push(`Duration: ${cd.duration}`);
+
+            const allAttrs = [...(HX_TEMPLATES[c.template]||[]), ...(c.customAttributes||[])];
+            allAttrs.forEach(attr => {
+                let v = cd[attr.id];
+                if (v !== undefined && v !== '' && v !== null) {
+                    // Map boolean values to clear Yes/No text paired with their label
+                    if (typeof v === 'boolean') {
+                        parts.push(`${attr.label}: ${v ? 'Yes' : 'No'}`);
+                    } else {
+                        parts.push(`${attr.label}: ${v}`);
+                    }
+                }
+            });
+            
+            if (cd.extra) parts.push(`Notes: ${cd.extra}`);
+
+            txt += `• ${c.name}${parts.length ? ' (' + parts.join(' | ') + ')' : ''}\n`;
+        });
+    }
+
+    // ── Past History ──────────────────────────────────────────────────
+    let pastArr = [];
+    const formatPast = (cat, label) => {
+        let pos = [], neg = [];
+        Object.keys(hxState.pastData[cat]).forEach(k => {
+            const v = hxState.pastData[cat][k];
+            if (v === true) pos.push(k);
+            else if (typeof v === 'string') pos.push(`${k} (${v})`);
+            else if (v === false) neg.push(k);
+        });
+        if (pos.length) pastArr.push(`• ${label}: ${pos.join(', ')}`);
+        if (neg.length) pastArr.push(`  Denied: ${neg.join(', ')}`);
+    };
+    
+    formatPast('medical', 'Medical'); 
+    formatPast('surgical', 'Surgical');
+    formatPast('drug', 'Meds'); 
+    formatPast('family', 'Family'); 
+    formatPast('social', 'Social/Habits');
+    
+    if (pastArr.length) {
+        txt += `\n[PAST HX]\n${pastArr.join('\n')}\n`;
+    }
+
+// ── Clinical Examination ──────────────────────────────────────────
+    let examSysMap = {}; 
+    
+    Object.keys(hxState.examData).forEach(eid => {
+        // Handle standalone extra notes
+        if (eid.startsWith('extra_')) {
+            const sysName = HX_SYSTEMS[eid.replace('extra_', '')]?.name;
+            const text = hxState.examData[eid];
+            if (sysName && text) {
+                if (!examSysMap[sysName]) examSysMap[sysName] = [];
+                examSysMap[sysName].push(`Additional Notes: ${text}`);
+            }
+            return;
+        }
+        
+        // Handle structured templates
+        const ex = HX_EXAMS.find(x => x.id === eid);
+        const data = hxState.examData[eid];
+        
+        if (ex && data) {
+            const sysName = HX_SYSTEMS[ex.system]?.name || ex.system;
+            let findings = [];
+            
+            if (ex.template && data.fields) {
+                ex.template.forEach(f => {
+                    let fVal = data.fields[f.id];
+                    // Filter out empty noise. 
+                    if (fVal !== undefined && fVal !== '' && fVal !== null && fVal !== 'Normal' && fVal !== 'None' && fVal !== 'N/A') {
+                        if (typeof fVal === 'boolean') {
+                            findings.push(`${f.label}: ${fVal ? 'Yes' : 'No'}`);
+                        } else {
+                            findings.push(`${f.label}: ${fVal}`);
+                        }
+                    }
+                });
             }
             
-            // Compile text
-            let analysisText = `Patient: ${p.name}\n`;
-            let v = [];
-            if (p.vitals.hr) v.push(`HR: ${p.vitals.hr}`);
-            if (p.vitals.bp) v.push(`BP: ${p.vitals.bp}`);
-            if (p.vitals.temp) v.push(`Temp: ${p.vitals.temp}°C`);
-            if (p.vitals.spo2) v.push(`SpO2: ${p.vitals.spo2}%`);
-            if (p.vitals.rr) v.push(`RR: ${p.vitals.rr}`);
-            if (p.vitals.rbg) v.push(`RBG: ${p.vitals.rbg} mg/dL`);
+            if (data.text) findings.push(`Notes: ${data.text}`);
             
-            if (v.length > 0) analysisText += `Vitals: ${v.join(', ')}\n`;
-            analysisText += `Notes: ${plainNotes}`;
-            
-            closeModals();
-            openDDx();
-            
-            // Inject text into the DDx input and auto-generate
-            document.getElementById('ddx-input').value = analysisText;
-            setTimeout(() => { generateAIDDx(); }, 300);
+            if (findings.length > 0) {
+                if (!examSysMap[sysName]) examSysMap[sysName] = [];
+                let fStr = findings.join(' | ');
+                examSysMap[sysName].push(`${ex.section}: ${fStr}`);
+            }
         }
+    });
+
+    const sysKeys = Object.keys(examSysMap);
+    if (sysKeys.length > 0) {
+        txt += `\n[CLINICAL EXAMINATION]\n`;
+        sysKeys.forEach(sys => {
+            const findingsArr = examSysMap[sys];
+            if (findingsArr.length === 0) return;
+
+            txt += `${sys}:\n`;
+            findingsArr.forEach(line => {
+                txt += `  - ${line}\n`;
+            });
+        });
+    }
+
+    // ── Investigations ────────────────────────────────────────────────
+    if (hxState.labs.length || hxState.rads.length) {
+        txt += `\n[INVESTIGATIONS]\n`;
+        if (hxState.labs.length) {
+            let labsArr = hxState.labs.map(l => `${l.name}: ${l.result||'Pending'}`);
+            txt += `Labs: ${labsArr.join(' | ')}\n`;
+        }
+        if (hxState.rads.length) {
+            let radsArr = hxState.rads.map(r => `${r.name}: ${r.result||'Pending'}`);
+            txt += `Imaging: ${radsArr.join(' | ')}\n`;
+        }
+    }
+
+    // ── Extra Notes ───────────────────────────────────────────────────
+    if (hxState.extraNotes) txt += `\n[NOTES]\n${hxState.extraNotes}\n`;
+
+    const finalTxt = txt.trim();
+    if (!isForAi) triggerCopy(finalTxt, "Hx Summary Copied! 📋");
+    return finalTxt;
+}
+
+
 
         function findPatientAndRoom(patientId) {
             for (let room of appData.rooms) {
@@ -2566,120 +4025,6 @@ function manageAction(action, type, id) {
 }
 
 
-
-   
-        // =============================================
-        // NOTES SYSTEM
-        // =============================================
-        function openNotes(patientId) {
-            lockScroll();
-            editingPatientId = patientId;
-            const { patient } = findPatientAndRoom(patientId);
-            document.getElementById('notes-title').innerText = patient.name;
-            document.getElementById('notes-editor').innerHTML = patient.notes || "";
-            document.getElementById('notes-modal').style.display = 'flex';
-            currentColorIndex = 0;
-            document.getElementById('color-cycle-btn').style.background = 'var(--text-main)';
-        }
-
-        function closeNotes() {
-            unlockScroll();
-            document.getElementById('notes-modal').style.display = 'none';
-        }
-
-        function formatNote(command, value = null) {
-            document.execCommand('styleWithCSS', false, true);
-            
-            if (command === 'removeFormat') {
-                document.execCommand('removeFormat', false, null);
-                // Escapes bullets/lists:
-                document.execCommand('outdent', false, null); 
-                document.execCommand('formatBlock', false, 'div');
-            } else {
-                document.execCommand(command, false, value);
-            }
-            
-            document.getElementById('notes-editor').focus();
-        }
-
-const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
-        let currentColorIndex = 0;
-
-        function cycleColor() {
-            currentColorIndex = (currentColorIndex + 1) % cycleColors.length;
-            const newColor = cycleColors[currentColorIndex];
-            const btn = document.getElementById('color-cycle-btn');
-
-            if (currentColorIndex === 0) {
-                formatNote('removeFormat');
-            } else {
-                formatNote('foreColor', newColor);
-            }
-            btn.style.background = newColor;
-        }
-
-        function alignText(alignDir) {
-            document.execCommand('styleWithCSS', false, true);
-            
-            let command = 'justifyLeft';
-            if (alignDir === 'right') command = 'justifyRight';
-            if (alignDir === 'center') command = 'justifyCenter';
-            
-            document.execCommand(command, false, null);
-
-            // Force physical bullet placement to match text alignment
-            let sel = window.getSelection();
-            if (sel.rangeCount > 0) {
-                let node = sel.anchorNode;
-                // If the selection is a text node, grab its parent element
-                if (node && node.nodeType === 3) node = node.parentNode; 
-                
-                if (node && typeof node.closest === 'function') {
-                    // Apply direction to the list itself if inside a list, otherwise the text block
-                    let targetNode = node.closest('ul, ol') || node.closest('div, p, h1, h2, h3') || node;
-                    
-                    if (targetNode && targetNode.id !== 'notes-editor') {
-                        if (alignDir === 'left') targetNode.setAttribute('dir', 'ltr');
-                        if (alignDir === 'right') targetNode.setAttribute('dir', 'rtl');
-                        if (alignDir === 'center') targetNode.setAttribute('dir', 'auto');
-                    }
-                }
-            }
-            
-            document.getElementById('notes-editor').focus();
-        }
-
-        function autoSaveNotes() {
-            if (!editingPatientId) return;
-            const pInfo = findPatientAndRoom(editingPatientId);
-            if (pInfo && pInfo.patient) {
-                pInfo.patient.notes = document.getElementById('notes-editor').innerHTML;
-                saveData(); 
-                
-                const card = document.querySelector(`.patient-card[data-patient-id="${editingPatientId}"]`);
-                if (card) {
-                    const noteBtn = Array.from(card.querySelectorAll('button')).find(btn => btn.title === 'Notes' || btn.innerText.includes('📝'));
-                    const hasNotes = pInfo.patient.notes && pInfo.patient.notes.trim() !== '' && pInfo.patient.notes !== '<br>';
-                    if (noteBtn) {
-                        if (hasNotes) noteBtn.classList.add('has-notes');
-                        else noteBtn.classList.remove('has-notes');
-                    }
-                }
-            }
-        }
-
-        function clearNotes() {
-            if (confirm("Delete all notes for this patient?")) {
-                document.getElementById('notes-editor').innerHTML = "";
-                autoSaveNotes(); 
-                showToast("Notes deleted 🗑️");
-            }
-        }
-
-        
-
-        
-        
         // =============================================
         // TASKS SYSTEM & SWIPING
         // =============================================
@@ -2905,63 +4250,33 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         }
 
         let currentTaskType = 'normal';
+let currentTaskPatientId = 'general';
 
-        function openAddTaskModal() {
-            document.getElementById('task-text-input').value = "";
-            setTaskType('normal'); // Reset to normal state
-            
-            // Set current time as default value in the time picker
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('task-time-input').value = `${hours}:${minutes}`;
-            
-            // Reset sync checkbox to checked
-            document.getElementById('task-sync-cal').checked = true; 
-            
-            // Improved patient dropdown parsing
-            const select = document.getElementById('task-patient-select');
-            select.innerHTML = '<option value="general">🌐 General (no patient)</option>';
-            appData.rooms.forEach(r => {
-                r.patients.forEach(p => {
-                    const opt = document.createElement('option');
-                    opt.value = p.id;
-                    opt.innerText = `👤 ${p.name} (${r.name})`;
-                    select.appendChild(opt);
-                });
-            });
+function openAddTaskModal(patientId = 'general') {
+    document.getElementById('task-text-input').value = "";
+    setTaskType('normal'); 
+    
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('task-time-input').value = `${hours}:${minutes}`;
+    document.getElementById('task-sync-cal').checked = true; 
+    
+    currentTaskPatientId = patientId;
+    const label = document.getElementById('task-patient-label');
+    
+    if (patientId === 'general') {
+        label.innerHTML = '🌐 General Task <span style="font-size:0.8rem; font-weight:normal; display:block;">(Not attached to a patient)</span>';
+    } else {
+        const pInfo = findPatientAndRoom(patientId);
+        label.innerHTML = `👤 Task for: <span style="color:var(--primary);">${pInfo ? pInfo.patient.name : 'Patient'}</span>`;
+    }
 
-            document.getElementById('add-task-modal').style.display = 'block';
-            setTimeout(() => { document.getElementById('add-task-modal').style.opacity = '1'; }, 10);
-        }
+    document.getElementById('add-task-modal').style.display = 'block';
+    setTimeout(() => { document.getElementById('add-task-modal').style.opacity = '1'; }, 10);
+}
 
-        function setTaskType(type) {
-            currentTaskType = type;
-            const btnNormal = document.getElementById('btn-task-normal');
-            const btnTimed = document.getElementById('btn-task-timed');
-            const timeContainer = document.getElementById('task-time-container');
-            const timeInput = document.getElementById('task-time-input');
-            
-            if (type === 'normal') {
-                btnNormal.classList.add('active');
-                btnTimed.classList.remove('active');
-                timeContainer.style.display = 'none';
-            } else {
-                btnTimed.classList.add('active');
-                btnNormal.classList.remove('active');
-                timeContainer.style.display = 'block';
-                
-                // Automatically open the clock/time picker UI natively
-                setTimeout(() => {
-                    timeInput.focus();
-                    if (typeof timeInput.showPicker === 'function') {
-                        try { timeInput.showPicker(); } catch(e) {}
-                    }
-                }, 50);
-            }
-        }
-
-        function saveNewTask() {
+function saveNewTask() {
     initAudio();
     const text = document.getElementById('task-text-input').value.trim();
     if (!text) return showToast("Task description required");
@@ -2969,8 +4284,7 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
     const isTimed = currentTaskType === 'timed';
     let taskTime = null;
     
-    const patientIdVal = document.getElementById('task-patient-select').value;
-    const patientId = patientIdVal === 'general' ? 'general' : parseInt(patientIdVal);
+    const patientId = currentTaskPatientId;
     
     let patientName = 'General Task';
     if (patientId !== 'general') {
@@ -2993,7 +4307,6 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
         
         const syncChecked = document.getElementById('task-sync-cal').checked;
         if (syncChecked) {
-            // Formatting for UTC (Required for Google)
             const formatGCalUTC = (date) => {
                 return date.getUTCFullYear().toString() +
                        String(date.getUTCMonth() + 1).padStart(2, '0') +
@@ -3009,15 +4322,10 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
             const eventTitle = encodeURIComponent(`🚨 MiriMate: ${text}`);
             const eventDetails = encodeURIComponent(`Patient: ${patientName}`);
 
-            // 1. Standard Web URL (Fallback/iOS/Desktop)
             const webUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${startStr}/${endStr}&details=${eventDetails}`;
-
-            // 2. Android Intent URL (Forces the actual App)
             const androidIntent = `intent://calendar.google.com/calendar/render?action=TEMPLATE&text=${eventTitle}&dates=${startStr}/${endStr}&details=${eventDetails}#Intent;scheme=https;package=com.google.android.calendar;end`;
 
-            // Detect Android to decide which to use
             const isAndroid = /Android/i.test(navigator.userAgent);
-            
             if (isAndroid) {
                 window.location.href = androidIntent;
             } else {
@@ -3045,6 +4353,33 @@ const cycleColors = ['var(--text-main)', '#ef4444', '#22c55e', '#eab308'];
     document.getElementById('add-task-modal').style.display = 'none';
 }
 
+        function setTaskType(type) {
+            currentTaskType = type;
+            const btnNormal = document.getElementById('btn-task-normal');
+            const btnTimed = document.getElementById('btn-task-timed');
+            const timeContainer = document.getElementById('task-time-container');
+            const timeInput = document.getElementById('task-time-input');
+            
+            if (type === 'normal') {
+                btnNormal.classList.add('active');
+                btnTimed.classList.remove('active');
+                timeContainer.style.display = 'none';
+            } else {
+                btnTimed.classList.add('active');
+                btnNormal.classList.remove('active');
+                timeContainer.style.display = 'block';
+                
+                // Automatically open the clock/time picker UI natively
+                setTimeout(() => {
+                    timeInput.focus();
+                    if (typeof timeInput.showPicker === 'function') {
+                        try { timeInput.showPicker(); } catch(e) {}
+                    }
+                }, 50);
+            }
+        }
+
+        
 
         function markTaskComplete(taskId) {
             const task = appData.tasks.find(t => t.id === taskId);
@@ -3304,44 +4639,59 @@ function openSupportModal() {
         // =============================================
         let _openOptionId = null;
 
-        function toggleRoomOptions(roomId, e) {
-            e && e.stopPropagation();
-            const btn = document.getElementById(`room-opt-btn-${roomId}`);
-            const popup = document.getElementById(`room-opt-popup-${roomId}`);
-            if (!btn || !popup) return;
-            const isOpen = popup.classList.contains('open');
-            closeAllOptions();
-            if (!isOpen) {
-                btn.classList.add('active');
-                btn.innerText = '✕'; // Swap to X
-                popup.classList.add('open');
-                _openOptionId = roomId;
-            }
-        }
+function toggleAdvancedOptions(patientId, e) {
+    e && e.stopPropagation();
+    const btn = document.getElementById(`pt-adv-btn-${patientId}`);
+    const popup = document.getElementById(`pt-adv-popup-${patientId}`);
+    if (!btn || !popup) return;
+    const isOpen = popup.classList.contains('open');
+    closeAllOptions();
+    if (!isOpen) {
+        btn.classList.add('active');
+        btn.innerText = '✕'; 
+        popup.classList.add('open');
+        _openOptionId = 'adv-' + patientId;
+    }
+}
 
-        function togglePatientOptions(patientId, e) {
-            e && e.stopPropagation();
-            const btn = document.getElementById(`pt-opt-btn-${patientId}`);
-            const popup = document.getElementById(`pt-opt-popup-${patientId}`);
-            if (!btn || !popup) return;
-            const isOpen = popup.classList.contains('open');
-            closeAllOptions();
-            if (!isOpen) {
-                btn.classList.add('active');
-                btn.innerText = '✕'; // Swap to X
-                popup.classList.add('open');
-                _openOptionId = patientId;
-            }
-        }
+function togglePatientOptions(patientId, e) {
+    e && e.stopPropagation();
+    const btn = document.getElementById(`pt-opt-btn-${patientId}`);
+    const popup = document.getElementById(`pt-opt-popup-${patientId}`);
+    if (!btn || !popup) return;
+    const isOpen = popup.classList.contains('open');
+    closeAllOptions();
+    if (!isOpen) {
+        btn.classList.add('active');
+        btn.innerText = '✕'; 
+        popup.classList.add('open');
+        _openOptionId = 'pt-' + patientId;
+    }
+}
 
-        function closeAllOptions() {
-            document.querySelectorAll('.options-dot-btn.active').forEach(b => {
-                b.classList.remove('active');
-                b.innerText = '⋮'; // Reset back to dots
-            });
-            document.querySelectorAll('.options-popup.open').forEach(p => p.classList.remove('open'));
-            _openOptionId = null;
-        }
+function toggleRoomOptions(roomId, e) {
+    e && e.stopPropagation();
+    const btn = document.getElementById(`room-opt-btn-${roomId}`);
+    const popup = document.getElementById(`room-opt-popup-${roomId}`);
+    if (!btn || !popup) return;
+    const isOpen = popup.classList.contains('open');
+    closeAllOptions();
+    if (!isOpen) {
+        btn.classList.add('active');
+        btn.innerText = '✕';
+        popup.classList.add('open');
+        _openOptionId = 'room-' + roomId;
+    }
+}
+
+function closeAllOptions() {
+    document.querySelectorAll('.options-dot-btn.active').forEach(b => {
+        b.classList.remove('active');
+        b.innerText = b.dataset.icon || '⋮'; // Restores original icon (🪪 or ⋮)
+    });
+    document.querySelectorAll('.options-popup.open').forEach(p => p.classList.remove('open'));
+    _openOptionId = null;
+}
 
         // Close popups when tapping elsewhere
         document.addEventListener('click', (e) => {
