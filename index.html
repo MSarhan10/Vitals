@@ -1088,16 +1088,24 @@ html.modal-open, body.modal-open {
     /* Prevent text selection */
     user-select: none; -webkit-user-select: none;
 }
-.options-dot-btn.active {
-    background: #ef4444; color: white; border-color: #b91c1c;
-    transform: rotate(90deg);
-    box-shadow: 0 3px 10px rgba(239,68,68,0.4);
+/* Active State (Red/X) - Forces override on everything */
+.options-dot-btn.active, 
+.options-dot-btn.adv-btn-highlighted.active {
+    background: #ef4444 !important; 
+    color: white !important; 
+    border-color: #b91c1c !important;
+    transform: rotate(90deg) !important;
+    box-shadow: 0 3px 10px rgba(239,68,68,0.4) !important;
 }
-.adv-btn-highlighted {
-    color: var(--primary);
-    border-color: var(--primary);
-    background: var(--vital-bg);
+
+/* Highlighted State (Green) - Forces override on default */
+.options-dot-btn.adv-btn-highlighted {
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    background: var(--vital-bg) !important;
 }
+
+
 
 
 
@@ -2921,7 +2929,9 @@ function openHxSheet(patientId) {
 function closeHxSheet() {
     document.getElementById('hx-modal').style.display = 'none';
     unlockScroll();
+    renderUI(); // Updates the background patient cards to reflect new complaints
 }
+
 
 function clearHxSheet() {
     if (confirm("Clear the entire Hx sheet for this patient?")) {
