@@ -3302,30 +3302,41 @@ function deleteHxPastItem(category, item) {
 function renderHxPastSections(ctx) {
     const profile = getPatientProfile();
 
+    // Added 'dynamic' property to map the ctx arrays to each section
     const sections = [
         {
             key: 'medical',
             id:  'hx-pmh',
+            baseline: HX_BASELINE_PAST.medical,
+            dynamic:  ctx.pmh,
             sugg: filterByProfile([...HX_BASELINE_PAST.medical, ...ctx.pmh], profile)
         },
         {
             key: 'surgical',
             id:  'hx-psh',
+            baseline: HX_BASELINE_PAST.surgical,
+            dynamic:  ctx.psh,
             sugg: filterByProfile([...HX_BASELINE_PAST.surgical, ...ctx.psh], profile)
         },
         {
             key: 'drug',
             id:  'hx-drug',
+            baseline: HX_BASELINE_PAST.drug,
+            dynamic:  ctx.drug,
             sugg: filterByProfile([...HX_BASELINE_PAST.drug, ...ctx.drug], profile)
         },
         {
             key: 'family',
             id:  'hx-fam',
-            sugg: [...HX_BASELINE_PAST.family, ...ctx.fam]   // no profile filter on family
+            baseline: HX_BASELINE_PAST.family,
+            dynamic:  ctx.fam,
+            sugg: [...HX_BASELINE_PAST.family, ...ctx.fam] 
         },
         {
             key: 'social',
             id:  'hx-soc',
+            baseline: HX_BASELINE_PAST.social,
+            dynamic:  ctx.soc,
             sugg: filterByProfile([...HX_BASELINE_PAST.social, ...ctx.soc], profile)
         }
     ];
@@ -3336,26 +3347,53 @@ function renderHxPastSections(ctx) {
         cont.innerHTML = '';
 
         const nativeItems = new Set(sec.sugg);
+        const dynamicSet  = new Set(sec.dynamic); // Set for fast lookup
+        const baselineSet = new Set(sec.baseline);
+        
         const savedItems  = Object.keys(hxState.pastData[sec.key]);
-
-        // Custom items: saved items that are not in the current suggestion set.
-        // These are always shown so user data is never hidden.
         const customItems = savedItems.filter(item => !nativeItems.has(item));
 
         const itemsToRender = Array.from(new Set([...sec.sugg, ...customItems])).slice(0, 20);
         if (itemsToRender.length === 0) return;
 
-        itemsToRender.forEach(item => {
-            const val     = hxState.pastData[sec.key][item];
-            const isPos   = val === true || typeof val === 'string';
-            const isNeg   = val === false;
+                        itemsToRender.forEach(item => {
+            const val      = hxState.pastData[sec.key][item];
+            const isPos    = val === true || typeof val === 'string';
+            const isNeg    = val === false;
             const isNative = nativeItems.has(item);
+            
+            const isDynamic = dynamicSet.has(item);
+            const isCustom  = !isNative;
+
+            // --- Updated Styling & Labeling ---
+            let labelStyle = '';
+            let badgeHtml  = '';
+
+            if (isDynamic) {
+    // A softer, lighter green for the text to make it less "heavy"
+    labelStyle = 'color: #4ade80; font-weight: 600;'; 
+    
+    // Minimalist text-only badge: no background, no border, smaller font
+    badgeHtml = `
+        <span style="
+            font-size: 0.65rem; 
+            color: var(--text-muted); 
+            font-weight: normal;
+            margin-left: 5px;
+            opacity: 0.8;
+        ">⭐ Relevant</span>`;
+} else if (isCustom) {
+    labelStyle = 'color: var(--text-muted); font-style: italic;'; 
+}
+ 
 
             const row = document.createElement('div');
             row.className = 'hx-past-item';
             row.innerHTML = `
                 <div class="hx-past-item-row">
-                    <div class="hx-past-item-name">${item}</div>
+                    <div class="hx-past-item-name" style="${labelStyle}">
+                        ${item}${badgeHtml}
+                    </div>
                     <div class="hx-toggle-group" style="width:120px; flex-shrink:0;">
                         <div class="hx-toggle-btn ${val === undefined || val === null ? 'active' : ''}" data-state="skip" onclick="setHxPastToggle(this,'${sec.key}','${item}',null)">—</div>
                         <div class="hx-toggle-btn ${isNeg ? 'active' : ''}" data-state="neg" onclick="setHxPastToggle(this,'${sec.key}','${item}',false)">No</div>
@@ -3373,8 +3411,9 @@ function renderHxPastSections(ctx) {
             `;
             cont.appendChild(row);
         });
-    });
-}
+});
+} 
+
 
 function setHxPastToggle(btn, category, item, val) {
     btn.parentElement.querySelectorAll('.hx-toggle-btn').forEach(b => b.classList.remove('active'));
@@ -3478,7 +3517,7 @@ function setHxExamFieldToggle(btn, examId, attrId, val) {
 
 
 function renderHxExam(ctx) {
-    const cont    = document.getElementById('hx-exam-container');
+    const cont = document.getElementById('hx-exam-container');
     cont.innerHTML = '';
     const profile = getPatientProfile();
 
@@ -3488,10 +3527,16 @@ function renderHxExam(ctx) {
         grouped[e.system].push(e);
     });
 
+    // --- FIX 1: Enhanced Sorting ---
+    // Systems with priority exams should also float to the top
     const sortedSystems = Object.keys(grouped).sort((a, b) => {
+        const aHasPriority = grouped[a].some(ex => ctx.exams.includes(ex.id));
+        const bHasPriority = grouped[b].some(ex => ctx.exams.includes(ex.id));
+        const aR = ctx.systems.includes(a) || aHasPriority;
+        const bR = ctx.systems.includes(b) || bHasPriority;
+        
         if (a === 'GEN') return -1;
         if (b === 'GEN') return  1;
-        const aR = ctx.systems.includes(a), bR = ctx.systems.includes(b);
         if (aR && !bR) return -1;
         if (!aR && bR) return  1;
         return 0;
@@ -3504,12 +3549,16 @@ function renderHxExam(ctx) {
             if (rule.excludeAgeGroups?.includes(profile.ageGroup)) return;
         }
 
-        const sysInfo    = HX_SYSTEMS[sys] || { name: sys, icon: '🩺', color: '#64748b' };
-        const isRelevant = ctx.systems.includes(sys) || sys === 'GEN';
+        const sysInfo = HX_SYSTEMS[sys] || { name: sys, icon: '🩺', color: '#64748b' };
+        
+        // --- FIX 2: Better Relevance Logic ---
+        // A system is relevant if it's in the systems list OR contains a priority exam
+        const hasPriorityInSystem = grouped[sys].some(ex => ctx.exams.includes(ex.id));
+        const isRelevant = ctx.systems.includes(sys) || hasPriorityInSystem;
+        
         const extraSysId = `extra_${sys}`;
         const extraVal   = hxState.examData[extraSysId] || '';
 
-        // Pre-calculate if this system has any user data to color the main chevron
         let sysHasData = extraVal.trim() !== '';
         grouped[sys].forEach(ex => {
             const fieldsData = hxState.examData[ex.id]?.fields || {};
@@ -3524,15 +3573,17 @@ function renderHxExam(ctx) {
         const card = document.createElement('details');
         card.className = 'hx-exam-card';
         card.style.borderTopColor = sysInfo.color;
-        card.dataset.sys = sys; // Tag for dynamic color updates
+        card.dataset.sys = sys;
 
         const summary = document.createElement('summary');
         summary.className = 'hx-exam-card-summary';
         summary.style.color = sysInfo.color;
+        
+        // --- FIX 3: Remove 'sys !== GEN' exclusion ---
         summary.innerHTML = `
             <span style="font-size:1.1rem;">${sysInfo.icon}</span>
             <span>${sysInfo.name}</span>
-            ${isRelevant && sys !== 'GEN' ? '<span class="hx-exam-relevant-badge">Relevant ⭐</span>' : ''}
+            ${isRelevant ? '<span class="hx-exam-relevant-badge">Relevant ⭐</span>' : ''}
             <span class="hx-exam-chevron" style="color: ${sysChevronColor};">▶</span>
         `;
         card.appendChild(summary);
@@ -3565,7 +3616,7 @@ function renderHxExam(ctx) {
 
                 const row = document.createElement('details');
                 row.className = 'hx-exam-item-details';
-                row.dataset.ex = ex.id; // Tag for dynamic color updates
+                row.dataset.ex = ex.id;
                 if (hasData) row.open = true;
 
                 row.innerHTML = `
@@ -3600,6 +3651,7 @@ function renderHxExam(ctx) {
         cont.appendChild(card);
     });
 }
+
 
 
 // ── 5. Investigations ─────────────────────────────────────────────────────────
