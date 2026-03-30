@@ -1093,6 +1093,18 @@ html.modal-open, body.modal-open {
     transform: rotate(90deg);
     box-shadow: 0 3px 10px rgba(239,68,68,0.4);
 }
+.adv-btn-highlighted {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--vital-bg);
+}
+
+
+
+/* Brings the open popup to the very front so it is always clickable */
+.options-wrapper:has(.options-popup.open) {
+    z-index: 1000;
+}
 .options-popup {
     position: absolute; right: 0; top: calc(100% + 6px);
     background: var(--surface); border: 1px solid var(--divider);
@@ -1753,17 +1765,61 @@ body.is-dragging * {
             </div>
 
             <div class="hx-field-row" id="hx-demo-marital-row">
-        <label class="hx-field-label">Marital Status</label>
+        <label class="hx-field-label">👫 Marital Status</label>
         <div class="hx-chip-bar" id="hx-demo-marital-bar">
             <div class="hx-select-chip" onclick="setDemoChip('marital', 'Single', this)">Single</div>
             <div class="hx-select-chip" onclick="setDemoChip('marital', 'Married', this)">Married</div>
             <div class="hx-select-chip" onclick="setDemoChip('marital', 'Divorced', this)">Divorced</div>
             <div class="hx-select-chip" onclick="setDemoChip('marital', 'Widowed', this)">Widowed</div>
         </div></div>
-    
 
-            <div class="hx-field-row">
-                <label class="hx-field-label">Occupation & Residence</label>
+<!-- UPDATED: Obstetric Hx Section (Seamless Style) -->
+            <div id="hx-demo-obs-section" style="display: none;">
+                <label class="hx-field-label">🤰 OBS/GYN Hx</label>
+                
+                <div class="hx-field-row" style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label class="hx-field-label">Menarche Age</label>
+                        <input type="text" id="hx-demo-obs-menarche" class="hx-input" placeholder="Age" oninput="saveHxState('obs', 'menarche', this.value)">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="hx-field-label">Cycle Freq</label>
+                        <input type="text" id="hx-demo-obs-cycle" class="hx-input" placeholder="e.g. Regular 28d" oninput="saveHxState('obs', 'cycle', this.value)">
+                    </div>
+                </div>
+                
+                <div class="hx-field-row" style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label class="hx-field-label">LMP</label>
+                        <input type="text" id="hx-demo-obs-lmp" class="hx-input" placeholder="e.g. 2 weeks ago" oninput="saveHxState('obs', 'lmp', this.value)">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="hx-field-label">Menopausal</label>
+                        <div class="hx-chip-bar" id="hx-demo-obs-menopausal-bar" style="margin: 0;">
+                            <div class="hx-select-chip" onclick="setDemoChip('obs_menopausal', 'Yes', this)">Yes</div>
+                            <div class="hx-select-chip" onclick="setDemoChip('obs_menopausal', 'No', this)">No</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hx-field-row">
+                    <label class="hx-field-label">GPA (Gravida, Para, Abortus)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="hx-demo-obs-g" class="hx-input" placeholder="G" oninput="saveHxState('obs', 'g', this.value)">
+                        <input type="number" id="hx-demo-obs-p" class="hx-input" placeholder="P" oninput="saveHxState('obs', 'p', this.value)">
+                        <input type="number" id="hx-demo-obs-a" class="hx-input" placeholder="A" oninput="saveHxState('obs', 'a', this.value)">
+                    </div>
+                </div>
+                
+                <div class="hx-field-row">
+                    <label class="hx-field-label">Outcomes & Notes</label>
+                    <input type="text" id="hx-demo-obs-notes" class="hx-input" placeholder="Mode of delivery, GA, complications..." oninput="saveHxState('obs', 'notes', this.value)">
+                </div>
+            </div>
+
+            <!-- UPDATED: Dynamic Occupation & Residence Row -->
+            <div class="hx-field-row" id="hx-demo-occ-res-row">
+                <label class="hx-field-label" id="hx-demo-occ-res-label">🏠 Occupation & Residence</label>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="hx-demo-occ" class="hx-input" placeholder="Occupation" oninput="saveHxState('demo', 'occ', this.value)">
                     <input type="text" id="hx-demo-residence" class="hx-input" placeholder="Residence" oninput="saveHxState('demo', 'residence', this.value)">
@@ -1771,7 +1827,7 @@ body.is-dragging * {
             </div>
 
             <div class="hx-field-row">
-                <label class="hx-field-label">Blood Group</label>
+                <label class="hx-field-label">🩸 Blood Group</label>
                 <input type="text" id="hx-demo-blood" class="hx-input" placeholder="e.g. O+, AB-..." oninput="saveHxState('demo', 'blood', this.value)">
             </div>
 
@@ -2444,6 +2500,11 @@ function createPatientCard(p, roomId) {
     card.className = 'patient-card';
     card.dataset.patientId = p.id;
 
+    // Check if patient has at least one complaint to highlight the Advanced button in green
+        const hasComplaint = p.hx && p.hx.complaints && p.hx.complaints.length > 0;
+    // USE A CSS CLASS INSTEAD OF INLINE STYLES
+    const advBtnClass = hasComplaint ? 'adv-btn-highlighted' : '';
+
     card.innerHTML = `
         <div class="patient-header">
             <div class="patient-header-left" style="gap:6px;">
@@ -2451,9 +2512,9 @@ function createPatientCard(p, roomId) {
                 <div class="patient-name" dir="auto">${p.name}</div>
             </div>
             <div class="patient-header-right" style="gap:6px; display:flex; align-items:flex-start;">
-                <!-- NEW ADVANCED OPTIONS BUTTON -->
                 <div class="options-wrapper">
-                    <button class="options-dot-btn" data-icon="🪪" id="pt-adv-btn-${p.id}" onclick="toggleAdvancedOptions(${p.id}, event)" title="Advanced options" style="font-size: 1.1rem;">🪪</button>
+                    <button class="options-dot-btn ${advBtnClass}" data-icon="🪪" id="pt-adv-btn-${p.id}" onclick="toggleAdvancedOptions(${p.id}, event)" title="Advanced options" style="font-size: 1.1rem;">🪪</button>
+
                     <div class="options-popup" id="pt-adv-popup-${p.id}">
                         <div class="options-popup-item" onclick="closeAllOptions(); openHxSheet(${p.id})">📄 Hx Sheet</div>
                         <div class="options-popup-item" onclick="closeAllOptions(); executePatientAnalysis(${p.id})">🧠 Analyze Patient</div>
@@ -2461,7 +2522,7 @@ function createPatientCard(p, roomId) {
                     </div>
                 </div>
                 
-                <!-- EXISTING PATIENT OPTIONS BUTTON -->
+                <!-- PATIENT OPTIONS BUTTON -->
                 <div class="options-wrapper">
                     <button class="options-dot-btn" data-icon="⋮" id="pt-opt-btn-${p.id}" onclick="togglePatientOptions(${p.id}, event)" title="Patient options">⋮</button>
                     <div class="options-popup" id="pt-opt-popup-${p.id}">
@@ -2557,17 +2618,13 @@ function executePatientAnalysis(patientId) {
     const pInfo = findPatientAndRoom(patientId);
     if (!pInfo) return;
 
-    // Temporarily load this patient into hxState to generate full summary
-    if (pInfo.patient.hx) {
-        hxState = JSON.parse(JSON.stringify(pInfo.patient.hx));
-    } else {
-        hxState = {
-            demo: { age: '', sex: '', occ: '', marital: '', residence: '', blood: '' },
-            complaints: [], presentData: {},
-            pastData: { medical: {}, surgical: {}, drug: {}, family: {}, social: {} },
-            examData: {}, labs: [], rads: [], extraNotes: ''
-        };
+    if (!pInfo.patient.hx || !pInfo.patient.hx.complaints || pInfo.patient.hx.complaints.length === 0) {
+        showToast("⛔ Add at least one complaint in Hx Sheet first.");
+        return;
     }
+
+    // Temporarily load this patient into hxState to generate full summary
+    hxState = JSON.parse(JSON.stringify(pInfo.patient.hx));
     hxState.patientId = patientId;
 
     // Generate compact sheet summary, flag true to skip clipboard
@@ -2619,6 +2676,10 @@ function syncHxStateToPatient() {
 function saveHxState(category, key, value) {
     if (category === 'extraNotes') hxState.extraNotes = value;
     else if (category === 'demo') hxState.demo[key] = value;
+    else if (category === 'obs') {
+        if (!hxState.demo.obs) hxState.demo.obs = {};
+        hxState.demo.obs[key] = value;
+    }
     syncHxStateToPatient();
 }
 
@@ -2716,18 +2777,66 @@ function handleAgeInput(val) {
         badge.style.display = 'none';
     }
 
-    // Hide Marital Status for Pediatric and Neonate
+    // Delegate all UI visibility updates to the dynamic handler
+    updateDynamicProfileUI();
+
+    renderHxAll();
+}
+
+function updateDynamicProfileUI() {
+    const group = calculateAgeGroup(hxState.demo.age || '');
+    const sex = hxState.demo.sex || '';
+
+    // Determine if the patient is a child
+    const isChild = (group === 'Neonate' || group === 'Pediatric');
+
+    // 1. Marital Status visibility
     const maritalRow = document.getElementById('hx-demo-marital-row');
     if (maritalRow) {
-        if (group === 'Neonate' || group === 'Pediatric') {
-            maritalRow.style.display = 'none';
+        maritalRow.style.display = isChild ? 'none' : 'block';
+    }
+
+    // 2. Occupation visibility
+    const occInput = document.getElementById('hx-demo-occ');
+    const occResLabel = document.getElementById('hx-demo-occ-res-label');
+    if (occInput && occResLabel) {
+        if (isChild) {
+            occInput.style.display = 'none';
+            occResLabel.innerText = '🏠 Residence';
         } else {
-            maritalRow.style.display = 'block';
+            occInput.style.display = 'block';
+            occResLabel.innerText = '🏠 Occupation & Residence';
         }
     }
 
-    // Instantly update Hx exclusions dynamically as user types
-    renderHxAll();
+    // 3. Obstetric Section visibility
+    const obsSection = document.getElementById('hx-demo-obs-section');
+    if (obsSection) {
+        // Show only if Female AND NOT a child (Neonate/Pediatric)
+        if (sex === 'Female' && !isChild) {
+            obsSection.style.display = 'block';
+        } else {
+            obsSection.style.display = 'none';
+        }
+    }
+}
+
+function cleanupHxPastData() {
+    if (!hxState || !hxState.pastData) return;
+    const categories = ['medical', 'surgical', 'drug', 'family', 'social'];
+    let changed = false;
+    
+    // Automatically delete items that were hidden/excluded by age/sex logic and never set to yes/no
+    categories.forEach(cat => {
+        Object.keys(hxState.pastData[cat]).forEach(item => {
+            if (hxState.pastData[cat][item] === null) {
+                delete hxState.pastData[cat][item];
+                changed = true;
+            }
+        });
+    });
+    
+    if (changed) syncHxStateToPatient();
 }
 
 // ── Open / Close ─────────────────────────────────────────────────────────────
@@ -2750,21 +2859,45 @@ function openHxSheet(patientId) {
             examData: {}, labs: [], rads: [], extraNotes: ''
         };
     }
+    
+    // Ensure Obstetric object exists
+    if (!hxState.demo.obs) hxState.demo.obs = { menarche: '', lmp: '', cycle: '', menopausal: '', g: '', p: '', a: '', notes: '' };
 
     switchHxTab('profile');
 
     document.getElementById('hx-patient-name-display').innerText = pInfo.patient.name;
     document.getElementById('hx-demo-age').value = hxState.demo.age || '';
-    handleAgeInput(hxState.demo.age || ''); // Set the age badge & marital visibility on load
     
     document.getElementById('hx-demo-occ').value = hxState.demo.occ || '';
     document.getElementById('hx-demo-residence').value = hxState.demo.residence || '';
-    document.getElementById('hx-demo-blood').value = hxState.demo.blood || ''; // <-- Added
+    document.getElementById('hx-demo-blood').value = hxState.demo.blood || ''; 
     document.getElementById('hx-extra-notes').value = hxState.extraNotes || '';
 
-    initDemoChips(); 
-activeHxSystemFilter = null;
+    // Load Obstetric Hx Values
+    document.getElementById('hx-demo-obs-menarche').value = hxState.demo.obs.menarche || '';
+    document.getElementById('hx-demo-obs-cycle').value = hxState.demo.obs.cycle || '';
+    document.getElementById('hx-demo-obs-lmp').value = hxState.demo.obs.lmp || '';
+    document.getElementById('hx-demo-obs-g').value = hxState.demo.obs.g || '';
+    document.getElementById('hx-demo-obs-p').value = hxState.demo.obs.p || '';
+    document.getElementById('hx-demo-obs-a').value = hxState.demo.obs.a || '';
+    document.getElementById('hx-demo-obs-notes').value = hxState.demo.obs.notes || '';
+
+    // Handle initial UI layout & Exclusions
+    handleAgeInput(hxState.demo.age || '');
+
+    initDemoChips();
+    
+    // Special init for Menopausal chips
+    const menopausalBar = document.getElementById('hx-demo-obs-menopausal-bar');
+    if (menopausalBar) {
+        menopausalBar.querySelectorAll('.hx-select-chip').forEach(c => {
+            c.classList.toggle('active', c.innerText.trim() === hxState.demo.obs.menopausal);
+        });
+    }
+
+    activeHxSystemFilter = null;
     renderHxSystemFilterBar();
+    
     const v = pInfo.patient.vitals;
     document.getElementById('hx-vit-hr').value = v.hr || '';
     document.getElementById('hx-vit-bp').value = v.bp || '';
@@ -2857,17 +2990,23 @@ function setDemoChip(key, val, el) {
     const isActive = el.classList.contains('active');
     el.parentElement.querySelectorAll('.hx-select-chip').forEach(c => c.classList.remove('active'));
     
-    if (isActive) hxState.demo[key] = ''; 
-    else { el.classList.add('active'); hxState.demo[key] = val; }
+    if (key === 'obs_menopausal') {
+        if (!hxState.demo.obs) hxState.demo.obs = {};
+        if (isActive) hxState.demo.obs.menopausal = ''; 
+        else { el.classList.add('active'); hxState.demo.obs.menopausal = val; }
+    } else {
+        if (isActive) hxState.demo[key] = ''; 
+        else { el.classList.add('active'); hxState.demo[key] = val; }
+    }
     
     syncHxStateToPatient();
 
-    // If Sex changes, re-render Exams to show/hide OBS/GYN
     if (key === 'sex') {
+        updateDynamicProfileUI();
+        cleanupHxPastData();
         renderHxExam(getHxContext());
     }
 }
-
 function initDemoChips() {
     ['sex', 'marital'].forEach(key => {
         const bar = document.getElementById(`hx-demo-${key}-bar`);
@@ -3638,6 +3777,18 @@ function generateHxSummary(isForAi = false) {
     if (d.blood)    demoParts.push(`Blood: ${d.blood}`);
     if (demoParts.length) txt += `Profile: ${demoParts.join(' | ')}\n`;
 
+    // Add Obstetric Hx context if applicable
+    if (d.sex === 'Female' && d.obs) {
+        const obsParts = [];
+        if (d.obs.menarche) obsParts.push(`Menarche: ${d.obs.menarche}`);
+        if (d.obs.lmp) obsParts.push(`LMP: ${d.obs.lmp}`);
+        if (d.obs.cycle) obsParts.push(`Cycle: ${d.obs.cycle}`);
+        if (d.obs.menopausal) obsParts.push(`Menopausal: ${d.obs.menopausal}`);
+        if (d.obs.g || d.obs.p || d.obs.a) obsParts.push(`G${d.obs.g||0} P${d.obs.p||0} A${d.obs.a||0}`);
+        if (d.obs.notes) obsParts.push(`Notes: ${d.obs.notes}`);
+        if (obsParts.length) txt += `Obstetrics/Gyn: ${obsParts.join(' | ')}\n`;
+    }
+
     if (pt?.vitals) {
         const v = pt.vitals;
         const vitalsArr = [];
@@ -3666,7 +3817,6 @@ function generateHxSummary(isForAi = false) {
             allAttrs.forEach(attr => {
                 let v = cd[attr.id];
                 if (v !== undefined && v !== '' && v !== null) {
-                    // Map boolean values to clear Yes/No text paired with their label
                     if (typeof v === 'boolean') {
                         parts.push(`${attr.label}: ${v ? 'Yes' : 'No'}`);
                     } else {
@@ -3705,11 +3855,10 @@ function generateHxSummary(isForAi = false) {
         txt += `\n[PAST HX]\n${pastArr.join('\n')}\n`;
     }
 
-// ── Clinical Examination ──────────────────────────────────────────
+    // ── Clinical Examination ──────────────────────────────────────────
     let examSysMap = {}; 
     
     Object.keys(hxState.examData).forEach(eid => {
-        // Handle standalone extra notes
         if (eid.startsWith('extra_')) {
             const sysName = HX_SYSTEMS[eid.replace('extra_', '')]?.name;
             const text = hxState.examData[eid];
@@ -3720,7 +3869,6 @@ function generateHxSummary(isForAi = false) {
             return;
         }
         
-        // Handle structured templates
         const ex = HX_EXAMS.find(x => x.id === eid);
         const data = hxState.examData[eid];
         
@@ -3731,7 +3879,6 @@ function generateHxSummary(isForAi = false) {
             if (ex.template && data.fields) {
                 ex.template.forEach(f => {
                     let fVal = data.fields[f.id];
-                    // Filter out empty noise. 
                     if (fVal !== undefined && fVal !== '' && fVal !== null && fVal !== 'Normal' && fVal !== 'None' && fVal !== 'N/A') {
                         if (typeof fVal === 'boolean') {
                             findings.push(`${f.label}: ${fVal ? 'Yes' : 'No'}`);
@@ -3786,7 +3933,6 @@ function generateHxSummary(isForAi = false) {
     if (!isForAi) triggerCopy(finalTxt, "Hx Summary Copied! 📋");
     return finalTxt;
 }
-
 
 
         function findPatientAndRoom(patientId) {
