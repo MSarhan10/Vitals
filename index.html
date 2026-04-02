@@ -6751,7 +6751,7 @@ protective actions, or urgent safety concerns.`;
     + '2. TEACHING FLOW: Extract the reasoning and pathophysiology explanations, mapping them correctly to the JSON fields.\n'
     + '3. PERSONALITY: follow personality and tone in system instructions.\n'
     + '4. TEXT FORMATTING: Remove ALL brackets [] and parentheticals () from text. Convert "finding (explanation)" into flowing sentences.\n'
-    + '5. JSON SYNTAX: Valid JSON only, exactly 3–4 diagnoses. Return ONLY the JSON object.\n';
+    + '5. JSON SYNTAX: Valid JSON only, exactly 3–4 diagnoses. Never forget the emojis. Return ONLY the JSON object.\n';
 
     var systemInstr2 = "You are a clinical JSON editor. Output only valid JSON.";
     if (personalityText) {
